@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP v0.2</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--orange:#ea580c;--debug-bg:#fefce8;--debug-border:#fde68a;--debug-text:#92400e;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:204px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;color:var(--accent);}
+.logo span{display:block;font-size:10px;font-weight:500;color:var(--muted);margin-top:2px;}
+nav{padding:8px;flex:1;}
+.nav-group{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;font-size:12.5px;transition:all .1s;margin-bottom:1px;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:#eff6ff;color:var(--accent);font-weight:600;}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;}
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+.debug-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+.toggle-sw{width:28px;height:16px;background:var(--border2);border-radius:8px;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle-sw.on{background:var(--yellow);}
+.toggle-sw::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;background:#fff;border-radius:6px;transition:left .2s;}
+.toggle-sw.on::after{left:14px;}
+.main{margin-left:204px;flex:1;}
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-weight:700;font-size:14px;}
+.topbar-sub{color:var(--muted);font-size:12px;}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.content{padding:20px;}
+.page{display:none;}.page.active{display:block;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Manrope';font-size:12.5px;font-weight:600;transition:all .12s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca;}.btn-danger:hover{background:#fee2e2;}
+.btn-sm{padding:4px 10px;font-size:12px;}.btn-xs{padding:2px 8px;font-size:11px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:#fafbfc;}
+.card-title{font-weight:700;font-size:13px;}
+.card-body{padding:16px;}
+.mb-12{margin-bottom:12px;}.mb-16{margin-bottom:16px;}.mt-12{margin-top:12px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+input,select,textarea{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s,box-shadow .12s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.field-hint{font-size:11px;color:var(--muted);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid-main{display:grid;grid-template-columns:1fr 284px;gap:16px;align-items:start;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#fafbfc;}
+td{padding:9px 12px;vertical-align:middle;}
+.mono{font-family:'JetBrains Mono';font-size:11.5px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.s-draft{background:#f1f5f9;color:#475569;}.s-approved{background:#f0fdf4;color:#16a34a;}
+.s-superseded{background:#faf5ff;color:#7c3aed;}.s-awaiting{background:#fffbeb;color:#d97706;}
+.s-cancelled{background:#fef2f2;color:#dc2626;}.s-quotation{background:#eff6ff;color:#2563eb;}
+.chip-w{font-family:'JetBrains Mono';font-size:11.5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:1px 7px;}
+.chip-c{font-family:'JetBrains Mono';font-size:11.5px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 7px;}
+.chip-p{font-family:'JetBrains Mono';font-size:11.5px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;}
+.debug-box{background:var(--debug-bg);border:1px solid var(--debug-border);border-radius:5px;padding:8px 10px;font-family:'JetBrains Mono';font-size:10.5px;color:var(--debug-text);line-height:1.8;}
+.debug-box.hidden{display:none;}
+.summary{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;position:sticky;top:68px;}
+.summary-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+.summary-row:last-child{border-bottom:none;}
+.summary-row.total{font-weight:700;font-size:14px;padding-top:10px;}
+.summary-label{color:var(--muted);}
+.sep{height:1px;background:var(--border);margin:12px 0;}
+.mat-search-wrap{position:relative;}
+.mat-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:50;max-height:320px;overflow-y:auto;display:none;}
+.mat-dropdown.open{display:block;}
+.mat-cat-hdr{padding:5px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);border-top:1px solid var(--border);}
+.mat-opt{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.mat-opt:last-child{border-bottom:none;}.mat-opt:hover{background:#eff6ff;}
+.mat-opt-code{font-family:'JetBrains Mono';font-size:11px;color:var(--accent);font-weight:700;}
+.mat-opt-name{font-size:12.5px;font-weight:600;margin:2px 0;}
+.mat-opt-meta{font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;}
+.cat-filter{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.cat-btn{padding:3px 10px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .1s;}
+.cat-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cat-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.mtype-tabs{display:flex;gap:4px;}
+.mtype-btn{flex:1;padding:7px;border:1px solid var(--border2);border-radius:5px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);transition:all .12s;}
+.mtype-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.quick-btn{padding:4px 12px;border:1px solid var(--border2);border-radius:5px;background:var(--surface);font-family:'JetBrains Mono';font-size:12px;color:var(--text);cursor:pointer;transition:all .12s;}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+.remnant-option{background:#f0fdf4;border:1px solid #86efac;border-radius:5px;padding:8px 12px;cursor:pointer;transition:background .12s;font-size:12px;margin-bottom:6px;}
+.remnant-option:hover{background:#dcfce7;}
+.remnant-title{font-weight:700;color:var(--green);}
+.warning-box{background:#fffbeb;border:1px solid #fde68a;border-left:3px solid var(--yellow);border-radius:5px;padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:8px;}
+.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid var(--accent);border-radius:5px;padding:8px 12px;font-size:12px;color:#1e40af;}
+.diff-pos{color:var(--red);}.diff-neg{color:var(--green);}
+.diff-row{padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+.diff-row.added{background:#f0fdf4;}.diff-row.removed{background:#fef2f2;}.diff-row.changed{background:#fffbeb;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#15803d;}.toast.error{background:var(--red);}.toast.warning{background:#d97706;}
+.text-muted{color:var(--muted);}.text-sm{font-size:12px;}.text-xs{font-size:11px;}.fw7{font-weight:700;}
+.gap-8{display:flex;gap:8px;align-items:center;}.gap-12{display:flex;gap:12px;align-items:center;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty .icon{font-size:32px;margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">МеталлПро ERP <span>Рабочий стенд v0.2</span></div>
+  <nav>
+    <div class="nav-group">Workflow</div>
+    <div class="nav-item active" onclick="go('quote')"><span>📋</span> Создать КП</div>
+    <div class="nav-item" onclick="go('revisions')"><span>🔁</span> Ревизии <span class="nav-badge" id="rev-count">0</span></div>
+    <div class="nav-item" onclick="go('compare')"><span>⚖️</span> Сравнение</div>
+    <div class="nav-group">Справочники</div>
+    <div class="nav-item" onclick="go('materials')"><span>🔩</span> Материалы</div>
+    <div class="nav-item" onclick="go('prices')"><span>💰</span> Цены</div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="debug-toggle" onclick="toggleDebug()">
+      <div class="toggle-sw" id="dbg-sw"></div>
+      <span id="dbg-label">Debug выкл.</span>
+    </div>
+  </div>
+</aside>
+<div class="main">
+
+<div class="page active" id="page-quote">
+  <div class="topbar">
+    <div><div class="topbar-title">Создание КП</div><div class="topbar-sub">Узлы → Детали → Расчёт → Ревизия</div></div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm" onclick="resetQuote()">Сбросить</button>
+      <button class="btn btn-primary" onclick="createRevision()">📸 Зафиксировать ревизию</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="card mb-16">
+      <div class="card-header"><div class="card-title">Заказ</div></div>
+      <div class="card-body">
+        <div class="grid3">
+          <div class="field"><label>Номер заказа</label><input id="order-num" value="МП-2025-032"></div>
+          <div class="field"><label>Заказчик</label><input id="order-customer" value="ООО СтальКонструкт"></div>
+          <div class="field"><label>Объект</label><input id="order-title" value="Навес 500 м²"></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-main">
+      <div>
+        <div id="asms-container"></div>
+        <div class="card" style="border-style:dashed;background:#fafbfc">
+          <div class="card-body" style="padding:12px">
+            <div class="gap-12">
+              <input id="new-asm-name" placeholder="Название узла (напр. Ферма Ф-1)" style="flex:1">
+              <input id="new-asm-qty" type="number" value="1" min="1" style="width:60px" title="Кол-во узлов">
+              <span class="text-xs text-muted">шт</span>
+              <button class="btn btn-secondary" onclick="addAsm()">+ Добавить узел</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="summary">
+          <div class="summary-title">Итоги расчёта</div>
+          <div id="sum-warns"></div>
+          <div id="sum-bymat" style="margin-bottom:10px;font-size:11.5px"></div>
+          <div class="summary-row"><span class="summary-label">Общий вес</span><span class="chip-w" id="s-w">0.000 т</span></div>
+          <div class="summary-row"><span class="summary-label">Площадь покраски</span><span class="chip-p" id="s-p">0.00 м²</span></div>
+          <div class="summary-row"><span class="summary-label">Стоимость материала</span><span class="mono" id="s-mc">₽ 0</span></div>
+          <div class="summary-row"><span class="summary-label">Деталей</span><span class="mono" id="s-pts">0 шт</span></div>
+          <div class="summary-row total"><span>ИТОГО</span><span class="chip-c" id="s-tot">₽ 0</span></div>
+          <div class="sep"></div>
+          <div class="debug-box hidden" id="dbg-sum"><div id="dbg-sum-lines"></div></div>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px;justify-content:center" onclick="createRevision()">📸 Зафиксировать ревизию</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-revisions">
+  <div class="topbar"><div class="topbar-title">Ревизии КП</div>
+    <div class="topbar-right"><button class="btn btn-secondary btn-sm" onclick="go('compare')">Сравнить →</button></div>
+  </div>
+  <div class="content"><div id="revs-list"></div></div>
+</div>
+
+<div class="page" id="page-compare">
+  <div class="topbar"><div class="topbar-title">Сравнение ревизий</div></div>
+  <div class="content">
+    <div class="card mb-16">
+      <div class="card-header"><div class="card-title">Выберите ревизии</div></div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="field"><label>Ревизия A (базовая)</label><select id="cmp-a"></select></div>
+          <div class="field"><label>Ревизия B (новая)</label><select id="cmp-b"></select></div>
+        </div>
+        <button class="btn btn-primary mt-12" onclick="runCmp()">Сравнить</button>
+      </div>
+    </div>
+    <div id="cmp-result"></div>
+  </div>
+</div>
+
+<div class="page" id="page-materials">
+  <div class="topbar"><div class="topbar-title">Справочник материалов</div></div>
+  <div class="content">
+    <div class="card">
+      <div class="card-header">
+        <input placeholder="🔍 Поиск..." style="width:280px;font-size:12.5px" oninput="renderMats(this.value)">
+      </div>
+      <table>
+        <thead><tr><th>Код</th><th>Наименование</th><th>Категория</th><th>кг/м</th><th>кг/м²</th><th>м²/м покраска</th><th>ГОСТ</th></tr></thead>
+        <tbody id="mat-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-prices">
+  <div class="topbar"><div class="topbar-title">Цены</div></div>
+  <div class="content">
+    <div class="info-box mb-16">При создании ревизии берётся последняя актуальная цена. Старые не удаляются.</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена, руб/т</th><th>С</th><th>По</th><th>Статус</th></tr></thead>
+        <tbody id="prices-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- MODAL -->
+<div id="modal-ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:10px;width:580px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div id="modal-title" style="font-weight:700;font-size:15px">Добавить деталь</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:6px">Тип измерения</label>
+        <div class="mtype-tabs">
+          <div class="mtype-btn active" id="mt-linear" onclick="setMType('linear')">📏 Погонаж</div>
+          <div class="mtype-btn" id="mt-area" onclick="setMType('area')">⬜ Листовой прокат</div>
+          <div class="mtype-btn" id="mt-piece" onclick="setMType('piece')">🔩 Штучно (крепёж)</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <label style="display:block;margin-bottom:6px">Категория</label>
+        <div class="cat-filter" id="cat-filter"></div>
+      </div>
+      <div class="field mb-16">
+        <label>Профиль материала</label>
+        <div class="mat-search-wrap">
+          <input id="mat-search" placeholder="Введите код или название..." autocomplete="off" oninput="searchMat(this.value)" onfocus="searchMat(this.value)">
+          <div class="mat-dropdown" id="mat-dd"></div>
+        </div>
+        <div id="mat-sel" style="display:none;margin-top:6px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:12px"></div>
+      </div>
+      <div id="rem-hint" style="display:none;margin-bottom:12px"></div>
+      <div id="dims-linear">
+        <div id="stdlen-wrap" style="display:none;margin-bottom:10px">
+          <label style="display:block;margin-bottom:6px">Стандартные длины</label>
+          <div class="quick-btns" id="stdlen-btns"></div>
+        </div>
+        <div class="grid2 mb-16">
+          <div class="field"><label>Длина детали, мм</label><input type="number" id="p-len" step="1" placeholder="2340" min="1" oninput="calcPart()"><span class="field-hint" id="hint-std"></span></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty" value="1" min="1" oninput="calcPart()"></div>
+        </div>
+      </div>
+      <div id="dims-area" style="display:none">
+        <div id="sheet-wrap" style="display:none;margin-bottom:10px">
+          <label style="display:block;margin-bottom:6px">Форматы листа</label>
+          <div class="quick-btns" id="sheet-btns"></div>
+        </div>
+        <div class="grid3 mb-16">
+          <div class="field"><label>Ширина, мм</label><input type="number" id="p-w" step="1" placeholder="250" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Высота, мм</label><input type="number" id="p-h" step="1" placeholder="300" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-a" value="1" min="1" oninput="calcPart()"></div>
+        </div>
+      </div>
+      <div id="dims-piece" style="display:none">
+        <div class="grid2 mb-16">
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Масса 1 шт, кг</label><input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0.001" oninput="calcPart()"></div>
+        </div>
+      </div>
+      <div class="field mb-16"><label>Название (необязательно)</label><input id="p-name" placeholder="Косынка К-1"></div>
+      <div id="part-res" style="display:none">
+        <div class="debug-box hidden" id="part-dbg"></div>
+        <div style="margin-top:8px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+            <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Масса</div><div class="mono fw7" style="font-size:17px;color:var(--green)" id="res-w">—</div></div>
+            <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Покраска</div><div class="mono fw7" style="font-size:17px;color:var(--orange)" id="res-p">—</div></div>
+            <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Стоимость</div><div class="mono fw7" style="font-size:17px;color:var(--accent)" id="res-c">—</div></div>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--muted);text-align:center" id="res-note"></div>
+        </div>
+        <div id="no-price-w" class="warning-box mt-12" style="display:none">⚠️ Нет актуальной цены — добавьте в разделе «Цены». Ревизию создать не получится.</div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Добавить деталь</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://5.35.92.112';
+
+const CATS=[
+  {id:'all',label:'Все'},{id:'tube_sq',label:'Трубы профильные'},{id:'tube_rnd',label:'Трубы круглые'},
+  {id:'angle',label:'Уголки'},{id:'channel',label:'Швеллеры и балки'},{id:'sheet',label:'Листовой прокат'},
+  {id:'rebar',label:'Арматура и прутки'},{id:'piece',label:'Штучные (крепёж)'},
+];
+
+// Map API profileType → simulator cat
+const PROFILE_CAT = {
+  'RECTANGULAR_TUBE':'tube_sq','ROUND_TUBE':'tube_rnd','ANGLE':'angle',
+  'CHANNEL':'channel','BEAM':'channel','SHEET':'sheet','PLATE':'sheet',
+  'ROUND_BAR':'rebar','FLAT_BAR':'rebar',
+};
+
+// MATS and PRICES loaded from API
+let MATS=[], PRICES=[], matsLoaded=false;
+const REMS=[];
+
+async function loadMats() {
+  try {
+    showLoader(true);
+    const res = await fetch(`${API}/api/materials`);
+    const data = await res.json();
+    MATS = data.map(m => {
+      const geo = m.geometry || {};
+      const prof = m.procurementProfiles || [];
+      const price = prof[0]?.prices?.[0];
+      const cat = PROFILE_CAT[m.profileType] || 'all';
+      const kgm  = geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null;
+      const kgm2 = geo.weightPerSquareMeter      ? parseFloat(geo.weightPerSquareMeter)      : null;
+      const pm   = geo.paintSurfacePerMeter      ? parseFloat(geo.paintSurfacePerMeter)      : null;
+      const stdLen = prof[0]?.standardLength ? [parseFloat(prof[0].standardLength)*1000] : null;
+      if (price) {
+        PRICES.push({
+          mid: m.id,
+          sup: prof[0]?.supplierName || '',
+          price: parseFloat(price.pricePerTon),
+          from: price.validFrom?.slice(0,10) || '2026-01-01',
+          to: price.validTo?.slice(0,10) || null,
+        });
+      }
+      return {
+        id: m.id, cat, code: m.code, name: m.name,
+        kgm, kgm2, pm, sl: stdLen, sf: null,
+        gost: m.standard || '',
+        steelGrade: m.steelGrade || null,
+      };
+    });
+    matsLoaded = true;
+    showLoader(false);
+    refresh();
+    toast(`Загружено ${MATS.length} материалов из базы`, 'success');
+  } catch(e) {
+    showLoader(false);
+    toast('Ошибка загрузки материалов: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+function showLoader(show) {
+  let el = document.getElementById('loader-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loader-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Manrope,sans-serif';
+    el.innerHTML = '<div style="width:40px;height:40px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#6b7280;font-size:13px">Загрузка материалов из базы...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+
+
+function showLoader(show) {
+  let el = document.getElementById('loader-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loader-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Manrope,sans-serif';
+    el.innerHTML = '<div style="width:40px;height:40px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#6b7280;font-size:13px">Загрузка материалов из базы...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+let dbg=false,asms=[],revs=[],nA=10,nP=100,curA=null,curEP=null,curMT='linear',curC='all',selM=null;
+
+// localStorage persistence
+const LS_ASMS='erp_asms',LS_REVS='erp_revs',LS_ORDER='erp_order';
+
+function saveState(){
+  try{
+    localStorage.setItem(LS_ASMS,JSON.stringify(asms));
+    localStorage.setItem(LS_REVS,JSON.stringify(revs));
+    localStorage.setItem(LS_ORDER,JSON.stringify({
+      num:document.getElementById('order-num').value,
+      customer:document.getElementById('order-customer').value,
+      title:document.getElementById('order-title').value
+    }));
+  }catch(e){console.warn('saveState error',e);}
+}
+
+function loadState(){
+  try{
+    const a=localStorage.getItem(LS_ASMS);
+    const r=localStorage.getItem(LS_REVS);
+    const o=localStorage.getItem(LS_ORDER);
+    if(a){asms=JSON.parse(a);if(asms.length){const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;}}
+    if(r){revs=JSON.parse(r);document.getElementById('rev-count').textContent=revs.length;}
+    if(o){const od=JSON.parse(o);document.getElementById('order-num').value=od.num||'';document.getElementById('order-customer').value=od.customer||'';document.getElementById('order-title').value=od.title||'';}
+  }catch(e){console.warn('loadState error',e);}
+}
+
+function gP(mid){const t=new Date().toISOString().slice(0,10);return PRICES.filter(p=>p.mid===mid&&p.from<=t&&(!p.to||p.to>=t)).sort((a,b)=>b.from.localeCompare(a.from))[0]||null;}
+
+function cPW(part,mat){
+  if(!mat)return{wpu:0,tot:0,pm2:0,lmm:0,dbg:[]};
+  const d=[];
+  if(part.mtype==='linear'){
+    const mm=part.len||0,m=mm/1000,kgm=mat.kgm||0,q=part.qty||1;
+    const wpu=r4(m*kgm),tot=r4(wpu*q),lmm=mm*q;
+    const pm2=mat.pm?r4(m*mat.pm*q):0;
+    d.push(`${fm(mm)} мм ÷ 1000 = ${m.toFixed(4)} м`);
+    d.push(`${m.toFixed(4)} м × ${kgm} кг/м = ${wpu} кг/шт`);
+    d.push(`${wpu} × ${q} шт = ${tot} кг`);
+    d.push(`Длина всего: ${fm(mm)} × ${q} = ${fm(lmm)} мм`);
+    if(mat.pm)d.push(`Покраска: ${m.toFixed(4)} м × ${mat.pm} м²/м × ${q} = ${pm2} м²`);
+    return{wpu,tot,pm2,lmm,dbg:d};
+  }
+  if(part.mtype==='area'){
+    const wm=part.w||0,hm=part.h||0,wM=wm/1000,hM=hm/1000,q=part.qty||1;
+    const kgm2=mat.kgm2||0,a2=r4(wM*hM),wpu=r4(a2*kgm2),tot=r4(wpu*q),pm2=r4(a2*2*q);
+    d.push(`${fm(wm)} × ${fm(hm)} мм = ${(wm*hm).toLocaleString('ru-RU')} мм²`);
+    d.push(`= ${a2.toFixed(6)} м²`);
+    d.push(`${a2.toFixed(6)} м² × ${kgm2} кг/м² = ${wpu} кг/шт`);
+    d.push(`${wpu} × ${q} шт = ${tot} кг`);
+    d.push(`Покраска: ${a2.toFixed(4)} м² × 2 стор. × ${q} = ${pm2} м²`);
+    return{wpu,tot,pm2,lmm:0,dbg:d};
+  }
+  if(part.mtype==='piece'){
+    const wpu=part.pw||0,q=part.qty||1,tot=r4(wpu*q);
+    d.push(`${wpu} кг/шт × ${q} шт = ${tot} кг`);
+    return{wpu,tot,pm2:0,lmm:0,dbg:d};
+  }
+  return{wpu:0,tot:0,pm2:0,lmm:0,dbg:[]};
+}
+function cCost(wKg,price){
+  if(!price||!wKg)return{cost:0,d:'—'};
+  const cost=r4(wKg/1000*price.price);
+  return{cost,d:`${wKg.toFixed(2)} кг ÷ 1000 × ₽${fm(price.price)}/т = ₽${fm(cost)}`};
+}
+function cAll(){
+  let tW=0,tC=0,tP=0,tPts=0;const bM={},ws=[];
+  for(const a of asms){for(const p of a.parts){
+    const mat=MATS.find(m=>m.id===p.mid);if(!mat)continue;
+    const{tot,pm2}=cPW(p,mat);const mu=a.qty||1;
+    const wT=r4(tot*mu),pT=r4((pm2||0)*mu),pr=gP(p.mid);
+    const{cost}=cCost(wT,pr);
+    tW+=wT;tC+=cost;tP+=pT;tPts++;
+    if(!pr)ws.push(`Нет цены: ${mat.code}`);
+    if(!bM[mat.id])bM[mat.id]={mat,w:0,c:0,p:0};
+    bM[mat.id].w+=wT;bM[mat.id].c+=cost;bM[mat.id].p+=pT;
+  }}
+  return{tW:r4(tW),tC:r4(tC),tP:r4(tP),tPts,bM,ws:[...new Set(ws)]};
+}
+
+function renderAsms(){
+  const c=document.getElementById('asms-container');
+  if(!asms.length){c.innerHTML=`<div class="card mb-16"><div class="empty"><div class="icon">📦</div>Узлов пока нет — добавьте первый ниже</div></div>`;return;}
+  c.innerHTML=asms.map(a=>{
+    let aW=0,aP=0,aC=0;
+    for(const p of a.parts){const mat=MATS.find(m=>m.id===p.mid);if(!mat)continue;const{tot,pm2}=cPW(p,mat);const mu=a.qty;const wT=r4(tot*mu);aW+=wT;aP+=r4((pm2||0)*mu);const{cost}=cCost(wT,gP(p.mid));aC+=cost;}
+    const tots=aW>0?`<span class="chip-w">${f3(aW/1000)} т</span><span class="chip-p">${aP.toFixed(2)} м²</span><span class="chip-c">₽ ${fm(Math.round(aC))}</span>`:'';
+    const rows=!a.parts.length?`<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`:a.parts.map(p=>renderPR(p,a)).join('');
+    return`<div class="card mb-16">
+      <div class="card-header">
+        <div class="gap-12"><div style="font-weight:700;font-size:14px">${a.name}</div>
+          <input type="number" value="${a.qty}" min="1" style="width:54px;font-size:12px;text-align:center" title="Кол-во" onchange="updAQ('${a.id}',this.value)">
+          <span class="text-xs text-muted">шт</span>${tots}
+        </div>
+        <div class="gap-8"><button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+          <button class="btn btn-danger btn-sm" onclick="remA('${a.id}')">Удалить</button></div>
+      </div>
+      <table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>`;
+  }).join('');
+}
+
+function renderPR(p,a){
+  const mat=MATS.find(m=>m.id===p.mid);if(!mat)return'';
+  const{wpu,tot,pm2,lmm,dbg:d}=cPW(p,mat);const mu=a.qty;
+  const wT=r4(tot*mu),pT=r4((pm2||0)*mu),pr=gP(p.mid);
+  const{cost,d:cd}=cCost(wT,pr);
+  const tl={linear:'📏',area:'⬜',piece:'🔩'}[p.mtype]||'';
+  const dims=fmtD(p);
+  const lnote=p.mtype==='linear'&&lmm>0
+    ? mu>1
+      ? `<br><span class="text-xs text-muted">на 1 узел: ${fm(lmm)} мм</span><br><span class="text-xs text-muted">на ${mu} узла/ов: ${fm(lmm*mu)} мм</span>`
+      : `<br><span class="text-xs text-muted">итого: ${fm(lmm)} мм</span>`
+    : '';
+  let dbgH='';
+  if(dbg)dbgH=`<tr style="background:var(--debug-bg)"><td colspan="11" style="padding:4px 12px"><div class="debug-box" style="margin:0">${[...d,cd].join('<br>')}</div></td></tr>`;
+  return`<tr>
+    <td><span class="mono" style="color:var(--accent);font-weight:700">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
+    <td>${p.name||'<span class="text-muted">—</span>'}</td>
+    <td>${tl}</td>
+    <td class="mono">${dims}${lnote}</td>
+    <td class="mono">${p.qty} шт</td>
+    <td class="mono">${wpu.toFixed(2)} кг</td>
+    <td><span class="chip-w">${wT.toFixed(2)} кг</span><br><span class="text-xs text-muted">=${tot.toFixed(2)}×${mu}</span></td>
+    <td>${pT>0?`<span class="chip-p">${pT.toFixed(2)} м²</span>`:'<span class="text-muted text-xs">—</span>'}</td>
+    <td>${pr?`<span class="mono">₽${fm(pr.price)}</span><br><span class="text-xs text-muted">${pr.sup}</span>`:'<span style="color:var(--red)" title="Нет цены">⚠️</span>'}</td>
+    <td>${pr?`<span class="chip-c">₽${fm(Math.round(cost))}</span>`:'—'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-secondary btn-xs" onclick="openEdit('${a.id}','${p.id}')" style="margin-right:4px">✏️</button>
+      <button class="btn btn-danger btn-xs" onclick="remP('${a.id}','${p.id}')">✕</button>
+    </td>
+  </tr>${dbgH}`;
+}
+
+function fmtD(p){
+  if(p.mtype==='linear')return`${fm(p.len||0)} мм`;
+  if(p.mtype==='area')return`${fm(p.w||0)} × ${fm(p.h||0)} мм`;
+  if(p.mtype==='piece')return`${p.qty} шт × ${p.pw||'?'} кг`;
+  return'—';
+}
+
+function updSum(){
+  const{tW,tC,tP,tPts,bM,ws}=cAll();
+  document.getElementById('s-w').textContent=`${f3(tW/1000)} т`;
+  document.getElementById('s-p').textContent=`${tP.toFixed(2)} м²`;
+  document.getElementById('s-mc').textContent=`₽ ${fm(Math.round(tC))}`;
+  document.getElementById('s-pts').textContent=`${tPts} шт`;
+  document.getElementById('s-tot').textContent=`₽ ${fm(Math.round(tC))}`;
+  const es=Object.values(bM);
+  document.getElementById('sum-bymat').innerHTML=es.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px">По материалам</div>${es.map(e=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:1px solid var(--border)"><span class="mono" style="color:var(--accent)">${e.mat.code}</span><div style="display:flex;gap:4px"><span class="chip-w" style="font-size:10.5px">${f3(e.w/1000)} т</span>${e.p>0?`<span class="chip-p" style="font-size:10.5px">${e.p.toFixed(1)} м²</span>`:''}</div></div>`).join('')}`:'';
+  document.getElementById('sum-warns').innerHTML=ws.map(w=>`<div class="warning-box">⚠️ ${w}</div>`).join('');
+  const de=document.getElementById('dbg-sum');
+  if(dbg){de.classList.remove('hidden');document.getElementById('dbg-sum-lines').innerHTML=es.map(e=>`<div>${e.mat.code}: ${f3(e.w/1000)} т × ₽${fm(gP(e.mat.id)?.price||0)}/т = ₽${fm(Math.round(e.c))}</div>`).join('');}
+  else de.classList.add('hidden');
+}
+function refresh(){renderAsms();updSum();}
+
+function addAsm(){const n=document.getElementById('new-asm-name').value.trim();const q=parseInt(document.getElementById('new-asm-qty').value)||1;if(!n){toast('Введите название','error');return;}asms.push({id:'a'+nA++,name:n,qty:q,parts:[]});document.getElementById('new-asm-name').value='';document.getElementById('new-asm-qty').value=1;refresh();saveState();toast(`Узел «${n}» добавлен`,'success');}
+function remA(id){if(!confirm('Удалить узел со всеми деталями?'))return;asms=asms.filter(a=>a.id!==id);refresh();saveState();}
+function updAQ(id,v){const a=asms.find(a=>a.id===id);if(a){a.qty=Math.max(1,parseInt(v)||1);refresh();saveState();}}
+function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.filter(p=>p.id!==pid);refresh();saveState();}}
+function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;localStorage.removeItem(LS_ASMS);localStorage.removeItem(LS_REVS);localStorage.removeItem(LS_ORDER);document.getElementById('rev-count').textContent=0;refresh();}
+
+function openMod(aid){curA=aid;curEP=null;selM=null;curC='all';resetForm();document.getElementById('modal-title').textContent='Добавить деталь';document.getElementById('btn-confirm').textContent='Добавить деталь';document.getElementById('modal-ov').style.display='flex';buildCF();setMType('linear');}
+function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-pw').value=p.pw||'';document.getElementById('p-name').value=p.name||'';document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
+function closeModal(){document.getElementById('modal-ov').style.display='none';document.getElementById('mat-dd').classList.remove('open');}
+function resetForm(){selM=null;['mat-search','p-len','p-w','p-h','p-name','p-pw'].forEach(id=>document.getElementById(id).value='');['p-qty','p-qty-a','p-qty-p'].forEach(id=>document.getElementById(id).value=1);['mat-sel','rem-hint','stdlen-wrap','sheet-wrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('part-res').style.display='none';document.getElementById('part-dbg').classList.add('hidden');document.getElementById('no-price-w').style.display='none';}
+
+function buildCF(){const rel={linear:['all','tube_sq','tube_rnd','angle','channel','rebar'],area:['all','sheet'],piece:['all','piece']}[curMT]||['all'];document.getElementById('cat-filter').innerHTML=CATS.filter(c=>rel.includes(c.id)).map(c=>`<div class="cat-btn ${c.id===curC?'active':''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');}
+function setC(id){curC=id;buildCF();searchMat(document.getElementById('mat-search').value);}
+function setMType(t){curMT=t;['linear','area','piece'].forEach(x=>{document.getElementById('dims-'+x).style.display=x===t?'':'none';document.getElementById('mt-'+x).classList.toggle('active',x===t);});if(t==='area')curC='sheet';else if(t==='piece')curC='piece';else curC='all';buildCF();if(document.getElementById('mat-search').value)searchMat(document.getElementById('mat-search').value);calcPart();}
+
+function searchMat(q){
+  const dd=document.getElementById('mat-dd');
+  let ms=MATS;
+  if(curMT==='area')ms=ms.filter(m=>m.kgm2!=null);
+  if(curMT==='linear')ms=ms.filter(m=>m.kgm!=null);
+  if(curMT==='piece')ms=ms.filter(m=>m.cat==='piece');
+  if(curC&&curC!=='all')ms=ms.filter(m=>m.cat===curC);
+  if(q.trim()){const ql=q.toLowerCase();ms=ms.filter(m=>m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql));}
+  if(!ms.length){dd.innerHTML=`<div style="padding:12px;color:var(--muted);font-size:12px">Ничего не найдено</div>`;dd.classList.add('open');return;}
+  const grp={};for(const m of ms){if(!grp[m.cat])grp[m.cat]=[];grp[m.cat].push(m);}
+  const multi=Object.keys(grp).length>1;
+  let html='';
+  for(const[cid,items]of Object.entries(grp)){
+    if(multi)html+=`<div class="mat-cat-hdr">${CATS.find(c=>c.id===cid)?.label||cid}</div>`;
+    html+=items.map(m=>{const pr=gP(m.id);const hasR=REMS.some(r=>r.mid===m.id);const ks=m.kgm!=null?`${m.kgm} кг/м`:m.kgm2!=null?`${m.kgm2} кг/м²`:'штучно';const ps=m.pm?`${m.pm} м²/м`:'по размеру';
+    return`<div class="mat-opt" onclick="selMat('${m.id}')"><div class="mat-opt-code">${m.code} ${hasR?'♻️':''}</div><div class="mat-opt-name">${m.name}</div><div class="mat-opt-meta"><span>⚖️ ${ks}</span><span>🎨 ${ps}</span>${pr?`<span style="color:var(--green)">₽${fm(pr.price)}/т</span>`:`<span style="color:var(--red)">⚠️ нет цены</span>`}${hasR?`<span style="color:var(--green)">♻️ остаток</span>`:''}</div></div>`;}).join('');
+  }
+  dd.innerHTML=html;dd.classList.add('open');
+}
+
+function selMat(id){selM=MATS.find(m=>m.id===id);document.getElementById('mat-search').value=selM.code;document.getElementById('mat-dd').classList.remove('open');showSel();if(selM.kgm2!=null&&selM.kgm==null)setMType('area');
+  const sw=document.getElementById('stdlen-wrap'),sb=document.getElementById('stdlen-btns');
+  if(selM.sl?.length){sw.style.display='block';sb.innerHTML=selM.sl.map(l=>`<div class="quick-btn" onclick="apL(${l})">${fm(l)} мм</div>`).join('');document.getElementById('hint-std').textContent=`Стандартные длины: ${selM.sl.map(l=>fm(l)+' мм').join(', ')}`;}else{sw.style.display='none';document.getElementById('hint-std').textContent='';}
+  const fw=document.getElementById('sheet-wrap'),fb=document.getElementById('sheet-btns');
+  if(selM.sf?.length){fw.style.display='block';fb.innerHTML=selM.sf.map(([w,h])=>`<div class="quick-btn" onclick="apS(${w},${h})">${fm(w)}×${fm(h)}</div>`).join('');}else fw.style.display='none';
+  const rems=REMS.filter(r=>r.mid===id),re=document.getElementById('rem-hint');
+  if(rems.length){re.style.display='block';re.innerHTML=rems.map(r=>{const desc=r.length?`Остаток ${fm(r.length)} мм`:`Обрезь ${fm(r.width)}×${fm(r.height)} мм`;return`<div class="remnant-option" onclick='useR(${JSON.stringify(r)})'><div class="remnant-title">♻️ ${desc}</div><div class="text-xs text-muted">${r.note}</div></div>`;}).join('');}else re.style.display='none';
+  calcPart();
+}
+function showSel(){const pr=gP(selM.id);const ks=selM.kgm!=null?`${selM.kgm} кг/м`:selM.kgm2!=null?`${selM.kgm2} кг/м²`:'штучно';const ps=selM.pm?`покраска ${selM.pm} м²/м`:'покраска по размеру';const el=document.getElementById('mat-sel');el.style.display='block';el.innerHTML=`<strong>${selM.name}</strong> · ${ks} · ${ps} · ГОСТ ${selM.gost}`+(pr?` · <span style="color:var(--green)">₽${fm(pr.price)}/т (${pr.sup})</span>`:` · <span style="color:var(--red)">⚠️ нет цены</span>`);}
+function apL(mm){document.getElementById('p-len').value=mm;calcPart();toast(`${fm(mm)} мм подставлено`,'success');}
+function apS(w,h){document.getElementById('p-w').value=w;document.getElementById('p-h').value=h;calcPart();toast(`Формат ${fm(w)}×${fm(h)} мм`,'success');}
+function useR(r){if(r.length){document.getElementById('p-len').value=r.length;setMType('linear');}else{document.getElementById('p-w').value=r.width;document.getElementById('p-h').value=r.height;setMType('area');}calcPart();toast('Остаток подставлен','success');}
+
+function gFP(){const qm={linear:'p-qty',area:'p-qty-a',piece:'p-qty-p'};return{mtype:curMT,len:parseFloat(document.getElementById('p-len').value)||0,qty:parseInt(document.getElementById(qm[curMT]).value)||1,w:parseFloat(document.getElementById('p-w').value)||0,h:parseFloat(document.getElementById('p-h').value)||0,pw:parseFloat(document.getElementById('p-pw').value)||0};}
+
+function calcPart(){
+  if(!selM)return;const p=gFP();const{wpu,tot,pm2,dbg:d}=cPW({...p,mid:selM.id},selM);const pr=gP(selM.id);const{cost,d:cd}=cCost(tot,pr);
+  const re=document.getElementById('part-res');
+  if(!tot&&p.mtype!=='piece'){re.style.display='none';return;}
+  re.style.display='block';
+  document.getElementById('res-w').textContent=`${tot.toFixed(2)} кг`;
+  document.getElementById('res-p').textContent=pm2>0?`${pm2.toFixed(3)} м²`:'—';
+  document.getElementById('res-c').textContent=pr?`₽${fm(Math.round(cost))}`:'—';
+  document.getElementById('res-note').textContent=pr?`${pr.sup}: ₽${fm(pr.price)}/т`:'';
+  document.getElementById('no-price-w').style.display=pr?'none':'block';
+  const de=document.getElementById('part-dbg');
+  if(dbg){de.classList.remove('hidden');de.innerHTML=[...d,cd].join('<br>');}else de.classList.add('hidden');
+}
+
+function confirmPart(){
+  if(!selM){toast('Выберите материал','error');return;}
+  const f=gFP();
+  if(f.mtype==='linear'&&!f.len){toast('Введите длину','error');return;}
+  if(f.mtype==='area'&&(!f.w||!f.h)){toast('Введите ширину и высоту','error');return;}
+  if(f.mtype==='piece'&&!f.pw){toast('Введите массу 1 шт','error');return;}
+  const a=asms.find(a=>a.id===curA);if(!a)return;
+  const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw};
+  if(curEP){const i=a.parts.findIndex(p=>p.id===curEP);if(i!==-1)a.parts[i]={...a.parts[i],...pd};toast('Деталь обновлена','success');}
+  else{a.parts.push({id:'pt'+nP++,...pd});toast('Деталь добавлена','success');}
+  closeModal();refresh();saveState();
+}
+
+function createRevision(){
+  const r=cAll();if(asms.every(a=>!a.parts.length)){toast('Добавьте хотя бы одну деталь','error');return;}
+  if(r.ws.length&&!confirm(`Предупреждения:\n${r.ws.join('\n')}\n\nВсё равно создать?`))return;
+  const num=revs.length+1;
+  const snap=asms.map(a=>({...a,parts:a.parts.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const{wpu,tot,pm2}=cPW({...p,mid:p.mid},mat);const mu=a.qty||1;const aT=r4(tot*mu),pT=r4((pm2||0)*mu);const pr=gP(p.mid);const{cost}=cCost(aT,pr);return{...p,sn:{mc:mat?.code,mn:mat?.name,wpu,tot,aT,pT,pp:pr?.price||null,sup:pr?.sup||null,cost}};})}) );
+  const rev={id:'r'+num,num,on:document.getElementById('order-num').value,cu:document.getElementById('order-customer').value,ti:document.getElementById('order-title').value,at:new Date().toISOString(),tW:r.tW,tC:r.tC,tP:r.tP,asms:snap,ws:r.ws};
+  revs.push(rev);document.getElementById('rev-count').textContent=revs.length;saveState();
+  updCmpSel();toast(`Rev ${num} — ${f3(r.tW/1000)} т, ${r.tP.toFixed(1)} м², ₽${fm(Math.round(r.tC))}`,'success');go('revisions');
+}
+
+function renderRevs(){
+  const el=document.getElementById('revs-list');
+  if(!revs.length){el.innerHTML=`<div class="card"><div class="empty"><div class="icon">📋</div>Ревизий пока нет</div></div>`;return;}
+  el.innerHTML=revs.slice().reverse().map(rev=>{const isL=rev.num===revs.length;const ap=rev.asms.flatMap(a=>a.parts);
+  return`<div class="card mb-16"><div class="card-header"><div class="gap-12"><div style="font-weight:800;font-size:15px">Rev ${rev.num}</div>
+    <span class="badge ${isL?'s-approved':'s-superseded'}">${isL?'актуальная':'вытеснена'}</span>
+    <span class="text-muted text-xs">${rev.on} · ${rev.cu} · ${new Date(rev.at).toLocaleString('ru')}</span></div>
+    <div class="gap-8"><span class="chip-w">${f3(rev.tW/1000)} т</span><span class="chip-p">${rev.tP.toFixed(1)} м²</span><span class="chip-c">₽${fm(Math.round(rev.tC))}</span>
+    ${revs.length>1?`<button class="btn btn-secondary btn-sm" onclick="cmpWith(${rev.num})">Сравнить</button>`:''}</div></div>
+  <div style="padding:12px 16px"><table><thead><tr><th>Материал</th><th>Деталь</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th></tr></thead>
+  <tbody>${ap.map(p=>`<tr><td><span class="mono" style="color:var(--accent)">${p.sn.mc}</span></td><td>${p.name||'—'}</td><td class="mono">${fmtD(p)}</td><td class="mono">${p.qty} шт</td><td class="mono">${p.sn.wpu.toFixed(2)} кг</td><td><span class="chip-w">${p.sn.aT.toFixed(2)} кг</span></td><td>${p.sn.pT>0?`<span class="chip-p">${p.sn.pT.toFixed(2)} м²</span>`:'—'}</td><td class="mono">${p.sn.pp?'₽'+fm(p.sn.pp):'—'}</td><td>${p.sn.cost?`<span class="chip-c">₽${fm(Math.round(p.sn.cost))}</span>`:'—'}</td></tr>`).join('')}
+  </tbody></table></div></div>`;}).join('');
+}
+
+function updCmpSel(){const opts=revs.map(r=>`<option value="${r.num}">Rev ${r.num} — ${f3(r.tW/1000)} т</option>`).join('');document.getElementById('cmp-a').innerHTML=opts;document.getElementById('cmp-b').innerHTML=opts;if(revs.length>=2){document.getElementById('cmp-a').value=revs[revs.length-2].num;document.getElementById('cmp-b').value=revs[revs.length-1].num;}}
+function cmpWith(num){updCmpSel();const o=revs.find(r=>r.num!==num);if(o)document.getElementById('cmp-a').value=o.num;document.getElementById('cmp-b').value=num;go('compare');runCmp();}
+function runCmp(){
+  const aN=parseInt(document.getElementById('cmp-a').value),bN=parseInt(document.getElementById('cmp-b').value);
+  const rA=revs.find(r=>r.num===aN),rB=revs.find(r=>r.num===bN);
+  if(!rA||!rB||rA===rB){document.getElementById('cmp-result').innerHTML=`<div style="color:var(--red)">Выберите две разные ревизии</div>`;return;}
+  const dW=r4(rB.tW-rA.tW),dC=r4(rB.tC-rA.tC),dP=r4(rB.tP-rA.tP);
+  const sg=(v,u='')=>v===0?'—':`<span class="${v>0?'diff-pos':'diff-neg'}">${v>0?'+':''}${Math.abs(v)>100?fm(Math.round(v)):v.toFixed(3)}${u}</span>`;
+  const bA={},bB={};
+  for(const p of rA.asms.flatMap(a=>a.parts))bA[p.sn.mc+'|'+(p.name||'')]=p;
+  for(const p of rB.asms.flatMap(a=>a.parts))bB[p.sn.mc+'|'+(p.name||'')]=p;
+  const ks=new Set([...Object.keys(bA),...Object.keys(bB)]);
+  const rows=[...ks].map(k=>{const a=bA[k],b=bB[k];if(!a)return{st:'added',k,b};if(!b)return{st:'removed',k,a};const dw=r4((b.sn.aT||0)-(a.sn.aT||0)),dc=r4((b.sn.cost||0)-(a.sn.cost||0)),dp=r4((b.sn.pT||0)-(a.sn.pT||0));if(!dw&&!dc&&!dp)return null;return{st:'changed',k,a,b,dw,dc,dp};}).filter(Boolean);
+  document.getElementById('cmp-result').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Вес</div><div style="font-size:22px;font-weight:800" class="${dW>0?'diff-pos':dW<0?'diff-neg':''}">${dW>0?'+':''}${f3(dW/1000)} т</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Покраска</div><div style="font-size:22px;font-weight:800" class="${dP>0?'diff-pos':dP<0?'diff-neg':''}">${dP>0?'+':''}${dP.toFixed(2)} м²</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Стоимость</div><div style="font-size:22px;font-weight:800" class="${dC>0?'diff-pos':dC<0?'diff-neg':''}">${dC>0?'+':''}₽${fm(Math.round(Math.abs(dC)))}</div></div></div>
+  </div>
+  <div class="card"><div class="card-header"><div class="card-title">Diff позиций (${rows.length} изменений)</div></div>
+  ${!rows.length?'<div class="empty">Позиции не изменились</div>':`<table><thead><tr><th>Позиция</th><th>Статус</th><th>Масса A</th><th>Масса B</th><th>Δ масса</th><th>Δ покраска</th><th>Δ стоимость</th></tr></thead><tbody>
+  ${rows.map(r=>{const l=r.k.replace('|',' · ');
+    if(r.st==='added')return`<tr class="diff-row added"><td class="mono">${l}</td><td><span class="badge s-approved">добавлена</span></td><td>—</td><td class="mono">${r.b.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td class="diff-neg">+₽${fm(Math.round(r.b.sn.cost||0))}</td></tr>`;
+    if(r.st==='removed')return`<tr class="diff-row removed"><td class="mono">${l}</td><td><span class="badge s-cancelled">удалена</span></td><td class="mono">${r.a.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td>—</td><td class="diff-pos">−₽${fm(Math.round(r.a.sn.cost||0))}</td></tr>`;
+    return`<tr class="diff-row changed"><td class="mono">${l}</td><td><span class="badge s-awaiting">изменена</span></td><td class="mono">${r.a.sn.aT.toFixed(2)} кг</td><td class="mono">${r.b.sn.aT.toFixed(2)} кг</td><td>${sg(r4(r.dw/1000),'т')}</td><td>${sg(r.dp,'м²')}</td><td>${sg(Math.round(r.dc),'₽')}</td></tr>`;
+  }).join('')}</tbody></table>`}</div>`;
+}
+
+function renderMats(q=''){const ql=q.toLowerCase();const cl={tube_sq:'Трубы профильные',tube_rnd:'Трубы круглые',angle:'Уголки',channel:'Швеллеры и балки',sheet:'Листовой прокат',rebar:'Арматура и прутки',piece:'Штучные'};const rows=MATS.filter(m=>!ql||m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql)).map(m=>`<tr><td class="mono" style="color:var(--accent);font-weight:700">${m.code}</td><td>${m.name}</td><td><span style="font-size:11px;color:var(--muted)">${cl[m.cat]||m.cat}</span></td><td class="mono">${m.kgm??'—'}</td><td class="mono">${m.kgm2??'—'}</td><td class="mono" style="color:var(--orange)">${m.pm??'по размеру'}</td><td class="mono text-muted">${m.gost}</td></tr>`).join('');document.getElementById('mat-tbody').innerHTML=rows||`<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;}
+function renderPrices(){const today=new Date().toISOString().slice(0,10);document.getElementById('prices-tbody').innerHTML=PRICES.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const act=p.from<=today&&(!p.to||p.to>=today);return`<tr><td><span class="mono" style="color:var(--accent)">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mono" style="font-weight:700;color:${act?'var(--green)':'var(--muted)'}">${fm(p.price)}</td><td class="mono text-muted">${p.from}</td><td class="mono text-muted">${p.to||'—'}</td><td><span class="badge ${act?'s-approved':'s-cancelled'}">${act?'актуальная':'истекла'}</span></td></tr>`;}).join('');}
+
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(x=>{if(x.getAttribute('onclick')?.includes(`'${p}'`))x.classList.add('active');});if(p==='revisions')renderRevs();if(p==='compare'){updCmpSel();document.getElementById('cmp-result').innerHTML='';}if(p==='materials')renderMats();if(p==='prices')renderPrices();}
+function toggleDebug(){dbg=!dbg;document.getElementById('dbg-sw').classList.toggle('on',dbg);document.getElementById('dbg-label').textContent=dbg?'Debug вкл.':'Debug выкл.';refresh();if(document.getElementById('part-res').style.display!=='none')calcPart();}
+document.addEventListener('click',e=>{if(!e.target.closest('.mat-search-wrap'))document.getElementById('mat-dd').classList.remove('open');});
+document.getElementById('modal-ov').addEventListener('click',e=>{if(e.target===document.getElementById('modal-ov'))closeModal();});
+
+function r4(v){return Math.round(v*10000)/10000;}
+function fm(n){return Number(n).toLocaleString('ru-RU');}
+function f3(n){return Number(n).toFixed(3);}
+
+let _tt;
+function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
+
+loadState();
+refresh();
+loadMats();
+</script>
+</body>
+</html>
