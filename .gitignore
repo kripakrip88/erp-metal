@@ -2,4 +2,6 @@ node_modules/
 .env
 *.log
 sheets_final.json
-public/
+import_prices.js
+price_data.json
+price_data_v2.json
