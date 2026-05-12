@@ -739,6 +739,41 @@ function f3(n){return Number(n).toFixed(3);}
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
+function _apiRevToSim(rev, orderNum, customerName){
+  const calc=rev.calculation||{};
+  const MTYPE={LINEAR:'linear',AREA:'area',PIECE:'piece'};
+  const asmMap=new Map();
+  for(const p of (rev.parts||[])){
+    const k=p.assemblyName||'—';
+    if(!asmMap.has(k))asmMap.set(k,{id:k,name:k,qty:1,parts:[]});
+    asmMap.get(k).parts.push({
+      id:p.id||'',name:p.name||'',qty:p.quantity||1,
+      mtype:MTYPE[p.measurementType]||'linear',
+      len:p.length!=null?Number(p.length):null,
+      w:p.sheetWidth!=null?Number(p.sheetWidth):null,
+      h:p.sheetHeight!=null?Number(p.sheetHeight):null,
+      pw:p.directWeightKg!=null?Number(p.directWeightKg):null,
+      sn:{
+        mc:p.materialCode,mn:p.materialName,
+        wpu:Number(p.calculatedWeightPerUnit||0),
+        tot:Number(p.totalWeight||0),aT:Number(p.totalWeight||0),
+        pT:Number(p.paintAreaM2||0),
+        pp:p.pricePerTon!=null?Number(p.pricePerTon):null,
+        cost:Number(p.materialCost||0),
+        sup:p.supplierName||null,
+      }
+    });
+  }
+  return{
+    num:rev.revisionNumber,at:rev.createdAt,
+    tW:Number(calc.totalWeightKg||0),
+    tC:Number(calc.totalCost||0),
+    tP:Number(calc.totalPaintM2||0),
+    asms:[...asmMap.values()],
+    on:orderNum||'',cu:customerName||'',ws:[],
+  };
+}
+
 function _apiAsmsToSim(apiAsms){
   const MTYPE={LINEAR:'linear',AREA:'area',PIECE:'piece'};
   return (apiAsms||[]).map(a=>({
@@ -778,6 +813,12 @@ function _apiAsmsToSim(apiAsms){
       if(!draftRestored && order.assemblies && order.assemblies.length){
         asms = _apiAsmsToSim(order.assemblies);
       }
+      // Загрузить ревизии из API
+      const apiRevs = await ERPStore.loadRevisions(orderId);
+      revs = apiRevs
+        .sort((a, b) => a.revisionNumber - b.revisionNumber)
+        .map(r => _apiRevToSim(r, order.orderNumber, order.customerName));
+      document.getElementById('rev-count').textContent = revs.length;
     } else {
       loadDraft();
     }
