@@ -145,9 +145,9 @@ td{padding:9px 12px;vertical-align:middle;}
       <div class="card-header"><div class="card-title">Заказ</div></div>
       <div class="card-body">
         <div class="grid3">
-          <div class="field"><label>Номер заказа</label><input id="order-num" value="МП-2025-032"></div>
-          <div class="field"><label>Заказчик</label><input id="order-customer" value="ООО СтальКонструкт"></div>
-          <div class="field"><label>Объект</label><input id="order-title" value="Навес 500 м²"></div>
+          <div class="field"><label>Номер заказа</label><input id="order-num" placeholder="Номер заказа"></div>
+          <div class="field"><label>Заказчик</label><input id="order-customer" placeholder="Заказчик"></div>
+          <div class="field"><label>Объект</label><input id="order-title" placeholder="Объект"></div>
         </div>
       </div>
     </div>
@@ -317,8 +317,19 @@ td{padding:9px 12px;vertical-align:middle;}
 
 <div class="toast" id="toast"></div>
 
+<script src="erp-store.js"></script>
 <script>
 const API = 'http://5.35.92.112';
+// Кнопка назад в журнал
+document.addEventListener('DOMContentLoaded', function(){
+  const btn = document.createElement('a');
+  btn.href = 'orders.html';
+  btn.className = 'btn btn-secondary btn-sm';
+  btn.textContent = '← Журнал заказов';
+  btn.style.marginRight = '8px';
+  const topbarRight = document.querySelector('.topbar-right');
+  if (topbarRight) topbarRight.prepend(btn);
+});
 
 const CATS=[
   {id:'all',label:'Все'},{id:'tube_sq',label:'Трубы профильные'},{id:'tube_rnd',label:'Трубы круглые'},
@@ -648,6 +659,15 @@ function createRevision(){
   const snap=asms.map(a=>({...a,parts:a.parts.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const{wpu,tot,pm2}=cPW({...p,mid:p.mid},mat);const mu=a.qty||1;const aT=r4(tot*mu),pT=r4((pm2||0)*mu);const pr=gP(p.mid);const{cost}=cCost(aT,pr);return{...p,sn:{mc:mat?.code,mn:mat?.name,wpu,tot,aT,pT,pp:pr?.price||null,sup:pr?.sup||null,cost}};})}) );
   const rev={id:'r'+num,num,on:document.getElementById('order-num').value,cu:document.getElementById('order-customer').value,ti:document.getElementById('order-title').value,at:new Date().toISOString(),tW:r.tW,tC:r.tC,tP:r.tP,asms:snap,ws:r.ws};
   revs.push(rev);document.getElementById('rev-count').textContent=revs.length;saveState();
+  // Сохраняем в ERPStore если открыт конкретный заказ
+  if(window._currentOrderId && typeof ERPStore !== 'undefined'){
+    ERPStore.saveDraftToRevision(window._currentOrderId,{
+      assemblies:asms,
+      totalWeightKg:r.tW,
+      totalCostRub:r.tC,
+      totalPaintM2:r.tP
+    });
+  }
   updCmpSel();toast(`Rev ${num} — ${f3(r.tW/1000)} т, ${r.tP.toFixed(1)} м², ₽${fm(Math.round(r.tC))}`,'success');go('revisions');
 }
 
@@ -708,7 +728,32 @@ function f3(n){return Number(n).toFixed(3);}
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
-loadState();
+// Загрузка заказа из URL
+(function(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('orderId');
+    if (orderId && typeof ERPStore !== 'undefined') {
+      const order = ERPStore.getOrderById(orderId);
+      if (order) {
+        document.getElementById('order-num').value = order.number || '';
+        document.getElementById('order-customer').value = order.client || '';
+        document.getElementById('order-title').value = order.object || '';
+        const rev = ERPStore.getActiveRevision(order);
+        if (rev && rev.assemblies && rev.assemblies.length) {
+          asms = JSON.parse(JSON.stringify(rev.assemblies));
+          const ids = asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);
+          nA = Math.max(10,...ids)+1;
+          const pids = asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);
+          nP = Math.max(100,...pids)+1;
+        }
+        window._currentOrderId = orderId;
+      }
+    } else {
+      loadState();
+    }
+  } catch(e) { loadState(); }
+})();
 refresh();
 loadMats();
 </script>
