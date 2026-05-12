@@ -137,7 +137,7 @@ td{padding:9px 12px;vertical-align:middle;}
     <div><div class="topbar-title">Создание КП</div><div class="topbar-sub">Узлы → Детали → Расчёт → Ревизия</div></div>
     <div class="topbar-right">
       <button class="btn btn-secondary btn-sm" onclick="resetQuote()">Сбросить</button>
-      <button class="btn btn-primary" onclick="createRevision()">📸 Зафиксировать ревизию</button>
+      <button class="btn btn-primary" onclick="commitRevision()">📸 Зафиксировать ревизию</button>
     </div>
   </div>
   <div class="content">
@@ -177,7 +177,7 @@ td{padding:9px 12px;vertical-align:middle;}
           <div class="summary-row total"><span>ИТОГО</span><span class="chip-c" id="s-tot">₽ 0</span></div>
           <div class="sep"></div>
           <div class="debug-box hidden" id="dbg-sum"><div id="dbg-sum-lines"></div></div>
-          <button class="btn btn-primary" style="width:100%;margin-top:12px;justify-content:center" onclick="createRevision()">📸 Зафиксировать ревизию</button>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px;justify-content:center" onclick="commitRevision()">📸 Зафиксировать ревизию</button>
         </div>
       </div>
     </div>
@@ -416,31 +416,32 @@ function showLoader(show) {
 }
 
 let dbg=false,asms=[],revs=[],nA=10,nP=100,curA=null,curEP=null,curMT='linear',curC='all',selM=null;
+let _currentOrderId=null;
 
-// localStorage persistence
-const LS_ASMS='erp_asms',LS_REVS='erp_revs',LS_ORDER='erp_order';
+// Draft persistence — localStorage только для временного черновика
+const DRAFT_KEY='erp_draft';
+let _draftTimer=null;
 
-function saveState(){
-  try{
-    localStorage.setItem(LS_ASMS,JSON.stringify(asms));
-    localStorage.setItem(LS_REVS,JSON.stringify(revs));
-    localStorage.setItem(LS_ORDER,JSON.stringify({
-      num:document.getElementById('order-num').value,
-      customer:document.getElementById('order-customer').value,
-      title:document.getElementById('order-title').value
-    }));
-  }catch(e){console.warn('saveState error',e);}
+function saveDraft(){
+  clearTimeout(_draftTimer);
+  _draftTimer=setTimeout(()=>{
+    try{
+      const d={orderId:_currentOrderId,asms,num:document.getElementById('order-num').value,customer:document.getElementById('order-customer').value,title:document.getElementById('order-title').value};
+      localStorage.setItem(DRAFT_KEY,JSON.stringify(d));
+    }catch(e){console.warn('saveDraft error',e);}
+  },1000);
 }
 
-function loadState(){
+function loadDraft(){
   try{
-    const a=localStorage.getItem(LS_ASMS);
-    const r=localStorage.getItem(LS_REVS);
-    const o=localStorage.getItem(LS_ORDER);
-    if(a){asms=JSON.parse(a);if(asms.length){const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;}}
-    if(r){revs=JSON.parse(r);document.getElementById('rev-count').textContent=revs.length;}
-    if(o){const od=JSON.parse(o);document.getElementById('order-num').value=od.num||'';document.getElementById('order-customer').value=od.customer||'';document.getElementById('order-title').value=od.title||'';}
-  }catch(e){console.warn('loadState error',e);}
+    const raw=localStorage.getItem(DRAFT_KEY);
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.asms&&d.asms.length){asms=d.asms;const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;}
+    if(d.num)document.getElementById('order-num').value=d.num;
+    if(d.customer)document.getElementById('order-customer').value=d.customer;
+    if(d.title)document.getElementById('order-title').value=d.title;
+  }catch(e){console.warn('loadDraft error',e);}
 }
 
 function gP(mid){const t=new Date().toISOString().slice(0,10);return PRICES.filter(p=>p.mid===mid&&p.from<=t&&(!p.to||p.to>=t)).sort((a,b)=>b.from.localeCompare(a.from))[0]||null;}
@@ -574,11 +575,11 @@ function updSum(){
 }
 function refresh(){renderAsms();updSum();}
 
-function addAsm(){const n=document.getElementById('new-asm-name').value.trim();const q=parseInt(document.getElementById('new-asm-qty').value)||1;if(!n){toast('Введите название','error');return;}asms.push({id:'a'+nA++,name:n,qty:q,parts:[]});document.getElementById('new-asm-name').value='';document.getElementById('new-asm-qty').value=1;refresh();saveState();toast(`Узел «${n}» добавлен`,'success');}
-function remA(id){if(!confirm('Удалить узел со всеми деталями?'))return;asms=asms.filter(a=>a.id!==id);refresh();saveState();}
-function updAQ(id,v){const a=asms.find(a=>a.id===id);if(a){a.qty=Math.max(1,parseInt(v)||1);refresh();saveState();}}
-function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.filter(p=>p.id!==pid);refresh();saveState();}}
-function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;localStorage.removeItem(LS_ASMS);localStorage.removeItem(LS_REVS);localStorage.removeItem(LS_ORDER);document.getElementById('rev-count').textContent=0;refresh();}
+function addAsm(){const n=document.getElementById('new-asm-name').value.trim();const q=parseInt(document.getElementById('new-asm-qty').value)||1;if(!n){toast('Введите название','error');return;}asms.push({id:'a'+nA++,name:n,qty:q,parts:[]});document.getElementById('new-asm-name').value='';document.getElementById('new-asm-qty').value=1;refresh();saveDraft();toast(`Узел «${n}» добавлен`,'success');}
+function remA(id){if(!confirm('Удалить узел со всеми деталями?'))return;asms=asms.filter(a=>a.id!==id);refresh();saveDraft();}
+function updAQ(id,v){const a=asms.find(a=>a.id===id);if(a){a.qty=Math.max(1,parseInt(v)||1);refresh();saveDraft();}}
+function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.filter(p=>p.id!==pid);refresh();saveDraft();}}
+function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;_currentOrderId=null;localStorage.removeItem(DRAFT_KEY);document.getElementById('rev-count').textContent=0;refresh();}
 
 function openMod(aid){curA=aid;curEP=null;selM=null;curC='all';resetForm();document.getElementById('modal-title').textContent='Добавить деталь';document.getElementById('btn-confirm').textContent='Добавить деталь';document.getElementById('modal-ov').style.display='flex';buildCF();setMType('linear');}
 function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-pw').value=p.pw||'';document.getElementById('p-name').value=p.name||'';document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
@@ -649,26 +650,34 @@ function confirmPart(){
   const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw};
   if(curEP){const i=a.parts.findIndex(p=>p.id===curEP);if(i!==-1)a.parts[i]={...a.parts[i],...pd};toast('Деталь обновлена','success');}
   else{a.parts.push({id:'pt'+nP++,...pd});toast('Деталь добавлена','success');}
-  closeModal();refresh();saveState();
+  closeModal();refresh();saveDraft();
 }
 
-function createRevision(){
+async function commitRevision(){
   const r=cAll();if(asms.every(a=>!a.parts.length)){toast('Добавьте хотя бы одну деталь','error');return;}
   if(r.ws.length&&!confirm(`Предупреждения:\n${r.ws.join('\n')}\n\nВсё равно создать?`))return;
-  const num=revs.length+1;
-  const snap=asms.map(a=>({...a,parts:a.parts.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const{wpu,tot,pm2}=cPW({...p,mid:p.mid},mat);const mu=a.qty||1;const aT=r4(tot*mu),pT=r4((pm2||0)*mu);const pr=gP(p.mid);const{cost}=cCost(aT,pr);return{...p,sn:{mc:mat?.code,mn:mat?.name,wpu,tot,aT,pT,pp:pr?.price||null,sup:pr?.sup||null,cost}};})}) );
-  const rev={id:'r'+num,num,on:document.getElementById('order-num').value,cu:document.getElementById('order-customer').value,ti:document.getElementById('order-title').value,at:new Date().toISOString(),tW:r.tW,tC:r.tC,tP:r.tP,asms:snap,ws:r.ws};
-  revs.push(rev);document.getElementById('rev-count').textContent=revs.length;saveState();
-  // Сохраняем в ERPStore если открыт конкретный заказ
-  if(window._currentOrderId && typeof ERPStore !== 'undefined'){
-    ERPStore.saveDraftToRevision(window._currentOrderId,{
-      assemblies:asms,
-      totalWeightKg:r.tW,
-      totalCostRub:r.tC,
-      totalPaintM2:r.tP
-    });
+  try{
+    if(!_currentOrderId){
+      const num=document.getElementById('order-num').value.trim();
+      const customer=document.getElementById('order-customer').value.trim();
+      const title=document.getElementById('order-title').value.trim();
+      if(!num||!customer){toast('Заполните № заказа и клиента','error');return;}
+      const order=await ERPStore.createOrder({orderNumber:num,customerName:customer,title,description:null});
+      _currentOrderId=order.id;
+      history.replaceState(null,'','simulator.html?orderId='+encodeURIComponent(order.id));
+    }
+    showLoader(true);
+    const revision=await ERPStore.syncAndRevise(_currentOrderId,asms,null);
+    localStorage.removeItem(DRAFT_KEY);
+    showLoader(false);
+    const tW=revision.calculation?.totalWeightKg||r.tW;
+    toast(`Ревизия #${revision.revisionNumber} зафиксирована — ${f3(tW/1000)} т`,'success');
+    setTimeout(()=>{window.location.href='orders.html';},1500);
+  }catch(e){
+    showLoader(false);
+    toast('Ошибка: '+e.message,'error');
+    console.error('[ERP] commitRevision',e);
   }
-  updCmpSel();toast(`Rev ${num} — ${f3(r.tW/1000)} т, ${r.tP.toFixed(1)} м², ₽${fm(Math.round(r.tC))}`,'success');go('revisions');
 }
 
 function renderRevs(){
@@ -728,31 +737,26 @@ function f3(n){return Number(n).toFixed(3);}
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
-// Загрузка заказа из URL
-(function(){
+// Инициализация: загрузка заказа из API или черновик из localStorage
+(async function(){
   try {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('orderId');
     if (orderId && typeof ERPStore !== 'undefined') {
-      const order = ERPStore.getOrderById(orderId);
-      if (order) {
-        document.getElementById('order-num').value = order.number || '';
-        document.getElementById('order-customer').value = order.client || '';
-        document.getElementById('order-title').value = order.object || '';
-        const rev = ERPStore.getActiveRevision(order);
-        if (rev && rev.assemblies && rev.assemblies.length) {
-          asms = JSON.parse(JSON.stringify(rev.assemblies));
-          const ids = asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);
-          nA = Math.max(10,...ids)+1;
-          const pids = asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);
-          nP = Math.max(100,...pids)+1;
-        }
-        window._currentOrderId = orderId;
-      }
+      _currentOrderId = orderId;
+      const order = await ERPStore.fetchOrder(orderId);
+      document.getElementById('order-num').value = order.orderNumber || '';
+      document.getElementById('order-customer').value = order.customerName || '';
+      document.getElementById('order-title').value = order.title || '';
+      // Восстановить черновик если принадлежит этому заказу
+      try{
+        const raw=localStorage.getItem(DRAFT_KEY);
+        if(raw){const d=JSON.parse(raw);if(d.orderId===orderId&&d.asms&&d.asms.length){asms=d.asms;const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;toast('Черновик восстановлен','success');}}
+      }catch(_){}
     } else {
-      loadState();
+      loadDraft();
     }
-  } catch(e) { loadState(); }
+  } catch(e) { console.warn('init error', e); loadDraft(); }
 })();
 refresh();
 loadMats();

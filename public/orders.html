@@ -148,7 +148,7 @@ td{padding:9px 12px;vertical-align:middle;}
             <th class="sortable" onclick="setSort('num')">№ заказа <span id="si-num"></span></th>
             <th>Заказчик</th>
             <th>Объект</th>
-            <th class="sortable" onclick="setSort('weight')">Вес <span id="si-weight"></span></th>
+            <th>Ревизии <span id="si-weight"></span></th>
             <th class="sortable" onclick="setSort('date')">Дата <span id="si-date"></span></th>
             <th>Ревизия</th>
           </tr>
@@ -168,11 +168,13 @@ td{padding:9px 12px;vertical-align:middle;}
 
 <script src="erp-store.js"></script>
 <script>
-let sortField='date',sortDir='desc';
+let sortField='date', sortDir='desc';
+
+function isArchived(o){ return o.status==='CANCELLED'; }
 
 function setSort(f){
-  if(sortField===f)sortDir=sortDir==='asc'?'desc':'asc';
-  else{sortField=f;sortDir='desc';}
+  if(sortField===f) sortDir=sortDir==='asc'?'desc':'asc';
+  else { sortField=f; sortDir='desc'; }
   document.getElementById('sort-sel').value=sortField+'-'+sortDir;
   render();
 }
@@ -180,32 +182,35 @@ function setSort(f){
 function render(){
   const q=document.getElementById('search').value.trim().toLowerCase();
   const sv=document.getElementById('sort-sel').value.split('-');
-  sortField=sv[0];sortDir=sv[1];
+  sortField=sv[0]; sortDir=sv[1];
   const sf=document.getElementById('status-sel').value;
   let orders=ERPStore.getAllOrders();
-  if(sf==='active')orders=orders.filter(o=>o.status!=='archived');
-  else if(sf==='archived')orders=orders.filter(o=>o.status==='archived');
-  if(q)orders=orders.filter(o=>String(o.number).toLowerCase().includes(q)||(o.client||'').toLowerCase().includes(q)||(o.object||'').toLowerCase().includes(q));
+  if(sf==='active')   orders=orders.filter(o=>!isArchived(o));
+  else if(sf==='archived') orders=orders.filter(o=>isArchived(o));
+  if(q) orders=orders.filter(o=>
+    String(o.orderNumber||'').toLowerCase().includes(q)||
+    (o.customerName||'').toLowerCase().includes(q)||
+    (o.title||'').toLowerCase().includes(q)
+  );
   orders.sort((a,b)=>{
-    const va=sortField==='date'?new Date(a.createdAt).getTime():sortField==='num'?parseFloat(a.number)||0:(a.weightKg||0);
-    const vb=sortField==='date'?new Date(b.createdAt).getTime():sortField==='num'?parseFloat(b.number)||0:(b.weightKg||0);
+    const va=sortField==='date'?new Date(a.createdAt).getTime():sortField==='num'?parseFloat(a.orderNumber)||0:(a._count?.revisions||0);
+    const vb=sortField==='date'?new Date(b.createdAt).getTime():sortField==='num'?parseFloat(b.orderNumber)||0:(b._count?.revisions||0);
     return sortDir==='asc'?va-vb:vb-va;
   });
-  ['num','weight','date'].forEach(f=>{
-    const el=document.getElementById('si-'+f);const th=el?.closest('th');
-    if(!el)return;
+  ['num','date'].forEach(f=>{
+    const el=document.getElementById('si-'+f); const th=el?.closest('th');
+    if(!el) return;
     el.textContent=sortField===f?(sortDir==='asc'?'↑':'↓'):'';
     th?.classList.toggle('sort-active',sortField===f);
   });
-  const all=ERPStore.getAllOrders().filter(o=>o.status!=='archived');
-  const totalW=all.reduce((s,o)=>s+(o.weightKg||0),0);
+  const all=ERPStore.getAllOrders().filter(o=>!isArchived(o));
   const thisMonth=all.filter(o=>new Date(o.createdAt).getMonth()===new Date().getMonth()).length;
-  const totalRevs=all.reduce((s,o)=>s+(o.revisions?.length||0),0);
+  const totalRevs=all.reduce((s,o)=>s+(o._count?.revisions||0),0);
   document.getElementById('stats-grid').innerHTML=`
     <div class="stat-card"><div class="stat-label">Активных заказов</div><div class="stat-val accent">${all.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Общий вес</div><div class="stat-val">${ERPStore.formatWeight(totalW)}</div></div>
     <div class="stat-card"><div class="stat-label">За этот месяц</div><div class="stat-val">${thisMonth}</div><div class="stat-sub">новых заказов</div></div>
-    <div class="stat-card"><div class="stat-label">Всего ревизий</div><div class="stat-val">${totalRevs}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Всего ревизий</div><div class="stat-val">${totalRevs}</div></div>
+    <div class="stat-card"><div class="stat-label">Источник данных</div><div class="stat-val" style="font-size:14px;color:var(--green)">API ✓</div></div>`;
   document.getElementById('count-label').textContent=orders.length?`${orders.length} заказов`:'';
   const tbody=document.getElementById('tbody');
   const empty=document.getElementById('empty-state');
@@ -216,98 +221,91 @@ function render(){
     return;
   }
   empty.style.display='none';
-  tbody.innerHTML=orders.map(o=>{
-    const rev=ERPStore.getActiveRevision(o);
-    return`<tr onclick="window.location.href=ERPStore.buildSimulatorURL('${o.id}')">
-      <td><span class="mono" style="color:var(--accent);font-weight:700">${esc(o.number)}</span></td>
-      <td><span style="font-weight:600">${esc(o.client||'—')}</span></td>
-      <td><span style="color:var(--muted)">${esc(o.object||'—')}</span></td>
-      <td><span class="chip-w">${ERPStore.formatWeight(o.weightKg||0)}</span></td>
+  tbody.innerHTML=orders.map(o=>`
+    <tr onclick="openDetail('${o.id}')">
+      <td><span class="mono" style="color:var(--accent);font-weight:700">${esc(o.orderNumber)}</span></td>
+      <td><span style="font-weight:600">${esc(o.customerName||'—')}</span></td>
+      <td><span style="color:var(--muted)">${esc(o.title||'—')}</span></td>
+      <td><span class="chip-w">${o._count?.revisions||0} рев.</span></td>
       <td><span class="mono" style="color:var(--muted);font-size:11px">${ERPStore.formatDate(o.createdAt)}</span></td>
-      <td><span class="badge s-active">${esc(rev?.label||'R1')}</span></td>
-    </tr>`;
-  }).join('');
+      <td><span class="badge s-active">${esc(o.status)}</span></td>
+    </tr>`).join('');
 }
 
 function openCreateModal(){
   document.getElementById('modal-inner').innerHTML=`
     <div class="modal-header"><div class="modal-title">Новый заказ</div><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="grid2">
-        <div class="field"><label>Номер заказа *</label><input id="f-num" placeholder="например, 1045" autocomplete="off"><span class="field-error" id="err-num"></span></div>
-        <div class="field"><label>Вес, кг</label><input id="f-weight" type="number" placeholder="0" min="0" step="0.1"><span class="field-hint">Уточняется после расчёта</span></div>
-      </div>
-      <div class="field"><label>Заказчик</label><input id="f-client" placeholder="Название компании"></div>
-      <div class="field"><label>Объект</label><input id="f-object" placeholder="Наименование объекта"></div>
-      <div class="field"><label>Примечание к R1</label><input id="f-note" placeholder="Первичный расчёт"></div>
+      <div class="field"><label>Номер заказа *</label><input id="f-num" placeholder="например, 1045" autocomplete="off"><span class="field-error" id="err-num"></span></div>
+      <div class="field"><label>Заказчик *</label><input id="f-client" placeholder="Название компании"></div>
+      <div class="field"><label>Объект *</label><input id="f-object" placeholder="Наименование объекта"></div>
+      <div class="field"><label>Примечание</label><input id="f-note" placeholder="Описание"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" onclick="saveOrder()">Создать заказ</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveOrder()">Создать заказ</button>
     </div>`;
   document.getElementById('modal-bg').style.display='flex';
   setTimeout(()=>document.getElementById('f-num').focus(),50);
 }
 
-function saveOrder(){
+async function saveOrder(){
   const numEl=document.getElementById('f-num');
   const errEl=document.getElementById('err-num');
-  const number=numEl.value.trim();
-  numEl.classList.remove('inp-error');errEl.style.display='none';
-  if(!number){numEl.classList.add('inp-error');errEl.textContent='Введите номер заказа';errEl.style.display='block';numEl.focus();return;}
-  const result=ERPStore.createOrder({number,client:document.getElementById('f-client').value,object:document.getElementById('f-object').value,weightKg:parseFloat(document.getElementById('f-weight').value)||0,note:document.getElementById('f-note').value});
-  if(!result.ok){numEl.classList.add('inp-error');errEl.textContent=result.error;errEl.style.display='block';return;}
-  closeModal();render();toast('Заказ '+number+' создан','success');
+  const orderNumber=(numEl.value||'').trim();
+  const customerName=(document.getElementById('f-client').value||'').trim();
+  const title=(document.getElementById('f-object').value||'').trim();
+  numEl.classList.remove('inp-error'); errEl.style.display='none';
+  if(!orderNumber){numEl.classList.add('inp-error');errEl.textContent='Введите номер заказа';errEl.style.display='block';numEl.focus();return;}
+  if(!customerName||!title){toast('Заполните заказчика и объект','error');return;}
+  const btn=document.getElementById('btn-save');
+  btn.disabled=true; btn.textContent='Сохранение...';
+  try{
+    const order=await ERPStore.createOrder({
+      orderNumber, customerName, title,
+      description:document.getElementById('f-note').value||null,
+    });
+    closeModal(); render();
+    toast('Заказ '+orderNumber+' создан — открываю расчёт...','success');
+    setTimeout(()=>{ window.location.href=ERPStore.buildSimulatorURL(order.id); },800);
+  }catch(e){
+    numEl.classList.add('inp-error'); errEl.textContent=e.message; errEl.style.display='block';
+    btn.disabled=false; btn.textContent='Создать заказ';
+  }
 }
 
-function openDetail(id){
-  const o=ERPStore.getOrderById(id);if(!o)return;
-  const revs=(o.revisions||[]).slice().reverse().map(r=>`
-    <div class="rev-item ${r.active?'rev-active':''}">
-      <div class="rev-label">${esc(r.label)}</div>
-      <div style="flex:1">
-        <div class="rev-note">${esc(r.note||'')}</div>
-        <div class="rev-stats">
-          ${r.totalWeightKg?`<span class="chip-w" style="font-size:10.5px">${ERPStore.formatWeight(r.totalWeightKg)}</span>`:''}
-          ${r.totalCostRub?`<span class="chip-c" style="font-size:10.5px">${ERPStore.formatMoney(r.totalCostRub)}</span>`:''}
-          ${r.totalPaintM2?`<span class="chip-p" style="font-size:10.5px">${r.totalPaintM2.toFixed(1)} м²</span>`:''}
-        </div>
-      </div>
-      <div class="rev-date">${ERPStore.formatDate(r.createdAt)}</div>
-    </div>`).join('');
-  document.getElementById('modal-inner').innerHTML=`
-    <div class="modal-header"><div class="modal-title">Заказ № ${esc(o.number)}</div><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="detail-grid">
-        <div class="detail-field"><div class="detail-field-label">Заказчик</div><div class="detail-field-value">${esc(o.client||'—')}</div></div>
-        <div class="detail-field"><div class="detail-field-label">Объект</div><div class="detail-field-value">${esc(o.object||'—')}</div></div>
-        <div class="detail-field"><div class="detail-field-label">Общий вес</div><div class="detail-field-value">${ERPStore.formatWeight(o.weightKg||0)}</div></div>
-        <div class="detail-field"><div class="detail-field-label">Создан</div><div class="detail-field-value">${ERPStore.formatDate(o.createdAt)}</div></div>
-      </div>
-      <div class="section-label">История ревизий</div>
-      ${revs||'<div style="color:var(--muted);font-size:13px;padding:8px 0">Нет ревизий</div>'}
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" onclick="archiveConfirm('${o.id}')">Архивировать</button>
-      <button class="btn btn-secondary" onclick="addRevision('${o.id}')">+ Новая ревизия</button>
-      <button class="btn btn-primary" onclick="openInSimulator('${o.id}')">✏️ Открыть расчёт</button>
-    </div>`;
+async function openDetail(id){
+  document.getElementById('modal-inner').innerHTML='<div style="padding:32px;text-align:center;color:var(--muted)">Загрузка...</div>';
   document.getElementById('modal-bg').style.display='flex';
+  try{
+    const o=await ERPStore.fetchOrder(id);
+    const revs=(o.revisions||[]).map(r=>`
+      <div class="rev-item ${r.status!=='SUPERSEDED'?'rev-active':''}">
+        <div class="rev-label">R${r.revisionNumber}</div>
+        <div style="flex:1"><div class="rev-note">${esc(r.notes||'Без примечания')}</div></div>
+        <div class="rev-date">${ERPStore.formatDate(r.createdAt)}</div>
+      </div>`).join('');
+    document.getElementById('modal-inner').innerHTML=`
+      <div class="modal-header"><div class="modal-title">Заказ № ${esc(o.orderNumber)}</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-field"><div class="detail-field-label">Заказчик</div><div class="detail-field-value">${esc(o.customerName||'—')}</div></div>
+          <div class="detail-field"><div class="detail-field-label">Объект</div><div class="detail-field-value">${esc(o.title||'—')}</div></div>
+          <div class="detail-field"><div class="detail-field-label">Статус</div><div class="detail-field-value">${esc(o.status)}</div></div>
+          <div class="detail-field"><div class="detail-field-label">Создан</div><div class="detail-field-value">${ERPStore.formatDate(o.createdAt)}</div></div>
+        </div>
+        <div class="section-label">История ревизий</div>
+        ${revs||'<div style="color:var(--muted);font-size:13px;padding:8px 0">Ревизий нет — зафиксируйте в симуляторе</div>'}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="openInSimulator('${o.id}')">✏️ Открыть расчёт</button>
+      </div>`;
+  }catch(e){
+    document.getElementById('modal-inner').innerHTML=`<div style="padding:32px;text-align:center;color:var(--red)">Ошибка: ${esc(e.message)}</div>`;
+  }
 }
 
 function openInSimulator(id){window.location.href=ERPStore.buildSimulatorURL(id);}
-
-function addRevision(id){
-  const note=prompt('Примечание к новой ревизии:')||'Пересчёт';
-  const result=ERPStore.addRevision(id,{note});
-  if(!result.ok){toast(result.error,'error');return;}
-  render();openDetail(id);toast('Создана ревизия '+result.revision.label,'success');
-}
-
-function archiveConfirm(id){
-  if(!confirm('Архивировать заказ? Данные сохранятся.'))return;
-  ERPStore.archiveOrder(id);closeModal();render();toast('Заказ архивирован','success');
-}
 
 function closeModal(){document.getElementById('modal-bg').style.display='none';}
 function handleBgClick(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
@@ -316,7 +314,13 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':'✗ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
-render();
+async function init(){
+  document.getElementById('tbody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">Загрузка заказов из базы...</td></tr>';
+  try{ await ERPStore.loadOrders(); }
+  catch(e){ toast('Ошибка загрузки: '+e.message,'error'); }
+  render();
+}
+init();
 </script>
 </body>
 </html>

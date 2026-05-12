@@ -36,8 +36,20 @@ async function createAssembly(orderId, data) {
     orderId,
     name:        data.name,
     description: data.description || null,
+    qty:         data.qty != null ? parseInt(data.qty) : 1,
     position:    data.position || 0,
   }})
+}
+
+async function clearAssemblies(orderId) {
+  // Delete parts first (FK constraint), then assemblies
+  const asms = await prisma.assembly.findMany({ where: { orderId }, select: { id: true } })
+  const asmIds = asms.map(a => a.id)
+  if (asmIds.length > 0) {
+    await prisma.part.deleteMany({ where: { assemblyId: { in: asmIds } } })
+    await prisma.assembly.deleteMany({ where: { orderId } })
+  }
+  return { deleted: asmIds.length }
 }
 
 async function createPart(assemblyId, data) {
@@ -46,13 +58,14 @@ async function createPart(assemblyId, data) {
     materialDefinitionId: data.materialDefinitionId,
     name:            data.name || null,
     measurementType: data.measurementType || 'LINEAR',
-    length:          data.length || null,
-    sheetWidth:      data.sheetWidth || null,
-    sheetHeight:     data.sheetHeight || null,
+    length:          data.length          || null,
+    sheetWidth:      data.sheetWidth      || null,
+    sheetHeight:     data.sheetHeight     || null,
+    directWeightKg:  data.directWeightKg  || null,
     quantity:        data.quantity || 1,
     notes:           data.notes || null,
     position:        data.position || 0,
   }})
 }
 
-module.exports = { listOrders, getOrder, createOrder, createAssembly, createPart }
+module.exports = { listOrders, getOrder, createOrder, createAssembly, clearAssemblies, createPart }
