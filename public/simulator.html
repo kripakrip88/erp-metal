@@ -739,6 +739,24 @@ function f3(n){return Number(n).toFixed(3);}
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
+function _apiAsmsToSim(apiAsms){
+  const MTYPE={LINEAR:'linear',AREA:'area',PIECE:'piece'};
+  return (apiAsms||[]).map(a=>({
+    id:a.id,name:a.name,qty:a.qty||1,
+    parts:(a.parts||[]).map(p=>({
+      id:p.id,
+      mid:p.materialDefinitionId,
+      name:p.name||'',
+      mtype:MTYPE[p.measurementType]||'linear',
+      len:p.length!=null?Number(p.length):null,
+      w:p.sheetWidth!=null?Number(p.sheetWidth):null,
+      h:p.sheetHeight!=null?Number(p.sheetHeight):null,
+      pw:p.directWeightKg!=null?Number(p.directWeightKg):null,
+      qty:p.quantity||1,
+    }))
+  }));
+}
+
 // Инициализация: загрузка заказа из API или черновик из localStorage
 (async function(){
   try {
@@ -750,11 +768,16 @@ function toast(msg,type='success'){const el=document.getElementById('toast');el.
       document.getElementById('order-num').value = order.orderNumber || '';
       document.getElementById('order-customer').value = order.customerName || '';
       document.getElementById('order-title').value = order.title || '';
-      // Восстановить черновик если принадлежит этому заказу
+      // Draft имеет приоритет над API — он свежее
+      let draftRestored = false;
       try{
         const raw=localStorage.getItem(DRAFT_KEY);
-        if(raw){const d=JSON.parse(raw);if(d.orderId===orderId&&d.asms&&d.asms.length){asms=d.asms;const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;toast('Черновик восстановлен','success');}}
+        if(raw){const d=JSON.parse(raw);if(d.orderId===orderId&&d.asms&&d.asms.length){asms=d.asms;draftRestored=true;toast('Черновик восстановлен','success');}}
       }catch(_){}
+      // Если черновика нет — загрузить узлы из API
+      if(!draftRestored && order.assemblies && order.assemblies.length){
+        asms = _apiAsmsToSim(order.assemblies);
+      }
     } else {
       loadDraft();
     }
