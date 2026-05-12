@@ -47,6 +47,10 @@ async function createRevision(orderId, notes) {
         wpu    = r.weightPerUnit
         totalW = r.totalWeight
         paint  = calcAreaPaint(Number(part.sheetWidth), Number(part.sheetHeight), part.quantity * asmQty)
+      } else if (part.measurementType === 'PIECE' && part.directWeightKg) {
+        wpu    = Number(part.directWeightKg)
+        totalW = Math.round(wpu * part.quantity * asmQty * 10000) / 10000
+        paint  = 0
       }
 
       const cost = calcMaterialCost(totalW, ppt)
