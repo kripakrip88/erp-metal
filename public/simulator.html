@@ -437,6 +437,8 @@ function loadDraft(){
     const raw=localStorage.getItem(DRAFT_KEY);
     if(!raw)return;
     const d=JSON.parse(raw);
+    const urlOrderId=new URLSearchParams(window.location.search).get('orderId');
+    if(d.orderId && d.orderId!==urlOrderId)return;
     if(d.asms&&d.asms.length){asms=d.asms;const ids=asms.map(x=>parseInt(x.id.replace('a',''))).filter(Boolean);nA=Math.max(10,...ids)+1;const pids=asms.flatMap(x=>x.parts.map(p=>parseInt(p.id.replace('pt','')))).filter(Boolean);nP=Math.max(100,...pids)+1;}
     if(d.num)document.getElementById('order-num').value=d.num;
     if(d.customer)document.getElementById('order-customer').value=d.customer;

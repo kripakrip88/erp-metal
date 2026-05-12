@@ -30,10 +30,13 @@ async function createRevision(orderId, notes) {
   for (const asm of order.assemblies) {
     const asmQty = asm.qty || 1
     for (const part of asm.parts) {
-      const mat   = part.materialDefinition
-      const geo   = mat.geometry
-      const price = mat.procurementProfiles?.[0]?.prices?.[0]
-      const ppt   = price ? Number(price.pricePerTon) : 0
+      const mat    = part.materialDefinition
+      const geo    = mat.geometry
+      // TODO: MVP — берём первый профиль. Позже: учитывать isPreferred, validFrom/validTo, currency, regional pricing
+      const profile = mat.procurementProfiles?.[0]
+      const price   = profile?.prices?.[0]
+      const ppt     = price ? Number(price.pricePerTon) : 0
+      const ppp     = profile?.pricePerPiece != null ? Number(profile.pricePerPiece) : null
 
       let wpu = 0, paint = 0, totalW = 0
 
@@ -50,10 +53,13 @@ async function createRevision(orderId, notes) {
       } else if (part.measurementType === 'PIECE' && part.directWeightKg) {
         wpu    = Number(part.directWeightKg)
         totalW = Math.round(wpu * part.quantity * asmQty * 10000) / 10000
+        // TODO: PIECE defaults to 0 paint area. Future: paintable assemblies (закладные, окрашенные покупные изделия)
         paint  = 0
       }
 
-      const cost = calcMaterialCost(totalW, ppt)
+      const cost = part.measurementType === 'PIECE' && ppp != null
+        ? Math.round(part.quantity * asmQty * ppp * 10000) / 10000
+        : calcMaterialCost(totalW, ppt)
       totalWeight += totalW
       totalCost   += cost
       totalPaint  += paint
@@ -64,18 +70,21 @@ async function createRevision(orderId, notes) {
         materialName:  mat.name,
         materialType:  mat.materialType,
         profileType:   mat.profileType,
-        steelGrade:    mat.steelGrade || null,
-        supplierName:  mat.procurementProfiles?.[0]?.supplierName || '',
+        steelGrade:    mat.steelGrade ?? null,
+        supplierName:  profile?.supplierName || '',
         measurementType: part.measurementType,
         length:        part.length,
         sheetWidth:    part.sheetWidth,
         sheetHeight:   part.sheetHeight,
+        directWeightKg: part.directWeightKg ?? null,
         quantity:      part.quantity * asmQty,
+        assemblyQty:   asmQty,
         theoreticalWeightPerMeter: geo.theoreticalWeightPerMeter,
         calculatedWeightPerUnit: wpu,
         totalWeight:   totalW,
         paintAreaM2:   paint,
         pricePerTon:   ppt,
+        pricePerPiece: ppp ?? null,
         currency:      'RUB',
         materialCost:  cost,
         assemblyName:  asm.name,

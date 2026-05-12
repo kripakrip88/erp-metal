@@ -292,6 +292,7 @@ model ProcurementProfile {
   isPreferred          Boolean      @default(false)
   isActive             Boolean      @default(true)
   notes                String?
+  pricePerPiece        Decimal?     @db.Decimal(14, 4)
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
   deletedAt            DateTime?
@@ -517,7 +518,9 @@ model RevisionPart {
   length                    Decimal? @db.Decimal(12, 4)
   sheetWidth                Decimal? @db.Decimal(12, 4)
   sheetHeight               Decimal? @db.Decimal(12, 4)
+  directWeightKg            Decimal? @db.Decimal(12, 4)
   quantity                  Int
+  assemblyQty               Int      @default(1)
   theoreticalWeightPerMeter Decimal? @db.Decimal(12, 6)
   actualWeightPerMeter      Decimal? @db.Decimal(12, 6)
   weightPerSquareMeter      Decimal? @db.Decimal(12, 6)
@@ -526,6 +529,7 @@ model RevisionPart {
   totalWeight               Decimal  @db.Decimal(12, 4)
   paintAreaM2               Decimal? @db.Decimal(12, 4)
   pricePerTon               Decimal  @db.Decimal(14, 4)
+  pricePerPiece             Decimal? @db.Decimal(14, 4)
   currency                  String
   materialCost              Decimal  @db.Decimal(14, 4)
   assemblyName              String?
