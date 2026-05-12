@@ -4,7 +4,7 @@ const { listMaterials, getMaterial } = require('../services/materialService')
 module.exports = [
   { method: 'GET', pathname: '/api/materials', handler: async (req, res, params, query) => {
     const q = new URLSearchParams(query || '')
-    const data = await listMaterials({ search: q.get('search') || '', profileType: q.get('profileType') || '' })
+    const data = await listMaterials({ search: q.get('search') || '', profileType: q.get('profileType') || '', categoryId: q.get('categoryId') || '' })
     json(res, data)
   }},
   { method: 'GET', pathname: '/api/materials/:id', handler: async (req, res, params) => {

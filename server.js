@@ -3,6 +3,7 @@ const { matchRoute } = require('./src/utils/router')
 const { json }       = require('./src/utils/response')
 
 const routes = [
+  ...require('./src/routes/categories'),
   ...require('./src/routes/materials'),
   ...require('./src/routes/orders'),
   ...require('./src/routes/assemblies'),
