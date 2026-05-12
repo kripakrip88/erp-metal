@@ -90,6 +90,10 @@ const ERPStore = (() => {
 
   // ─── Revisions ────────────────────────────────────────────────────
 
+  async function loadRevisions(orderId) {
+    return _fetch('/api/orders/' + encodeURIComponent(orderId) + '/revisions')
+  }
+
   async function createRevision(orderId, notes) {
     return _fetch('/api/orders/' + encodeURIComponent(orderId) + '/revisions', {
       method: 'POST',
@@ -166,6 +170,7 @@ const ERPStore = (() => {
     createAssembly,
     createPart,
     // Revisions
+    loadRevisions,
     createRevision,
     syncAndRevise,
     // Helpers
