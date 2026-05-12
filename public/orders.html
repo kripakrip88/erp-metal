@@ -249,13 +249,15 @@ function openCreateModal(){
   setTimeout(()=>document.getElementById('f-num').focus(),50);
 }
 
-function saveOrder(){
+async function saveOrder(){
   const numEl=document.getElementById('f-num');
   const errEl=document.getElementById('err-num');
   const number=numEl.value.trim();
   numEl.classList.remove('inp-error');errEl.style.display='none';
   if(!number){numEl.classList.add('inp-error');errEl.textContent='Введите номер заказа';errEl.style.display='block';numEl.focus();return;}
-  const result=ERPStore.createOrder({number,client:document.getElementById('f-client').value,object:document.getElementById('f-object').value,weightKg:parseFloat(document.getElementById('f-weight').value)||0,note:document.getElementById('f-note').value});
+  const btn=document.querySelector('#modal-inner .btn-primary');if(btn){btn.disabled=true;btn.textContent='Сохранение...';}
+  const result=await ERPStore.createOrder({number,client:document.getElementById('f-client').value,object:document.getElementById('f-object').value,weightKg:parseFloat(document.getElementById('f-weight').value)||0,note:document.getElementById('f-note').value});
+  if(btn){btn.disabled=false;btn.textContent='Создать заказ';}
   if(!result.ok){numEl.classList.add('inp-error');errEl.textContent=result.error;errEl.style.display='block';return;}
   closeModal();render();toast('Заказ '+number+' создан','success');
 }
@@ -297,9 +299,9 @@ function openDetail(id){
 
 function openInSimulator(id){window.location.href=ERPStore.buildSimulatorURL(id);}
 
-function addRevision(id){
+async function addRevision(id){
   const note=prompt('Примечание к новой ревизии:')||'Пересчёт';
-  const result=ERPStore.addRevision(id,{note});
+  const result=await ERPStore.addRevision(id,{note});
   if(!result.ok){toast(result.error,'error');return;}
   render();openDetail(id);toast('Создана ревизия '+result.revision.label,'success');
 }
@@ -316,7 +318,12 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':'✗ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
-render();
+async function init(){
+  document.getElementById('tbody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">Загрузка заказов из базы...</td></tr>';
+  await ERPStore.loadOrders();
+  render();
+}
+init();
 </script>
 </body>
 </html>

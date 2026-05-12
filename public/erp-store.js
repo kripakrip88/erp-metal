@@ -2,21 +2,25 @@
  * MetalPro ERP — Shared Data Store
  * Единый слой данных для всей системы.
  * Все страницы работают через этот модуль.
- * Готов к замене на Supabase/Postgres без изменения UI.
+ * API-first: GET/POST /api/orders, fallback → localStorage (офлайн).
  */
 
 const ERPStore = (() => {
 
-  // ─── Storage keys ───────────────────────────────────────────────
+  const API_BASE = 'http://5.35.92.112';
+
+  // ─── Storage keys ────────────────────────────────────────────────
   const KEYS = {
     ORDERS: 'erp_orders_v2',
     SETTINGS: 'erp_settings_v1',
   };
 
-  // ─── Schema version ─────────────────────────────────────────────
   const SCHEMA_VERSION = '2.0';
 
-  // ─── Internal helpers ───────────────────────────────────────────
+  // In-memory cache populated by loadOrders()
+  let _cache = null;
+
+  // ─── Internal helpers ─────────────────────────────────────────────
   function _read(key) {
     try { return JSON.parse(localStorage.getItem(key) || 'null'); }
     catch(e) { console.error('[ERPStore] read error', key, e); return null; }
@@ -35,10 +39,67 @@ const ERPStore = (() => {
     return new Date().toISOString();
   }
 
-  // ─── Orders ─────────────────────────────────────────────────────
+  // ─── API → ERPStore mapping ────────────────────────────────────────
+  // Merges an API order with local localStorage data (to preserve assemblies).
+  function _mergeOrder(apiOrder, localOrders) {
+    const local = localOrders.find(l => l.id === apiOrder.id);
 
+    let revisions;
+    if (local && local.revisions && local.revisions.length > 0) {
+      // Preserve local revision data (has assemblies / simulation results)
+      revisions = local.revisions;
+    } else {
+      revisions = [{
+        id: _genId('rev'), label: 'R1', num: 1, active: true,
+        createdAt: apiOrder.createdAt, note: 'Первичный расчёт',
+        assemblies: [], totalWeightKg: 0, totalCostRub: 0, totalPaintM2: 0,
+      }];
+    }
+
+    return {
+      id:            apiOrder.id,
+      number:        apiOrder.orderNumber,
+      client:        apiOrder.customerName,
+      object:        apiOrder.title,
+      weightKg:      local ? (local.weightKg || 0) : 0,
+      status:        apiOrder.status === 'CANCELLED' ? 'archived' : 'active',
+      createdAt:     apiOrder.createdAt,
+      updatedAt:     apiOrder.updatedAt,
+      schemaVersion: SCHEMA_VERSION,
+      revisions,
+      meta: local ? local.meta : { bomVersion: null, productionStatus: null, files: [], procurement: null, aiData: null },
+    };
+  }
+
+  // ─── API: load all orders ──────────────────────────────────────────
+  // Call on page init. Populates _cache; subsequent sync reads use it.
+  async function loadOrders() {
+    const localOrders = _read(KEYS.ORDERS) || [];
+    try {
+      const res = await fetch(API_BASE + '/api/orders');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const apiOrders = await res.json();
+
+      const apiIds = new Set(apiOrders.map(o => o.id));
+      // Orders created offline (old ord_xxx IDs) — keep them
+      const localOnly = localOrders.filter(l => !apiIds.has(l.id));
+
+      _cache = [
+        ...apiOrders.map(o => _mergeOrder(o, localOrders)),
+        ...localOnly,
+      ];
+      _write(KEYS.ORDERS, _cache);
+      return _cache;
+    } catch(e) {
+      console.warn('[ERPStore] API недоступен, используем localStorage:', e.message);
+      _cache = localOrders;
+      return _cache;
+    }
+  }
+
+  // ─── Sync reads from cache ─────────────────────────────────────────
   function getAllOrders() {
-    return _read(KEYS.ORDERS) || [];
+    return _cache !== null ? _cache : (_read(KEYS.ORDERS) || []);
   }
 
   function getOrderById(id) {
@@ -56,16 +117,88 @@ const ERPStore = (() => {
     return false;
   }
 
-  /**
-   * Создать новый заказ.
-   * Автоматически создаёт первую ревизию R1.
-   * Возвращает { ok, order, error }
-   */
-  function createOrder({ number, client, object, weightKg = 0, note = '' }) {
+  // ─── API: get single order (for simulator page load) ──────────────
+  async function getOrderByIdAsync(id) {
+    try {
+      const res = await fetch(API_BASE + '/api/orders/' + encodeURIComponent(id));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const apiOrder = await res.json();
+      const localOrders = _read(KEYS.ORDERS) || [];
+      const order = _mergeOrder(apiOrder, localOrders);
+
+      // Ensure order exists in localStorage so saveDraftToRevision works
+      const idx = localOrders.findIndex(o => o.id === order.id);
+      if (idx === -1) {
+        localOrders.unshift(order);
+      } else {
+        // Update metadata but preserve local revisions/assemblies
+        localOrders[idx] = {
+          ...localOrders[idx],
+          id: order.id, number: order.number,
+          client: order.client, object: order.object,
+          status: order.status,
+          updatedAt: order.updatedAt,
+        };
+      }
+      _write(KEYS.ORDERS, localOrders);
+
+      if (_cache !== null) {
+        const ci = _cache.findIndex(o => o.id === order.id);
+        if (ci === -1) _cache.unshift(order);
+        else _cache[ci] = order;
+      }
+      return order;
+    } catch(e) {
+      console.warn('[ERPStore] getOrderByIdAsync fallback:', e.message);
+      return getOrderById(id);
+    }
+  }
+
+  // ─── Create order ──────────────────────────────────────────────────
+  // Async: POST /api/orders, fallback to localStorage on network error.
+  async function createOrder({ number, client, object, weightKg = 0, note = '' }) {
     number = String(number || '').trim();
     if (!number) return { ok: false, error: 'Номер заказа обязателен' };
     if (!isNumberUnique(number)) return { ok: false, error: `Заказ №${number} уже существует` };
 
+    try {
+      const res = await fetch(API_BASE + '/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber:  number,
+          customerName: client || '—',
+          title:        object || '—',
+          description:  note   || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { ok: false, error: err.error || 'Ошибка API (' + res.status + ')' };
+      }
+      const apiOrder = await res.json();
+      const order = _mergeOrder(apiOrder, []);
+      // Override default R1 with the user-supplied note
+      order.revisions = [{
+        id: _genId('rev'), label: 'R1', num: 1, active: true,
+        createdAt: apiOrder.createdAt || _now(),
+        note: note || 'Первичный расчёт',
+        assemblies: [], totalWeightKg: 0, totalCostRub: 0, totalPaintM2: 0,
+      }];
+
+      if (_cache !== null) _cache.unshift(order);
+      const stored = _read(KEYS.ORDERS) || [];
+      stored.unshift(order);
+      _write(KEYS.ORDERS, stored);
+      return { ok: true, order };
+    } catch(e) {
+      console.warn('[ERPStore] createOrder API error, сохраняем локально:', e.message);
+      return _createOrderLocal({ number, client, object, weightKg, note });
+    }
+  }
+
+  // localStorage-only fallback (офлайн)
+  function _createOrderLocal({ number, client, object, weightKg = 0, note = '' }) {
     const now = _now();
     const order = {
       id: _genId('ord'),
@@ -74,53 +207,30 @@ const ERPStore = (() => {
       object: String(object || '').trim(),
       weightKg: parseFloat(weightKg) || 0,
       status: 'active',
-      createdAt: now,
-      updatedAt: now,
+      createdAt: now, updatedAt: now,
       schemaVersion: SCHEMA_VERSION,
-      // Ревизии — immutable snapshots
-      revisions: [
-        {
-          id: _genId('rev'),
-          label: 'R1',
-          num: 1,
-          active: true,
-          createdAt: now,
-          note: note || 'Первичный расчёт',
-          // Snapshot данных расчёта (заполняется из simulator)
-          assemblies: [],
-          totalWeightKg: 0,
-          totalCostRub: 0,
-          totalPaintM2: 0,
-        }
-      ],
-      // Метаданные для будущих модулей
-      meta: {
-        bomVersion: null,
-        productionStatus: null,
-        files: [],
-        procurement: null,
-        aiData: null,
-      }
+      revisions: [{
+        id: _genId('rev'), label: 'R1', num: 1, active: true,
+        createdAt: now, note: note || 'Первичный расчёт',
+        assemblies: [], totalWeightKg: 0, totalCostRub: 0, totalPaintM2: 0,
+      }],
+      meta: { bomVersion: null, productionStatus: null, files: [], procurement: null, aiData: null },
     };
-
     const orders = getAllOrders();
     orders.unshift(order);
+    if (_cache !== null) _cache = orders;
     _write(KEYS.ORDERS, orders);
     return { ok: true, order };
   }
 
-  /**
-   * Добавить новую ревизию к заказу.
-   * Предыдущие ревизии становятся неактивными (immutable).
-   * Возвращает { ok, revision, error }
-   */
-  function addRevision(orderId, { note = '', assemblies = [], totalWeightKg = 0, totalCostRub = 0, totalPaintM2 = 0 } = {}) {
+  // ─── Add revision (orders.html "Новая ревизия") ────────────────────
+  // Saves locally immediately; also POSTs to API (fire-and-forget).
+  async function addRevision(orderId, { note = '', assemblies = [], totalWeightKg = 0, totalCostRub = 0, totalPaintM2 = 0 } = {}) {
     const orders = getAllOrders();
     const idx = orders.findIndex(o => o.id === orderId);
     if (idx === -1) return { ok: false, error: 'Заказ не найден' };
 
     const order = orders[idx];
-    // Деактивируем все предыдущие ревизии
     order.revisions.forEach(r => { r.active = false; });
 
     const num = order.revisions.length + 1;
@@ -131,34 +241,42 @@ const ERPStore = (() => {
       active: true,
       createdAt: _now(),
       note: note || 'Пересчёт',
-      assemblies: JSON.parse(JSON.stringify(assemblies)), // deep copy — snapshot
-      totalWeightKg,
-      totalCostRub,
-      totalPaintM2,
+      assemblies: JSON.parse(JSON.stringify(assemblies)),
+      totalWeightKg, totalCostRub, totalPaintM2,
     };
 
     order.revisions.push(revision);
     order.updatedAt = _now();
-    // Обновляем вес заказа из активной ревизии
     order.weightKg = totalWeightKg;
-
     orders[idx] = order;
+    if (_cache !== null) _cache = orders;
     _write(KEYS.ORDERS, orders);
+
+    // Sync to API in background (don't block UI)
+    createApiRevision(orderId, note).catch(e => console.warn('[ERPStore] addRevision API:', e.message));
+
     return { ok: true, revision };
   }
 
-  /**
-   * Получить активную ревизию заказа.
-   */
+  // ─── API: create revision record ────────────────────────────────────
+  // Called from simulator "Зафиксировать ревизию".
+  async function createApiRevision(orderId, note = '') {
+    const res = await fetch(API_BASE + '/api/orders/' + encodeURIComponent(orderId) + '/revisions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: note }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // ─── Active revision helper ────────────────────────────────────────
   function getActiveRevision(order) {
     if (!order || !order.revisions || !order.revisions.length) return null;
     return order.revisions.find(r => r.active) || order.revisions[order.revisions.length - 1];
   }
 
-  /**
-   * Сохранить текущий черновик расчёта в активную ревизию заказа.
-   * Используется из simulator при каждом изменении.
-   */
+  // ─── Save draft (simulator → active revision) ──────────────────────
   function saveDraftToRevision(orderId, { assemblies, totalWeightKg, totalCostRub, totalPaintM2 }) {
     const orders = getAllOrders();
     const idx = orders.findIndex(o => o.id === orderId);
@@ -170,19 +288,18 @@ const ERPStore = (() => {
 
     rev.assemblies = JSON.parse(JSON.stringify(assemblies));
     rev.totalWeightKg = totalWeightKg;
-    rev.totalCostRub = totalCostRub;
-    rev.totalPaintM2 = totalPaintM2;
-    order.weightKg = totalWeightKg;
-    order.updatedAt = _now();
+    rev.totalCostRub  = totalCostRub;
+    rev.totalPaintM2  = totalPaintM2;
+    order.weightKg    = totalWeightKg;
+    order.updatedAt   = _now();
 
     orders[idx] = order;
+    if (_cache !== null) _cache = orders;
     _write(KEYS.ORDERS, orders);
     return { ok: true };
   }
 
-  /**
-   * Обновить поля заказа (не ревизии).
-   */
+  // ─── Update order fields ───────────────────────────────────────────
   function updateOrder(orderId, fields) {
     const orders = getAllOrders();
     const idx = orders.findIndex(o => o.id === orderId);
@@ -193,20 +310,16 @@ const ERPStore = (() => {
       if (fields[k] !== undefined) orders[idx][k] = fields[k];
     });
     orders[idx].updatedAt = _now();
+    if (_cache !== null) _cache = orders;
     _write(KEYS.ORDERS, orders);
     return { ok: true };
   }
 
-  /**
-   * Soft delete — помечаем как архивный, не удаляем физически.
-   */
   function archiveOrder(orderId) {
     return updateOrder(orderId, { status: 'archived' });
   }
 
-  // ─── URL helpers ─────────────────────────────────────────────────
-  // Передача orderId между страницами через URL параметр
-
+  // ─── URL helpers ───────────────────────────────────────────────────
   function getOrderIdFromURL() {
     return new URLSearchParams(window.location.search).get('orderId');
   }
@@ -219,8 +332,7 @@ const ERPStore = (() => {
     return 'orders.html';
   }
 
-  // ─── Formatting helpers ──────────────────────────────────────────
-
+  // ─── Formatting helpers ────────────────────────────────────────────
   function formatDate(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
@@ -237,14 +349,17 @@ const ERPStore = (() => {
     return '₽ ' + Number(Math.round(rub)).toLocaleString('ru-RU');
   }
 
-  // ─── Public API ──────────────────────────────────────────────────
+  // ─── Public API ────────────────────────────────────────────────────
   return {
+    loadOrders,
     getAllOrders,
     getOrderById,
+    getOrderByIdAsync,
     getOrderByNumber,
     isNumberUnique,
     createOrder,
     addRevision,
+    createApiRevision,
     getActiveRevision,
     saveDraftToRevision,
     updateOrder,
@@ -259,5 +374,4 @@ const ERPStore = (() => {
 
 })();
 
-// Экспорт для совместимости
 if (typeof module !== 'undefined') module.exports = ERPStore;

@@ -667,6 +667,8 @@ function createRevision(){
       totalCostRub:r.tC,
       totalPaintM2:r.tP
     });
+    // Фиксируем ревизию в API (fire-and-forget)
+    ERPStore.createApiRevision(window._currentOrderId, rev.note||'').catch(e=>console.warn('[ERP] API revision:', e.message));
   }
   updCmpSel();toast(`Rev ${num} — ${f3(r.tW/1000)} т, ${r.tP.toFixed(1)} м², ₽${fm(Math.round(r.tC))}`,'success');go('revisions');
 }
@@ -729,12 +731,12 @@ let _tt;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;el.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
 
 // Загрузка заказа из URL
-(function(){
+(async function(){
   try {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('orderId');
     if (orderId && typeof ERPStore !== 'undefined') {
-      const order = ERPStore.getOrderById(orderId);
+      const order = await ERPStore.getOrderByIdAsync(orderId);
       if (order) {
         document.getElementById('order-num').value = order.number || '';
         document.getElementById('order-customer').value = order.client || '';
@@ -748,11 +750,13 @@ function toast(msg,type='success'){const el=document.getElementById('toast');el.
           nP = Math.max(100,...pids)+1;
         }
         window._currentOrderId = orderId;
+      } else {
+        loadState();
       }
     } else {
       loadState();
     }
-  } catch(e) { loadState(); }
+  } catch(e) { console.warn('init error', e); loadState(); }
 })();
 refresh();
 loadMats();
