@@ -1,9 +1,10 @@
 const prisma = require('./prisma')
 
-async function findAll({ search, profileType, companyId }) {
+async function findAll({ search, profileType, categoryId, companyId }) {
   const where = {
     companyId, isActive: true, deletedAt: null,
-    ...(profileType ? { profileType } : {}),
+    ...(profileType  ? { profileType }         : {}),
+    ...(categoryId   ? { categoryId }           : {}),
     ...(search ? { OR: [
       { code: { contains: search, mode: 'insensitive' } },
       { name: { contains: search, mode: 'insensitive' } },

@@ -170,6 +170,7 @@ model Company {
 
   users               User[]
   materialDefinitions MaterialDefinition[]
+  materialCategories  MaterialCategory[]
   procurementProfiles ProcurementProfile[]
   orders              Order[]
   auditLogs           AuditLog[]
@@ -214,6 +215,7 @@ model MaterialDefinition {
   profileType  ProfileType
   steelGrade   SteelGrade?
   geometryId   String       @unique
+  categoryId   String?
   description  String?
   standard     String?
   isActive     Boolean      @default(true)
@@ -224,12 +226,34 @@ model MaterialDefinition {
 
   company             Company              @relation(fields: [companyId], references: [id])
   geometry            MaterialGeometry     @relation(fields: [geometryId], references: [id])
+  category            MaterialCategory?    @relation(fields: [categoryId], references: [id])
   procurementProfiles ProcurementProfile[]
   parts               Part[]
   stockItems          StockItem[]
 
   @@unique([companyId, code])
   @@map("material_definitions")
+}
+
+model MaterialCategory {
+  id        String    @id @default(uuid())
+  companyId String
+  slug      String
+  name      String
+  parentId  String?
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company   Company            @relation(fields: [companyId], references: [id])
+  parent    MaterialCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  MaterialCategory[] @relation("CategoryTree")
+  materials MaterialDefinition[]
+
+  @@unique([companyId, slug])
+  @@map("material_categories")
 }
 
 model MaterialGeometry {

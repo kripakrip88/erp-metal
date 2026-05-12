@@ -5,10 +5,10 @@ async function getCompany() {
   return prisma.company.findFirst()
 }
 
-async function listMaterials({ search, profileType }) {
+async function listMaterials({ search, profileType, categoryId }) {
   const company = await getCompany()
   if (!company) return []
-  return materialRepo.findAll({ search, profileType, companyId: company.id })
+  return materialRepo.findAll({ search, profileType, categoryId, companyId: company.id })
 }
 
 async function getMaterial(id) {
