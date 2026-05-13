@@ -216,6 +216,7 @@ model MaterialDefinition {
   steelGrade   SteelGrade?
   geometryId   String       @unique
   categoryId   String?
+  pieceUnit    String?  @default("pcs")
   description  String?
   standard     String?
   isActive     Boolean      @default(true)
@@ -270,6 +271,7 @@ model MaterialGeometry {
   actualWeightPerMeter      Decimal?        @db.Decimal(12, 6)
   weightPerSquareMeter      Decimal?        @db.Decimal(12, 6)
   paintSurfacePerMeter      Decimal?        @db.Decimal(12, 6)
+  unitWeightKg              Decimal?        @db.Decimal(12, 4)
   densityKgM3               Int?
   createdAt                 DateTime        @default(now())
   updatedAt                 DateTime        @updatedAt

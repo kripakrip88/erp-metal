@@ -15,4 +15,18 @@ async function getMaterial(id) {
   return materialRepo.findById(id)
 }
 
-module.exports = { listMaterials, getMaterial }
+async function createMaterial(data) {
+  const company = await getCompany()
+  if (!company) throw new Error('Company not found')
+  return materialRepo.create({ companyId: company.id, ...data })
+}
+
+async function updateMaterial(id, data) {
+  return materialRepo.update(id, data)
+}
+
+async function archiveMaterial(id) {
+  return materialRepo.archive(id)
+}
+
+module.exports = { listMaterials, getMaterial, createMaterial, updateMaterial, archiveMaterial }
