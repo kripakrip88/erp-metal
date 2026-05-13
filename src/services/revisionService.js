@@ -68,6 +68,7 @@ async function createRevision(orderId, notes) {
         materialDefinitionId: mat.id,
         materialCode:  mat.code,
         materialName:  mat.name,
+        name:          part.name ?? null,
         materialType:  mat.materialType,
         profileType:   mat.profileType,
         steelGrade:    mat.steelGrade ?? null,
