@@ -508,6 +508,7 @@ model RevisionPart {
   procurementProfileId      String?
   materialCode              String
   materialName              String
+  name                      String?
   materialType              String
   profileType               String
   steelGrade                String?
