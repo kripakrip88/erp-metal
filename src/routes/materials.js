@@ -1,6 +1,6 @@
 const { json }       = require('../utils/response')
 const { parseBody }  = require('../utils/parseBody')
-const { listMaterials, getMaterial, createMaterial, updateMaterial } = require('../services/materialService')
+const { listMaterials, getMaterial, createMaterial, updateMaterial, archiveMaterial } = require('../services/materialService')
 const { validateMaterial } = require('../validators/materialValidator')
 
 module.exports = [
@@ -20,5 +20,8 @@ module.exports = [
   { method: 'PUT', pathname: '/api/materials/:id', handler: async (req, res, params) => {
     const body = await parseBody(req)
     json(res, await updateMaterial(params.id, validateMaterial(body)))
+  }},
+  { method: 'DELETE', pathname: '/api/materials/:id', handler: async (req, res, params) => {
+    json(res, await archiveMaterial(params.id))
   }},
 ]

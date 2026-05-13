@@ -16,6 +16,10 @@ function validateMaterial(body) {
 
   const num = (v) => (v != null && v !== '') ? Number(v) : null
 
+  const unitWeightKg = num(body.unitWeightKg)
+  if (body.measurementType === 'PIECE' && unitWeightKg !== null && unitWeightKg < 0)
+    throw Object.assign(new Error('unitWeightKg должен быть >= 0'), { status: 400 })
+
   return {
     code:         String(body.code).trim(),
     name:         String(body.name).trim(),
@@ -29,7 +33,7 @@ function validateMaterial(body) {
     theoreticalWeightPerMeter: num(body.theoreticalWeightPerMeter),
     weightPerSquareMeter:      num(body.weightPerSquareMeter),
     paintSurfacePerMeter:      num(body.paintSurfacePerMeter),
-    unitWeightKg:              num(body.unitWeightKg),
+    unitWeightKg,
   }
 }
 

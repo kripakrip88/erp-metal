@@ -60,7 +60,7 @@ async function update(id, { code, name, materialType, profileType, steelGrade, c
     await tx.materialGeometry.update({
       where: { id: mat.geometryId },
       data: {
-        measurementType,
+        // measurementType is readonly after creation
         theoreticalWeightPerMeter: theoreticalWeightPerMeter ?? null,
         weightPerSquareMeter:      weightPerSquareMeter      ?? null,
         paintSurfacePerMeter:      paintSurfacePerMeter      ?? null,
@@ -82,4 +82,11 @@ async function update(id, { code, name, materialType, profileType, steelGrade, c
   })
 }
 
-module.exports = { findAll, findById, create, update }
+async function archive(id) {
+  return prisma.materialDefinition.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  })
+}
+
+module.exports = { findAll, findById, create, update, archive }

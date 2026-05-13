@@ -25,4 +25,8 @@ async function updateMaterial(id, data) {
   return materialRepo.update(id, data)
 }
 
-module.exports = { listMaterials, getMaterial, createMaterial, updateMaterial }
+async function archiveMaterial(id) {
+  return materialRepo.archive(id)
+}
+
+module.exports = { listMaterials, getMaterial, createMaterial, updateMaterial, archiveMaterial }
