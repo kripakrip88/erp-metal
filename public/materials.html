@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Материалы</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--purple:#7c3aed;--orange:#c2410c;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:204px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;color:var(--accent);}
+.logo span{display:block;font-size:10px;font-weight:500;color:var(--muted);margin-top:2px;}
+nav{padding:8px;flex:1;}
+.nav-group{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;font-size:12.5px;transition:all .1s;margin-bottom:1px;text-decoration:none;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:#eff6ff;color:var(--accent);font-weight:600;}
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+.main{margin-left:204px;flex:1;}
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-weight:700;font-size:14px;}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.content{padding:20px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Manrope';font-size:12.5px;font-weight:600;transition:all .12s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:360px;}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px;}
+.search-input{width:100%;height:34px;padding:0 10px 0 30px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:'Manrope';font-size:13px;outline:none;transition:border-color .12s;}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.search-input::placeholder{color:var(--muted);}
+.count-label{font-size:12px;color:var(--muted);margin-left:auto;}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.cat-btn{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:'Manrope';font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;}
+.cat-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cat-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f8faff;}
+td{padding:9px 12px;vertical-align:middle;}
+.mono{font-family:'JetBrains Mono';font-size:11.5px;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.b-linear{background:#eff6ff;color:#1d4ed8;}
+.b-area{background:#fff7ed;color:var(--orange);}
+.b-piece{background:#f5f3ff;color:var(--purple);}
+.b-steel{background:#f0fdf4;color:#15803d;}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty .icon{font-size:32px;margin-bottom:8px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border-radius:10px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-title{font-weight:700;font-size:15px;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px;line-height:1;border-radius:4px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+input[type=text],input[type=number],select{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s,box-shadow .12s;width:100%;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.section-sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:14px;margin-top:20px;}
+.section-sep:first-child{margin-top:0;}
+.geo-section{display:none;}
+.geo-section.visible{display:block;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#15803d;}.toast.error{background:var(--red);}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">МеталлПро ERP <span>Рабочий стенд v1.0</span></div>
+  <nav>
+    <div class="nav-group">Workflow</div>
+    <a class="nav-item" href="orders.html"><span>📋</span> Журнал заказов</a>
+    <a class="nav-item" href="simulator.html"><span>🧮</span> Расчёт КП</a>
+    <div class="nav-group">Справочники</div>
+    <a class="nav-item active" href="materials.html"><span>🔩</span> Материалы</a>
+    <a class="nav-item" href="#"><span>💰</span> Цены</a>
+  </nav>
+  <div class="sidebar-bottom">МеталлПро ERP · v1.0</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Материалы</div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="openCreate()">+ Создать материал</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="controls">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search-inp" placeholder="Поиск по коду или названию..." oninput="onSearch(this.value)">
+      </div>
+      <span class="count-label" id="mat-count"></span>
+    </div>
+
+    <div class="filter-bar" id="cat-filter"></div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Код</th>
+            <th>Название</th>
+            <th>Категория</th>
+            <th>Профиль</th>
+            <th>Тип</th>
+            <th>Параметры</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="mat-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Modal -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Создать материал</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-sep">Идентификация</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Код *</label>
+          <input type="text" id="f-code" placeholder="Пример: TUBE-100x100x5">
+        </div>
+        <div class="field">
+          <label>Категория</label>
+          <select id="f-category">
+            <option value="">— не указана —</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Название *</label>
+        <input type="text" id="f-name" placeholder="Пример: Труба профильная 100×100×5">
+      </div>
+
+      <div class="section-sep">Классификация</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Тип профиля *</label>
+          <select id="f-profile">
+            <option value="">— выберите —</option>
+            <option value="RECTANGULAR_TUBE">Труба профильная</option>
+            <option value="ROUND_TUBE">Труба круглая</option>
+            <option value="ANGLE">Уголок</option>
+            <option value="CHANNEL">Швеллер</option>
+            <option value="BEAM">Балка</option>
+            <option value="SHEET">Лист</option>
+            <option value="PLATE">Плита</option>
+            <option value="FLAT_BAR">Полоса</option>
+            <option value="ROUND_BAR">Круг</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Тип материала *</label>
+          <select id="f-mattype">
+            <option value="STEEL">Сталь (STEEL)</option>
+            <option value="STAINLESS">Нержавеющая (STAINLESS)</option>
+            <option value="ALUMINUM">Алюминий (ALUMINUM)</option>
+            <option value="GALVANIZED">Оцинкованная (GALVANIZED)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Марка стали</label>
+          <select id="f-grade">
+            <option value="">— не указана —</option>
+            <option value="S235">S235</option>
+            <option value="S245">S245</option>
+            <option value="S345">S345</option>
+            <option value="S355">S355</option>
+            <option value="S09G2S">09Г2С</option>
+            <option value="AISI304">AISI 304</option>
+            <option value="AISI316">AISI 316</option>
+            <option value="OTHER">Другая</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ГОСТ / Стандарт</label>
+          <input type="text" id="f-standard" placeholder="Пример: ГОСТ 8639-82">
+        </div>
+      </div>
+
+      <div class="section-sep">Параметры измерения</div>
+      <div class="field">
+        <label>Единица измерения *</label>
+        <select id="f-mtype" onchange="onMtypeChange()">
+          <option value="LINEAR">LINEAR — погонные метры</option>
+          <option value="AREA">AREA — площадь (листы)</option>
+          <option value="PIECE">PIECE — штучные</option>
+        </select>
+      </div>
+
+      <!-- LINEAR fields -->
+      <div class="geo-section" id="fields-linear">
+        <div class="grid2">
+          <div class="field">
+            <label>кг / м</label>
+            <input type="number" id="f-kgm" placeholder="0.000" step="0.0001" min="0">
+          </div>
+          <div class="field">
+            <label>Покраска м² / м</label>
+            <input type="number" id="f-paint" placeholder="0.000" step="0.0001" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- AREA fields -->
+      <div class="geo-section" id="fields-area">
+        <div class="field" style="max-width:220px">
+          <label>кг / м²</label>
+          <input type="number" id="f-kgm2" placeholder="0.000" step="0.0001" min="0">
+        </div>
+      </div>
+
+      <!-- PIECE fields -->
+      <div class="geo-section" id="fields-piece">
+        <div class="grid2">
+          <div class="field">
+            <label>Вес единицы, кг</label>
+            <input type="number" id="f-unitkg" placeholder="0.000" step="0.0001" min="0">
+          </div>
+          <div class="field">
+            <label>Единица учёта</label>
+            <select id="f-pieceunit">
+              <option value="pcs">pcs — штука</option>
+              <option value="set">set — комплект</option>
+              <option value="pack">pack — упаковка</option>
+              <option value="pair">pair — пара</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="save-btn" onclick="submitForm()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = 'http://5.35.92.112';
+
+const PROFILE_LABELS = {
+  RECTANGULAR_TUBE:'Труба пр.',ROUND_TUBE:'Труба кр.',ANGLE:'Уголок',
+  CHANNEL:'Швеллер',BEAM:'Балка',SHEET:'Лист',PLATE:'Плита',
+  FLAT_BAR:'Полоса',ROUND_BAR:'Круг',
+};
+
+let materials=[], categories=[], curCatId='', editingId=null;
+let _searchTimer=null;
+
+async function init(){
+  try{
+    const [cats, mats] = await Promise.all([
+      fetch(API+'/api/material-categories').then(r=>r.json()),
+      fetch(API+'/api/materials').then(r=>r.json()),
+    ]);
+    categories = cats;
+    materials  = mats;
+    renderCats();
+    renderTable();
+  }catch(e){toast('Ошибка загрузки: '+e.message,'error');}
+}
+
+function renderCats(){
+  const el=document.getElementById('cat-filter');
+  el.innerHTML=`<button class="cat-btn ${!curCatId?'active':''}" onclick="setFilter('')">Все</button>`
+    +categories.map(c=>`<button class="cat-btn ${curCatId===c.id?'active':''}" onclick="setFilter('${c.id}')">${c.name}</button>`).join('');
+}
+
+function setFilter(catId){curCatId=catId;renderCats();loadMaterials();}
+
+function onSearch(q){
+  clearTimeout(_searchTimer);
+  _searchTimer=setTimeout(()=>loadMaterials(q),300);
+}
+
+async function loadMaterials(search){
+  if(search===undefined)search=document.getElementById('search-inp').value;
+  const p=new URLSearchParams();
+  if(search)p.set('search',search);
+  if(curCatId)p.set('categoryId',curCatId);
+  try{
+    const res=await fetch(API+'/api/materials?'+p);
+    materials=await res.json();
+    renderTable();
+  }catch(e){toast('Ошибка: '+e.message,'error');}
+}
+
+function renderTable(){
+  const el=document.getElementById('mat-tbody');
+  document.getElementById('mat-count').textContent=materials.length+' материалов';
+  if(!materials.length){
+    el.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="icon">🔩</div>Материалов не найдено</div></td></tr>`;
+    return;
+  }
+  el.innerHTML=materials.map(m=>{
+    const geo=m.geometry||{};
+    const cat=findCat(m.categoryId);
+    const mt=geo.measurementType||'';
+    const mtBadge={
+      LINEAR:`<span class="badge b-linear">LINEAR</span>`,
+      AREA:`<span class="badge b-area">AREA</span>`,
+      PIECE:`<span class="badge b-piece">PIECE</span>`,
+    }[mt]||'—';
+    let params='—';
+    if(mt==='LINEAR'){
+      const parts=[];
+      if(geo.theoreticalWeightPerMeter)parts.push(geo.theoreticalWeightPerMeter+' кг/м');
+      if(geo.paintSurfacePerMeter)parts.push(geo.paintSurfacePerMeter+' м²/м');
+      if(parts.length)params=parts.join(' · ');
+    }else if(mt==='AREA'&&geo.weightPerSquareMeter){
+      params=geo.weightPerSquareMeter+' кг/м²';
+    }else if(mt==='PIECE'&&geo.unitWeightKg){
+      params=geo.unitWeightKg+' кг/шт';
+    }
+    return`<tr onclick="openEdit('${m.id}')">
+      <td><span class="mono" style="color:var(--accent);font-weight:700">${esc(m.code)}</span></td>
+      <td>${esc(m.name)}</td>
+      <td style="color:var(--muted);font-size:12px">${cat?esc(cat.name):'—'}</td>
+      <td style="font-size:12px">${PROFILE_LABELS[m.profileType]||m.profileType}</td>
+      <td>${mtBadge}</td>
+      <td class="mono" style="font-size:11.5px;color:var(--muted)">${params}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openEdit('${m.id}')">Ред.</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function findCat(id){
+  for(const c of categories){
+    if(c.id===id)return c;
+    for(const ch of c.children||[])if(ch.id===id)return ch;
+  }
+  return null;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function populateCategorySelect(){
+  const sel=document.getElementById('f-category');
+  sel.innerHTML='<option value="">— не указана —</option>';
+  for(const c of categories){
+    sel.innerHTML+=`<option value="${c.id}">${c.name}</option>`;
+    for(const ch of c.children||[])
+      sel.innerHTML+=`<option value="${ch.id}">&nbsp;&nbsp;${ch.name}</option>`;
+  }
+}
+
+function openCreate(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Создать материал';
+  resetForm();
+  populateCategorySelect();
+  document.getElementById('modal-bg').style.display='flex';
+}
+
+async function openEdit(id){
+  editingId=id;
+  document.getElementById('modal-title').textContent='Редактировать материал';
+  populateCategorySelect();
+  try{
+    const res=await fetch(API+'/api/materials/'+id);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const m=await res.json();
+    fillForm(m);
+    document.getElementById('modal-bg').style.display='flex';
+  }catch(e){toast('Ошибка загрузки: '+e.message,'error');}
+}
+
+function fillForm(m){
+  const geo=m.geometry||{};
+  document.getElementById('f-code').value     = m.code||'';
+  document.getElementById('f-name').value     = m.name||'';
+  document.getElementById('f-category').value = m.categoryId||'';
+  document.getElementById('f-profile').value  = m.profileType||'';
+  document.getElementById('f-mattype').value  = m.materialType||'STEEL';
+  document.getElementById('f-grade').value    = m.steelGrade||'';
+  document.getElementById('f-standard').value = m.standard||'';
+  document.getElementById('f-mtype').value    = geo.measurementType||'LINEAR';
+  document.getElementById('f-kgm').value      = geo.theoreticalWeightPerMeter||'';
+  document.getElementById('f-paint').value    = geo.paintSurfacePerMeter||'';
+  document.getElementById('f-kgm2').value     = geo.weightPerSquareMeter||'';
+  document.getElementById('f-unitkg').value   = geo.unitWeightKg||'';
+  document.getElementById('f-pieceunit').value= m.pieceUnit||'pcs';
+  onMtypeChange();
+}
+
+function resetForm(){
+  document.getElementById('f-code').value='';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-category').value='';
+  document.getElementById('f-profile').value='';
+  document.getElementById('f-mattype').value='STEEL';
+  document.getElementById('f-grade').value='';
+  document.getElementById('f-standard').value='';
+  document.getElementById('f-mtype').value='LINEAR';
+  document.getElementById('f-kgm').value='';
+  document.getElementById('f-paint').value='';
+  document.getElementById('f-kgm2').value='';
+  document.getElementById('f-unitkg').value='';
+  document.getElementById('f-pieceunit').value='pcs';
+  onMtypeChange();
+}
+
+function onMtypeChange(){
+  const mt=document.getElementById('f-mtype').value;
+  document.getElementById('fields-linear').className='geo-section'+(mt==='LINEAR'?' visible':'');
+  document.getElementById('fields-area').className='geo-section'+(mt==='AREA'?' visible':'');
+  document.getElementById('fields-piece').className='geo-section'+(mt==='PIECE'?' visible':'');
+}
+
+function closeModal(){document.getElementById('modal-bg').style.display='none';}
+
+async function submitForm(){
+  const code=document.getElementById('f-code').value.trim();
+  const name=document.getElementById('f-name').value.trim();
+  const profileType=document.getElementById('f-profile').value;
+  const materialType=document.getElementById('f-mattype').value;
+  const measurementType=document.getElementById('f-mtype').value;
+  if(!code||!name||!profileType||!materialType||!measurementType){
+    toast('Заполните обязательные поля (*)','error');return;
+  }
+  const body={
+    code,name,profileType,materialType,measurementType,
+    categoryId:document.getElementById('f-category').value||null,
+    steelGrade:document.getElementById('f-grade').value||null,
+    standard:document.getElementById('f-standard').value||null,
+    theoreticalWeightPerMeter:document.getElementById('f-kgm').value||null,
+    paintSurfacePerMeter:document.getElementById('f-paint').value||null,
+    weightPerSquareMeter:document.getElementById('f-kgm2').value||null,
+    unitWeightKg:document.getElementById('f-unitkg').value||null,
+    pieceUnit:document.getElementById('f-pieceunit').value||null,
+  };
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;btn.textContent='Сохранение...';
+  try{
+    const url=editingId?API+'/api/materials/'+editingId:API+'/api/materials';
+    const res=await fetch(url,{method:editingId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'HTTP '+res.status);}
+    closeModal();
+    await loadMaterials();
+    toast(editingId?'Материал обновлён':'Материал создан','success');
+  }catch(e){toast('Ошибка: '+e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Сохранить';}
+}
+
+let _tt;
+function toast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=(type==='success'?'✓ ':type==='error'?'✗ ':'⚠ ')+msg;
+  el.className='toast '+type+' show';
+  clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+init();
+</script>
+</body>
+</html>

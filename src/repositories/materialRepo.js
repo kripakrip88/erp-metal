@@ -27,4 +27,59 @@ async function findById(id) {
   })
 }
 
-module.exports = { findAll, findById }
+async function create({ companyId, code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+  return prisma.$transaction(async (tx) => {
+    const geo = await tx.materialGeometry.create({
+      data: {
+        measurementType,
+        theoreticalWeightPerMeter: theoreticalWeightPerMeter ?? null,
+        weightPerSquareMeter:      weightPerSquareMeter      ?? null,
+        paintSurfacePerMeter:      paintSurfacePerMeter      ?? null,
+        unitWeightKg:              unitWeightKg              ?? null,
+      }
+    })
+    return tx.materialDefinition.create({
+      data: {
+        companyId, code, name, materialType, profileType,
+        steelGrade: steelGrade ?? null,
+        categoryId: categoryId ?? null,
+        standard:   standard   ?? null,
+        pieceUnit:  pieceUnit  ?? null,
+        geometryId: geo.id,
+      },
+      include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
+    })
+  })
+}
+
+async function update(id, { code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+  return prisma.$transaction(async (tx) => {
+    const mat = await tx.materialDefinition.findUnique({ where: { id }, select: { geometryId: true } })
+    if (!mat) throw new Error('Material not found')
+
+    await tx.materialGeometry.update({
+      where: { id: mat.geometryId },
+      data: {
+        measurementType,
+        theoreticalWeightPerMeter: theoreticalWeightPerMeter ?? null,
+        weightPerSquareMeter:      weightPerSquareMeter      ?? null,
+        paintSurfacePerMeter:      paintSurfacePerMeter      ?? null,
+        unitWeightKg:              unitWeightKg              ?? null,
+      }
+    })
+
+    return tx.materialDefinition.update({
+      where: { id },
+      data: {
+        code, name, materialType, profileType,
+        steelGrade: steelGrade ?? null,
+        categoryId: categoryId ?? null,
+        standard:   standard   ?? null,
+        pieceUnit:  pieceUnit  ?? null,
+      },
+      include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
+    })
+  })
+}
+
+module.exports = { findAll, findById, create, update }
