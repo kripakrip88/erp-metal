@@ -76,8 +76,17 @@ async function createAssemblyCoating(assemblyId, data) {
   })
 }
 
-async function applyCoatingSystem(assemblyId, coatingSystemId) {
+async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
+  const replaceExisting = options.replaceExisting ?? false
+
   return prisma.$transaction(async (tx) => {
+    // Verify assembly exists before any writes
+    const assembly = await tx.assembly.findUnique({
+      where: { id: assemblyId },
+      select: { id: true },
+    })
+    if (!assembly) throw new Error('Assembly not found')
+
     const system = await tx.coatingSystem.findUnique({
       where: { id: coatingSystemId },
       include: {
@@ -90,8 +99,18 @@ async function applyCoatingSystem(assemblyId, coatingSystemId) {
     if (!system) throw new Error('CoatingSystem not found')
     if (!system.isActive) throw new Error('CoatingSystem is inactive')
 
-    // Clear only this assembly's existing coatings
-    await tx.assemblyCoating.deleteMany({ where: { assemblyId } })
+    if (replaceExisting) {
+      await tx.assemblyCoating.deleteMany({ where: { assemblyId } })
+    }
+    // replaceExisting=false: new layers are appended, existing ones preserved
+
+    // Resolve next position to avoid collisions when appending
+    const last = replaceExisting ? null : await tx.assemblyCoating.findFirst({
+      where: { assemblyId },
+      orderBy: { position: 'desc' },
+      select: { position: true },
+    })
+    const posOffset = last ? last.position + 1 : 0
 
     // Create independent runtime copies — snapshot origin, not live references
     const rows = system.layers.map(layer => ({
@@ -104,7 +123,7 @@ async function applyCoatingSystem(assemblyId, coatingSystemId) {
       selectedDftMkm:       layer.defaultDftMkm          ?? null,
       dilutionPercent:      layer.defaultDilutionPercent  ?? null,
       notes:                layer.notes                   ?? null,
-      position:             layer.position,
+      position:             posOffset + layer.position,
       materialCodeSnapshot: layer.coatingMaterial.code,
       materialNameSnapshot: layer.coatingMaterial.name,
     }))

@@ -28,6 +28,10 @@ module.exports = [
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/apply-coating-system', handler: async (req, res, params) => {
     const body = await parseBody(req)
     if (!body.coatingSystemId) return json(res, { error: 'coatingSystemId обязательное поле' }, 400)
-    json(res, await applyCoatingSystem(params.assemblyId, body.coatingSystemId), 201)
+    json(res, await applyCoatingSystem(
+      params.assemblyId,
+      body.coatingSystemId,
+      { replaceExisting: body.replaceExisting === true }
+    ), 201)
   }},
 ]
