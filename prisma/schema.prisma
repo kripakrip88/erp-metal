@@ -754,8 +754,9 @@ model CoatingMaterial {
   createdAt                 DateTime    @default(now())
   updatedAt                 DateTime    @updatedAt
 
-  company          Company           @relation(fields: [companyId], references: [id])
-  assemblyCoatings AssemblyCoating[]
+  company            Company              @relation(fields: [companyId], references: [id])
+  assemblyCoatings   AssemblyCoating[]
+  systemLayers       CoatingSystemLayer[]
 
   @@unique([companyId, code])
   @@map("coating_materials")
@@ -795,13 +796,33 @@ model CoatingSystem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  company          Company           @relation(fields: [companyId], references: [id])
+  company          Company              @relation(fields: [companyId], references: [id])
   assemblyCoatings AssemblyCoating[]
+  layers           CoatingSystemLayer[]
 
   @@unique([companyId, code])
   @@index([companyId, isActive])
   @@index([companyId, position])
   @@map("coating_systems")
+}
+
+model CoatingSystemLayer {
+  id                String   @id @default(uuid())
+  coatingSystemId   String
+  coatingMaterialId String
+  layerNumber       Int
+  selectedDftMkm    Int?
+  dilutionPercent   Decimal? @db.Decimal(5, 2)
+  notes             String?
+  position          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  coatingSystem   CoatingSystem   @relation(fields: [coatingSystemId], references: [id], onDelete: Cascade)
+  coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
+
+  @@index([coatingSystemId, position])
+  @@map("coating_system_layers")
 }
 
 model RevisionAssemblyCoating {
