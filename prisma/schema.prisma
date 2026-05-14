@@ -878,6 +878,13 @@ model AssemblyRevision {
   frozenAt              DateTime?
   frozenByUserId        String?
   freezeReason          String?
+  // Aggregated financial totals — computed at freeze time, immutable thereafter.
+  // NOTE: snapshot-derived ERP estimate — not an accounting fact.
+  // TODO: labor totals, material totals, routing totals, overhead totals,
+  //   margin totals, tax snapshots, multi-currency totals
+  totalTheoreticalConsumptionKg Decimal? @db.Decimal(14, 4)
+  totalFinalConsumptionKg       Decimal? @db.Decimal(14, 4)
+  totalCalculatedCost           Decimal? @db.Decimal(16, 2)
   createdByUserId       String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
