@@ -50,8 +50,8 @@ async function createRevision(orderId, notes) {
         wpu    = r.weightPerUnit
         totalW = r.totalWeight
         paint  = calcAreaPaint(Number(part.sheetWidth), Number(part.sheetHeight), part.quantity * asmQty)
-      } else if (part.measurementType === 'PIECE' && part.directWeightKg) {
-        wpu    = Number(part.directWeightKg)
+      } else if (part.measurementType === 'PIECE') {
+        wpu    = Number(part.directWeightKg ?? geo.unitWeightKg ?? 0)
         totalW = Math.round(wpu * part.quantity * asmQty * 10000) / 10000
         // TODO: PIECE defaults to 0 paint area. Future: paintable assemblies (закладные, окрашенные покупные изделия)
         paint  = 0

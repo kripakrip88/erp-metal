@@ -265,6 +265,9 @@ td{padding:9px 12px;vertical-align:middle;}
           <div class="mat-dropdown" id="mat-dd"></div>
         </div>
         <div id="mat-sel" style="display:none;margin-top:6px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:12px"></div>
+        <div style="margin-top:4px;text-align:right">
+          <button class="btn btn-secondary btn-xs" onclick="window.open('materials.html','_blank')">+ Создать материал</button>
+        </div>
       </div>
       <div id="rem-hint" style="display:none;margin-bottom:12px"></div>
       <div id="dims-linear">
@@ -291,7 +294,15 @@ td{padding:9px 12px;vertical-align:middle;}
       <div id="dims-piece" style="display:none">
         <div class="grid2 mb-16">
           <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
-          <div class="field"><label>Масса 1 шт, кг</label><input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0.001" oninput="calcPart()"></div>
+          <div class="field">
+            <label>Масса 1 шт, кг</label>
+            <div id="pw-default" style="display:none;padding:7px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;font-size:13px;color:#15803d;font-family:'JetBrains Mono'"></div>
+            <div id="pw-override-wrap" style="display:none;align-items:center;gap:6px;margin-top:4px">
+              <input type="checkbox" id="pw-override" onchange="onPwOverride()">
+              <span style="font-size:12px;font-weight:500;color:var(--muted);cursor:pointer" onclick="document.getElementById('pw-override').click()">Переопределить вручную</span>
+            </div>
+            <input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0" oninput="calcPart()" style="margin-top:4px">
+          </div>
         </div>
       </div>
       <div class="field mb-16"><label>Название (необязательно)</label><input id="p-name" placeholder="Косынка К-1"></div>
@@ -331,53 +342,69 @@ document.addEventListener('DOMContentLoaded', function(){
   if (topbarRight) topbarRight.prepend(btn);
 });
 
-const CATS=[
-  {id:'all',label:'Все'},{id:'tube_sq',label:'Трубы профильные'},{id:'tube_rnd',label:'Трубы круглые'},
-  {id:'angle',label:'Уголки'},{id:'channel',label:'Швеллеры и балки'},{id:'sheet',label:'Листовой прокат'},
-  {id:'rebar',label:'Арматура и прутки'},{id:'piece',label:'Штучные (крепёж)'},
-];
-
-// Map API profileType → simulator cat
-const PROFILE_CAT = {
-  'RECTANGULAR_TUBE':'tube_sq','ROUND_TUBE':'tube_rnd','ANGLE':'angle',
-  'CHANNEL':'channel','BEAM':'channel','SHEET':'sheet','PLATE':'sheet',
-  'ROUND_BAR':'rebar','FLAT_BAR':'rebar',
-};
+// CATS and slug map populated from /api/material-categories in loadMats()
+let CATS=[], _catSlugMap={};
 
 // MATS and PRICES loaded from API
 let MATS=[], PRICES=[], matsLoaded=false;
+let _matsChangedAt=localStorage.getItem('materials_changed')||'0';
 const REMS=[];
+
+function flatCats(cats, depth=0){
+  const result=[];
+  for(const c of cats){
+    _catSlugMap[c.id]=c.slug;
+    result.push({id:c.slug, label:'  '.repeat(depth)+c.name});
+    if(c.children?.length) result.push(...flatCats(c.children, depth+1));
+  }
+  return result;
+}
 
 async function loadMats() {
   try {
     showLoader(true);
-    const res = await fetch(`${API}/api/materials`);
-    const data = await res.json();
-    MATS = data.map(m => {
+    const [catsData, matsData] = await Promise.all([
+      fetch(`${API}/api/material-categories`).then(r=>r.json()),
+      fetch(`${API}/api/materials`).then(r=>r.json()),
+    ]);
+
+    // Build CATS and slug map from API (recursive to support arbitrary nesting)
+    _catSlugMap = {};
+    CATS = [{id:'all',label:'Все'}, ...flatCats(catsData), {id:'uncategorized',label:'Без категории'}];
+
+    // Build MATS (pure mapping, no side-effects)
+    MATS = matsData.map(m => {
       const geo = m.geometry || {};
       const prof = m.procurementProfiles || [];
-      const price = prof[0]?.prices?.[0];
-      const cat = PROFILE_CAT[m.profileType] || 'all';
+      const cat = m.categoryId ? (_catSlugMap[m.categoryId]||'uncategorized') : 'uncategorized';
       const kgm  = geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null;
       const kgm2 = geo.weightPerSquareMeter      ? parseFloat(geo.weightPerSquareMeter)      : null;
       const pm   = geo.paintSurfacePerMeter      ? parseFloat(geo.paintSurfacePerMeter)      : null;
       const stdLen = prof[0]?.standardLength ? [parseFloat(prof[0].standardLength)*1000] : null;
-      if (price) {
-        PRICES.push({
-          mid: m.id,
-          sup: prof[0]?.supplierName || '',
-          price: parseFloat(price.pricePerTon),
-          from: price.validFrom?.slice(0,10) || '2026-01-01',
-          to: price.validTo?.slice(0,10) || null,
-        });
-      }
       return {
         id: m.id, cat, code: m.code, name: m.name,
         kgm, kgm2, pm, sl: stdLen, sf: null,
         gost: m.standard || '',
         steelGrade: m.steelGrade || null,
+        mtype: geo.measurementType || 'LINEAR',
+        unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null,
       };
     });
+
+    // Build PRICES separately so it's explicit and avoids side-effects in map()
+    PRICES = [];
+    for(const m of matsData){
+      const prof=m.procurementProfiles||[];
+      const price=prof[0]?.prices?.[0];
+      if(price) PRICES.push({
+        mid: m.id,
+        sup: prof[0]?.supplierName||'',
+        price: parseFloat(price.pricePerTon),
+        from: price.validFrom?.slice(0,10)||'2026-01-01',
+        to: price.validTo?.slice(0,10)||null,
+      });
+    }
+
     matsLoaded = true;
     showLoader(false);
     refresh();
@@ -447,6 +474,29 @@ function loadDraft(){
 }
 
 function gP(mid){const t=new Date().toISOString().slice(0,10);return PRICES.filter(p=>p.mid===mid&&p.from<=t&&(!p.to||p.to>=t)).sort((a,b)=>b.from.localeCompare(a.from))[0]||null;}
+
+function getPw(){
+  if(curMT!=='piece')return 0;
+  const defEl=document.getElementById('pw-default');
+  const cb=document.getElementById('pw-override');
+  if(defEl.style.display!=='none'&&!cb.checked)return selM?.unitKg??0;
+  return parseFloat(document.getElementById('p-pw').value)||0;
+}
+function updatePwField(){
+  const defEl=document.getElementById('pw-default');
+  const wrap=document.getElementById('pw-override-wrap');
+  const cb=document.getElementById('pw-override');
+  const inp=document.getElementById('p-pw');
+  if(curMT!=='piece'||!selM||selM.unitKg==null){
+    defEl.style.display='none';wrap.style.display='none';inp.style.display='';inp.disabled=false;return;
+  }
+  defEl.style.display='block';
+  defEl.textContent=selM.unitKg+' кг/шт (из справочника)';
+  wrap.style.display='flex';
+  if(cb.checked){inp.style.display='';inp.disabled=false;}
+  else{inp.style.display='none';inp.disabled=true;inp.value='';}
+}
+function onPwOverride(){updatePwField();calcPart();}
 
 function cPW(part,mat){
   if(!mat)return{wpu:0,tot:0,pm2:0,lmm:0,dbg:[]};
@@ -584,20 +634,37 @@ function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.fi
 function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;_currentOrderId=null;localStorage.removeItem(DRAFT_KEY);document.getElementById('rev-count').textContent=0;refresh();}
 
 function openMod(aid){curA=aid;curEP=null;selM=null;curC='all';resetForm();document.getElementById('modal-title').textContent='Добавить деталь';document.getElementById('btn-confirm').textContent='Добавить деталь';document.getElementById('modal-ov').style.display='flex';buildCF();setMType('linear');}
-function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-pw').value=p.pw||'';document.getElementById('p-name').value=p.name||'';document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
+function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-name').value=p.name||'';
+  // Restore PIECE pw state
+  if(p.mtype==='piece'&&selM){
+    updatePwField();
+    if(selM.unitKg==null){document.getElementById('p-pw').value=p.pw||'';}
+    else if(p.pw!=null&&Math.abs(Number(p.pw)-selM.unitKg)>0.00001){
+      document.getElementById('pw-override').checked=true;updatePwField();document.getElementById('p-pw').value=p.pw;
+    }
+  }else{document.getElementById('p-pw').value=p.pw||'';}
+  document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
 function closeModal(){document.getElementById('modal-ov').style.display='none';document.getElementById('mat-dd').classList.remove('open');}
-function resetForm(){selM=null;['mat-search','p-len','p-w','p-h','p-name','p-pw'].forEach(id=>document.getElementById(id).value='');['p-qty','p-qty-a','p-qty-p'].forEach(id=>document.getElementById(id).value=1);['mat-sel','rem-hint','stdlen-wrap','sheet-wrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('part-res').style.display='none';document.getElementById('part-dbg').classList.add('hidden');document.getElementById('no-price-w').style.display='none';}
+function resetForm(){selM=null;['mat-search','p-len','p-w','p-h','p-name','p-pw'].forEach(id=>document.getElementById(id).value='');['p-qty','p-qty-a','p-qty-p'].forEach(id=>document.getElementById(id).value=1);['mat-sel','rem-hint','stdlen-wrap','sheet-wrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('part-res').style.display='none';document.getElementById('part-dbg').classList.add('hidden');document.getElementById('no-price-w').style.display='none';document.getElementById('pw-override').checked=false;updatePwField();}
 
-function buildCF(){const rel={linear:['all','tube_sq','tube_rnd','angle','channel','rebar'],area:['all','sheet'],piece:['all','piece']}[curMT]||['all'];document.getElementById('cat-filter').innerHTML=CATS.filter(c=>rel.includes(c.id)).map(c=>`<div class="cat-btn ${c.id===curC?'active':''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');}
+function buildCF(){
+  let mtFilter;
+  if(curMT==='area')mtFilter=m=>m.kgm2!=null;
+  else if(curMT==='piece')mtFilter=m=>m.mtype==='PIECE';
+  else mtFilter=m=>m.kgm!=null;
+  const activeCats=new Set(MATS.filter(mtFilter).map(m=>m.cat));
+  activeCats.add('all');
+  document.getElementById('cat-filter').innerHTML=CATS.filter(c=>activeCats.has(c.id)).map(c=>`<div class="cat-btn ${c.id===curC?'active':''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');
+}
 function setC(id){curC=id;buildCF();searchMat(document.getElementById('mat-search').value);}
-function setMType(t){curMT=t;['linear','area','piece'].forEach(x=>{document.getElementById('dims-'+x).style.display=x===t?'':'none';document.getElementById('mt-'+x).classList.toggle('active',x===t);});if(t==='area')curC='sheet';else if(t==='piece')curC='piece';else curC='all';buildCF();if(document.getElementById('mat-search').value)searchMat(document.getElementById('mat-search').value);calcPart();}
+function setMType(t){curMT=t;['linear','area','piece'].forEach(x=>{document.getElementById('dims-'+x).style.display=x===t?'':'none';document.getElementById('mt-'+x).classList.toggle('active',x===t);});curC='all';document.getElementById('pw-override').checked=false;buildCF();updatePwField();if(document.getElementById('mat-search').value)searchMat(document.getElementById('mat-search').value);calcPart();}
 
 function searchMat(q){
   const dd=document.getElementById('mat-dd');
   let ms=MATS;
   if(curMT==='area')ms=ms.filter(m=>m.kgm2!=null);
   if(curMT==='linear')ms=ms.filter(m=>m.kgm!=null);
-  if(curMT==='piece')ms=ms.filter(m=>m.cat==='piece');
+  if(curMT==='piece')ms=ms.filter(m=>m.mtype==='PIECE');
   if(curC&&curC!=='all')ms=ms.filter(m=>m.cat===curC);
   if(q.trim()){const ql=q.toLowerCase();ms=ms.filter(m=>m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql));}
   if(!ms.length){dd.innerHTML=`<div style="padding:12px;color:var(--muted);font-size:12px">Ничего не найдено</div>`;dd.classList.add('open');return;}
@@ -612,7 +679,7 @@ function searchMat(q){
   dd.innerHTML=html;dd.classList.add('open');
 }
 
-function selMat(id){selM=MATS.find(m=>m.id===id);document.getElementById('mat-search').value=selM.code;document.getElementById('mat-dd').classList.remove('open');showSel();if(selM.kgm2!=null&&selM.kgm==null)setMType('area');
+function selMat(id){selM=MATS.find(m=>m.id===id);document.getElementById('mat-search').value=selM.code;document.getElementById('mat-dd').classList.remove('open');showSel();if(selM.mtype==='PIECE')setMType('piece');else if(selM.kgm2!=null&&selM.kgm==null)setMType('area');else updatePwField();
   const sw=document.getElementById('stdlen-wrap'),sb=document.getElementById('stdlen-btns');
   if(selM.sl?.length){sw.style.display='block';sb.innerHTML=selM.sl.map(l=>`<div class="quick-btn" onclick="apL(${l})">${fm(l)} мм</div>`).join('');document.getElementById('hint-std').textContent=`Стандартные длины: ${selM.sl.map(l=>fm(l)+' мм').join(', ')}`;}else{sw.style.display='none';document.getElementById('hint-std').textContent='';}
   const fw=document.getElementById('sheet-wrap'),fb=document.getElementById('sheet-btns');
@@ -626,7 +693,7 @@ function apL(mm){document.getElementById('p-len').value=mm;calcPart();toast(`${f
 function apS(w,h){document.getElementById('p-w').value=w;document.getElementById('p-h').value=h;calcPart();toast(`Формат ${fm(w)}×${fm(h)} мм`,'success');}
 function useR(r){if(r.length){document.getElementById('p-len').value=r.length;setMType('linear');}else{document.getElementById('p-w').value=r.width;document.getElementById('p-h').value=r.height;setMType('area');}calcPart();toast('Остаток подставлен','success');}
 
-function gFP(){const qm={linear:'p-qty',area:'p-qty-a',piece:'p-qty-p'};return{mtype:curMT,len:parseFloat(document.getElementById('p-len').value)||0,qty:parseInt(document.getElementById(qm[curMT]).value)||1,w:parseFloat(document.getElementById('p-w').value)||0,h:parseFloat(document.getElementById('p-h').value)||0,pw:parseFloat(document.getElementById('p-pw').value)||0};}
+function gFP(){const qm={linear:'p-qty',area:'p-qty-a',piece:'p-qty-p'};return{mtype:curMT,len:parseFloat(document.getElementById('p-len').value)||0,qty:parseInt(document.getElementById(qm[curMT]).value)||1,w:parseFloat(document.getElementById('p-w').value)||0,h:parseFloat(document.getElementById('p-h').value)||0,pw:getPw()};}
 
 function calcPart(){
   if(!selM)return;const p=gFP();const{wpu,tot,pm2,dbg:d}=cPW({...p,mid:selM.id},selM);const pr=gP(selM.id);const{cost,d:cd}=cCost(tot,pr);
@@ -647,7 +714,12 @@ function confirmPart(){
   const f=gFP();
   if(f.mtype==='linear'&&!f.len){toast('Введите длину','error');return;}
   if(f.mtype==='area'&&(!f.w||!f.h)){toast('Введите ширину и высоту','error');return;}
-  if(f.mtype==='piece'&&!f.pw){toast('Введите массу 1 шт','error');return;}
+  if(f.mtype==='piece'){
+    const hasDefault=document.getElementById('pw-default').style.display!=='none';
+    const overriding=document.getElementById('pw-override').checked;
+    if(!hasDefault&&!f.pw){toast('Введите массу 1 шт','error');return;}
+    if(hasDefault&&overriding&&!f.pw){toast('Введите массу или снимите флажок','error');return;}
+  }
   const a=asms.find(a=>a.id===curA);if(!a)return;
   const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw};
   if(curEP){const i=a.parts.findIndex(p=>p.id===curEP);if(i!==-1)a.parts[i]={...a.parts[i],...pd};toast('Деталь обновлена','success');}
@@ -724,7 +796,7 @@ function runCmp(){
   }).join('')}</tbody></table>`}</div>`;
 }
 
-function renderMats(q=''){const ql=q.toLowerCase();const cl={tube_sq:'Трубы профильные',tube_rnd:'Трубы круглые',angle:'Уголки',channel:'Швеллеры и балки',sheet:'Листовой прокат',rebar:'Арматура и прутки',piece:'Штучные'};const rows=MATS.filter(m=>!ql||m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql)).map(m=>`<tr><td class="mono" style="color:var(--accent);font-weight:700">${m.code}</td><td>${m.name}</td><td><span style="font-size:11px;color:var(--muted)">${cl[m.cat]||m.cat}</span></td><td class="mono">${m.kgm??'—'}</td><td class="mono">${m.kgm2??'—'}</td><td class="mono" style="color:var(--orange)">${m.pm??'по размеру'}</td><td class="mono text-muted">${m.gost}</td></tr>`).join('');document.getElementById('mat-tbody').innerHTML=rows||`<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;}
+function renderMats(q=''){const ql=q.toLowerCase();const rows=MATS.filter(m=>!ql||m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql)).map(m=>`<tr><td class="mono" style="color:var(--accent);font-weight:700">${m.code}</td><td>${m.name}</td><td><span style="font-size:11px;color:var(--muted)">${CATS.find(c=>c.id===m.cat)?.label||m.cat}</span></td><td class="mono">${m.kgm??'—'}</td><td class="mono">${m.kgm2??'—'}</td><td class="mono" style="color:var(--orange)">${m.pm??'по размеру'}</td><td class="mono text-muted">${m.gost}</td></tr>`).join('');document.getElementById('mat-tbody').innerHTML=rows||`<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;}
 function renderPrices(){const today=new Date().toISOString().slice(0,10);document.getElementById('prices-tbody').innerHTML=PRICES.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const act=p.from<=today&&(!p.to||p.to>=today);return`<tr><td><span class="mono" style="color:var(--accent)">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mono" style="font-weight:700;color:${act?'var(--green)':'var(--muted)'}">${fm(p.price)}</td><td class="mono text-muted">${p.from}</td><td class="mono text-muted">${p.to||'—'}</td><td><span class="badge ${act?'s-approved':'s-cancelled'}">${act?'актуальная':'истекла'}</span></td></tr>`;}).join('');}
 
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(x=>{if(x.getAttribute('onclick')?.includes(`'${p}'`))x.classList.add('active');});if(p==='revisions')renderRevs();if(p==='compare'){updCmpSel();document.getElementById('cmp-result').innerHTML='';}if(p==='materials')renderMats();if(p==='prices')renderPrices();}
@@ -824,6 +896,12 @@ function _apiAsmsToSim(apiAsms){
     }
   } catch(e) { console.warn('init error', e); loadDraft(); }
 })();
+// Reload materials when returning from materials.html tab
+window.addEventListener('focus',async()=>{
+  const flag=localStorage.getItem('materials_changed')||'0';
+  if(flag!==_matsChangedAt){_matsChangedAt=flag;await loadMats();}
+});
+
 refresh();
 loadMats();
 </script>
