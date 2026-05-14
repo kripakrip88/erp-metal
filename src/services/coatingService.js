@@ -80,10 +80,10 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
   const replaceExisting = options.replaceExisting ?? false
 
   return prisma.$transaction(async (tx) => {
-    // Verify assembly exists before any writes
+    // Verify assembly exists and capture companyId for cross-tenant guard
     const assembly = await tx.assembly.findUnique({
       where: { id: assemblyId },
-      select: { id: true },
+      select: { id: true, order: { select: { companyId: true } } },
     })
     if (!assembly) throw new Error('Assembly not found')
 
@@ -98,6 +98,11 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     })
     if (!system) throw new Error('CoatingSystem not found')
     if (!system.isActive) throw new Error('CoatingSystem is inactive')
+
+    // Cross-company guard: system and assembly must belong to the same tenant
+    if (system.companyId !== assembly.order.companyId) {
+      throw new Error('CoatingSystem does not belong to the same company as the assembly')
+    }
 
     if (replaceExisting) {
       await tx.assemblyCoating.deleteMany({ where: { assemblyId } })
