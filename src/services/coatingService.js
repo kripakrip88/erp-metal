@@ -84,14 +84,12 @@ async function createAssemblyCoating(assemblyId, data) {
   // Resolve snapshot fields from material if not provided
   let materialCodeSnapshot = data.materialCodeSnapshot ?? null
   let materialNameSnapshot = data.materialNameSnapshot ?? null
-  if (!materialCodeSnapshot || !materialNameSnapshot) {
-    const mat = await prisma.coatingMaterial.findUnique({
-      where: { id: data.coatingMaterialId },
-      select: { code: true, name: true },
-    })
-    materialCodeSnapshot = mat?.code ?? null
-    materialNameSnapshot = mat?.name ?? null
-  }
+  const mat = await prisma.coatingMaterial.findUnique({
+    where: { id: data.coatingMaterialId },
+    select: { code: true, name: true, consumptionGm2: true },
+  })
+  if (!materialCodeSnapshot) materialCodeSnapshot = mat?.code ?? null
+  if (!materialNameSnapshot) materialNameSnapshot = mat?.name ?? null
 
   const draft = {
     assemblyId,
@@ -157,7 +155,7 @@ async function recalculateAssemblyCoatings(assemblyId) {
       data: { theoreticalConsumptionKg, finalConsumptionKg },
     }))
   }
-  return Promise.all(updates)
+  return prisma.$transaction(updates)
 }
 
 async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
@@ -230,6 +228,8 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
       }
     })
 
+    // createMany bypasses Prisma middleware/hooks — snapshot and calculation
+    // fields must be fully computed before insert (no post-create triggers available).
     await tx.assemblyCoating.createMany({ data: rows })
 
     return tx.assemblyCoating.findMany({
@@ -249,18 +249,20 @@ async function updateAssemblyCoating(coatingId, data) {
 
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
-    select: { consumptionGm2: true },
+    select: { code: true, name: true, consumptionGm2: true },
   })
 
   const draft = {
-    coatingMaterialId: data.coatingMaterialId,
-    layerNumber:       data.layerNumber,
-    autoAreaLink:      data.autoAreaLink,
-    manualAreaM2:      data.manualAreaM2    ?? null,
-    selectedDftMkm:    data.selectedDftMkm  ?? null,
-    dilutionPercent:   data.dilutionPercent  ?? null,
-    lossFactorPercent: data.lossFactorPercent ?? null,
-    notes:             data.notes ?? null,
+    coatingMaterialId:    data.coatingMaterialId,
+    layerNumber:          data.layerNumber,
+    autoAreaLink:         data.autoAreaLink,
+    manualAreaM2:         data.manualAreaM2     ?? null,
+    selectedDftMkm:       data.selectedDftMkm   ?? null,
+    dilutionPercent:      data.dilutionPercent   ?? null,
+    lossFactorPercent:    data.lossFactorPercent ?? null,
+    notes:                data.notes ?? null,
+    materialCodeSnapshot: mat?.code ?? null,
+    materialNameSnapshot: mat?.name ?? null,
   }
   const { theoreticalConsumptionKg, finalConsumptionKg } =
     await _resolveConsumption(prisma, existing.assemblyId, draft, mat)
