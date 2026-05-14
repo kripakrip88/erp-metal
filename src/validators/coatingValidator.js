@@ -66,14 +66,15 @@ function validateCoatingMaterial(body) {
 function validateAssemblyCoating(body) {
   required(body.coatingMaterialId, 'coatingMaterialId')
   return {
-    coatingMaterialId: body.coatingMaterialId,
-    layerNumber:    body.layerNumber    != null ? positiveInt(body.layerNumber, 'layerNumber')         : null,
-    autoAreaLink:   body.autoAreaLink   != null ? Boolean(body.autoAreaLink)                           : true,
-    manualAreaM2:   body.manualAreaM2   != null ? positiveDecimal(body.manualAreaM2, 'manualAreaM2')    : null,
-    selectedDftMkm: body.selectedDftMkm != null ? positiveInt(body.selectedDftMkm, 'selectedDftMkm')  : null,
-    dilutionPercent: body.dilutionPercent != null
-      ? dilutionPercent(body.dilutionPercent, 'dilutionPercent') : null,
-    notes: body.notes || null,
+    coatingMaterialId:  body.coatingMaterialId,
+    layerNumber:        body.layerNumber        != null ? positiveInt(body.layerNumber, 'layerNumber')           : null,
+    autoAreaLink:       body.autoAreaLink        != null ? Boolean(body.autoAreaLink)                             : true,
+    manualAreaM2:       body.manualAreaM2        != null ? positiveDecimal(body.manualAreaM2, 'manualAreaM2')     : null,
+    selectedDftMkm:     body.selectedDftMkm      != null ? positiveInt(body.selectedDftMkm, 'selectedDftMkm')    : null,
+    dilutionPercent:    body.dilutionPercent      != null ? dilutionPercent(body.dilutionPercent, 'dilutionPercent') : null,
+    lossFactorPercent:  body.lossFactorPercent    != null ? dilutionPercent(body.lossFactorPercent, 'lossFactorPercent') : null,
+    costSnapshotPerKg:  body.costSnapshotPerKg    != null ? positiveDecimal(body.costSnapshotPerKg, 'costSnapshotPerKg') : undefined,
+    notes:              body.notes || null,
   }
 }
 
