@@ -12,4 +12,12 @@ function calcCoatingCost(finalConsumptionKg, costSnapshotPerKg) {
   return { calculatedCost }
 }
 
+// TODO: ERP finance layer —
+//   currency support + FX snapshots per coating layer
+//   supplier quotations + procurement integration
+//   estimate export (PDF/XLSX cost breakdown)
+//   ERP revision pricing (lock cost at revision create time)
+//   margin engine (target margin % → selling price)
+//   profitability KPI (actual vs estimated cost per assembly)
+
 module.exports = { calcCoatingCost }

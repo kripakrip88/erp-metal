@@ -3,7 +3,7 @@ const { Prisma } = require('@prisma/client')
 // theoreticalConsumptionKg = (areaM2 * consumptionGm2) / 1000
 // finalConsumptionKg       = theoreticalConsumptionKg * (1 + lossFactor / 100)
 // Prisma.Decimal throughout — float arithmetic accumulates rounding errors across ERP quote totals.
-// TODO: future — costSnapshotPerKg, calculatedCost, revision snapshot, consumption normalization versioning
+// TODO: consumption normalization versioning (formula version field for audit trail)
 function calcCoatingConsumption(areaM2, consumptionGm2, lossFactorPercent) {
   const area = new Prisma.Decimal(areaM2 ?? 0)
   const cons = new Prisma.Decimal(consumptionGm2 ?? 0)
