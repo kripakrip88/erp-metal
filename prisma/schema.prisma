@@ -807,21 +807,21 @@ model CoatingSystem {
 }
 
 model CoatingSystemLayer {
-  id                String   @id @default(uuid())
-  coatingSystemId   String
-  coatingMaterialId String
-  layerNumber       Int
-  selectedDftMkm    Int?
-  dilutionPercent   Decimal? @db.Decimal(5, 2)
-  notes             String?
-  position          Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  coatingSystemId        String
+  coatingMaterialId      String
+  layerNumber            Int
+  defaultDftMkm          Int?
+  defaultDilutionPercent Decimal? @db.Decimal(5, 2)
+  notes                  String?
+  position               Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   coatingSystem   CoatingSystem   @relation(fields: [coatingSystemId], references: [id], onDelete: Cascade)
   coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
 
-  @@index([coatingSystemId, position])
+  @@unique([coatingSystemId, position])
   @@map("coating_system_layers")
 }
 
