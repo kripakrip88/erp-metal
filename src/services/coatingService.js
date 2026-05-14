@@ -44,19 +44,78 @@ async function createAssemblyCoating(assemblyId, data) {
   })
   const position = last ? last.position + 1 : 0
   const layerNumber = data.layerNumber ?? (last ? last.layerNumber + 1 : 1)
+
+  // Resolve snapshot fields from material if not provided
+  let materialCodeSnapshot = data.materialCodeSnapshot ?? null
+  let materialNameSnapshot = data.materialNameSnapshot ?? null
+  if (!materialCodeSnapshot || !materialNameSnapshot) {
+    const mat = await prisma.coatingMaterial.findUnique({
+      where: { id: data.coatingMaterialId },
+      select: { code: true, name: true },
+    })
+    materialCodeSnapshot = mat?.code ?? null
+    materialNameSnapshot = mat?.name ?? null
+  }
+
   return prisma.assemblyCoating.create({
     data: {
       assemblyId,
-      coatingMaterialId: data.coatingMaterialId,
+      coatingMaterialId:    data.coatingMaterialId,
+      coatingSystemId:      data.coatingSystemId    ?? null,
       layerNumber,
-      autoAreaLink:    data.autoAreaLink  ?? true,
-      manualAreaM2:    data.manualAreaM2  ?? null,
-      selectedDftMkm:  data.selectedDftMkm ?? null,
-      dilutionPercent: data.dilutionPercent ?? null,
-      notes:           data.notes ?? null,
+      autoAreaLink:         data.autoAreaLink        ?? true,
+      manualAreaM2:         data.manualAreaM2        ?? null,
+      selectedDftMkm:       data.selectedDftMkm      ?? null,
+      dilutionPercent:      data.dilutionPercent      ?? null,
+      notes:                data.notes               ?? null,
       position,
+      materialCodeSnapshot,
+      materialNameSnapshot,
     },
     include: { coatingMaterial: true },
+  })
+}
+
+async function applyCoatingSystem(assemblyId, coatingSystemId) {
+  return prisma.$transaction(async (tx) => {
+    const system = await tx.coatingSystem.findUnique({
+      where: { id: coatingSystemId },
+      include: {
+        layers: {
+          include: { coatingMaterial: true },
+          orderBy: { position: 'asc' },
+        },
+      },
+    })
+    if (!system) throw new Error('CoatingSystem not found')
+    if (!system.isActive) throw new Error('CoatingSystem is inactive')
+
+    // Clear only this assembly's existing coatings
+    await tx.assemblyCoating.deleteMany({ where: { assemblyId } })
+
+    // Create independent runtime copies — snapshot origin, not live references
+    const rows = system.layers.map(layer => ({
+      assemblyId,
+      coatingMaterialId:    layer.coatingMaterialId,
+      coatingSystemId,
+      layerNumber:          layer.layerNumber,
+      autoAreaLink:         true,
+      manualAreaM2:         null,
+      selectedDftMkm:       layer.defaultDftMkm          ?? null,
+      dilutionPercent:      layer.defaultDilutionPercent  ?? null,
+      notes:                layer.notes                   ?? null,
+      position:             layer.position,
+      materialCodeSnapshot: layer.coatingMaterial.code,
+      materialNameSnapshot: layer.coatingMaterial.name,
+    }))
+
+    await tx.assemblyCoating.createMany({ data: rows })
+
+    return tx.assemblyCoating.findMany({
+      where: { assemblyId },
+      include: { coatingMaterial: true },
+      orderBy: { position: 'asc' },
+    })
   })
 }
 
@@ -83,4 +142,5 @@ async function deleteAssemblyCoating(coatingId) {
 module.exports = {
   listCoatingMaterials, createCoatingMaterial, updateCoatingMaterial,
   listAssemblyCoatings, createAssemblyCoating, updateAssemblyCoating, deleteAssemblyCoating,
+  applyCoatingSystem,
 }

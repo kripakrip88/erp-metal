@@ -763,24 +763,28 @@ model CoatingMaterial {
 }
 
 model AssemblyCoating {
-  id                 String      @id @default(uuid())
-  assemblyId         String
-  coatingMaterialId  String
-  coatingSystemId    String?
-  layerNumber        Int         @default(1)
-  autoAreaLink       Boolean     @default(true)
-  manualAreaM2       Decimal?    @db.Decimal(12, 4)
-  selectedDftMkm     Int?
-  dilutionPercent    Decimal?    @db.Decimal(5, 2)
-  notes              String?
-  position           Int         @default(0)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id                   String      @id @default(uuid())
+  assemblyId           String
+  coatingMaterialId    String
+  coatingSystemId      String?
+  layerNumber          Int         @default(1)
+  autoAreaLink         Boolean     @default(true)
+  manualAreaM2         Decimal?    @db.Decimal(12, 4)
+  selectedDftMkm       Int?
+  dilutionPercent      Decimal?    @db.Decimal(5, 2)
+  notes                String?
+  position             Int         @default(0)
+  materialCodeSnapshot String?
+  materialNameSnapshot String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   assembly        Assembly        @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
   coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
   coatingSystem   CoatingSystem?  @relation(fields: [coatingSystemId], references: [id], onDelete: SetNull)
 
+  @@index([assemblyId])
+  @@index([coatingSystemId])
   @@map("assembly_coatings")
 }
 

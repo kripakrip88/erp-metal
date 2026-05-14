@@ -4,6 +4,7 @@ const { validateAssemblyCoating } = require('../validators/coatingValidator')
 const {
   listAssemblyCoatings, createAssemblyCoating,
   updateAssemblyCoating, deleteAssemblyCoating,
+  applyCoatingSystem,
 } = require('../services/coatingService')
 
 module.exports = [
@@ -23,5 +24,10 @@ module.exports = [
   { method: 'DELETE', pathname: '/api/assemblies/:assemblyId/coatings/:coatingId', handler: async (req, res, params) => {
     await deleteAssemblyCoating(params.coatingId)
     json(res, { ok: true })
+  }},
+  { method: 'POST', pathname: '/api/assemblies/:assemblyId/apply-coating-system', handler: async (req, res, params) => {
+    const body = await parseBody(req)
+    if (!body.coatingSystemId) return json(res, { error: 'coatingSystemId обязательное поле' }, 400)
+    json(res, await applyCoatingSystem(params.assemblyId, body.coatingSystemId), 201)
   }},
 ]
