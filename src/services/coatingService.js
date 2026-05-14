@@ -104,20 +104,20 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     }
     // replaceExisting=false: new layers are appended, existing ones preserved
 
-    // Resolve next position to avoid collisions when appending
-    const last = replaceExisting ? null : await tx.assemblyCoating.findFirst({
+    // Single aggregate: get both max position and max layerNumber in one query
+    const maxes = replaceExisting ? null : await tx.assemblyCoating.aggregate({
       where: { assemblyId },
-      orderBy: { position: 'desc' },
-      select: { position: true },
+      _max: { position: true, layerNumber: true },
     })
-    const posOffset = last ? last.position + 1 : 0
+    const posOffset   = maxes?._max.position    != null ? maxes._max.position    + 1 : 0
+    const layerOffset = maxes?._max.layerNumber != null ? maxes._max.layerNumber      : 0
 
     // Create independent runtime copies — snapshot origin, not live references
     const rows = system.layers.map(layer => ({
       assemblyId,
       coatingMaterialId:    layer.coatingMaterialId,
       coatingSystemId,
-      layerNumber:          layer.layerNumber,
+      layerNumber:          layerOffset + layer.layerNumber,
       autoAreaLink:         true,
       manualAreaM2:         null,
       selectedDftMkm:       layer.defaultDftMkm          ?? null,
