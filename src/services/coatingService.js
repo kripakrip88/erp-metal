@@ -257,7 +257,17 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
 async function updateAssemblyCoating(coatingId, data) {
   const existing = await prisma.assemblyCoating.findUnique({
     where: { id: coatingId },
-    select: { assemblyId: true, coatingMaterialId: true, costSnapshotPerKg: true },
+    select: {
+      assemblyId: true,
+      coatingMaterialId: true,
+      autoAreaLink: true,
+      manualAreaM2: true,
+      lossFactorPercent: true,
+      costSnapshotPerKg: true,
+      theoreticalConsumptionKg: true,
+      finalConsumptionKg: true,
+      calculatedCost: true,
+    },
   })
   if (!existing) throw new Error('AssemblyCoating not found')
 
@@ -292,9 +302,30 @@ async function updateAssemblyCoating(coatingId, data) {
     materialNameSnapshot: mat?.name ?? null,
     costSnapshotPerKg,
   }
-  const { theoreticalConsumptionKg, finalConsumptionKg } =
-    await _resolveConsumption(prisma, existing.assemblyId, draft, mat)
-  const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
+
+  // Dirty-check: skip _resolveConsumption (DB query for assembly parts) when no
+  // calculation-relevant field changed — avoids unnecessary CPU/DB load on bulk updates.
+  const n = v => v == null ? null : Number(v)
+  const consumptionDirty =
+    data.coatingMaterialId !== existing.coatingMaterialId ||
+    data.autoAreaLink      !== existing.autoAreaLink      ||
+    n(data.manualAreaM2)      !== n(existing.manualAreaM2)      ||
+    n(data.lossFactorPercent) !== n(existing.lossFactorPercent)
+  const costDirty = consumptionDirty || n(costSnapshotPerKg) !== n(existing.costSnapshotPerKg)
+
+  let theoreticalConsumptionKg = existing.theoreticalConsumptionKg
+  let finalConsumptionKg       = existing.finalConsumptionKg
+  let calculatedCost           = existing.calculatedCost
+  if (consumptionDirty) {
+    const recalc = await _resolveConsumption(prisma, existing.assemblyId, draft, mat)
+    theoreticalConsumptionKg = recalc.theoreticalConsumptionKg
+    finalConsumptionKg       = recalc.finalConsumptionKg
+  }
+  if (costDirty) {
+    const recalc = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
+    calculatedCost = recalc.calculatedCost
+  }
+
   return prisma.assemblyCoating.update({
     where: { id: coatingId },
     data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg, calculatedCost },

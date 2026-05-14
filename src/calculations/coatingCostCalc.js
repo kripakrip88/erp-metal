@@ -2,6 +2,8 @@ const { Prisma } = require('@prisma/client')
 
 // calculatedCost = finalConsumptionKg * costSnapshotPerKg
 // Returns null if either input is null — cost cannot be derived without both values.
+// NOTE: calculatedCost is a snapshot-derived ESTIMATE — NOT an accounting fact.
+//   Do not use for procurement, invoicing, or financial reporting.
 function calcCoatingCost(finalConsumptionKg, costSnapshotPerKg) {
   if (finalConsumptionKg == null || costSnapshotPerKg == null) {
     return { calculatedCost: null }
