@@ -1,6 +1,7 @@
 const prisma = require('../repositories/prisma')
 const { calcLinearPaint, calcAreaPaint } = require('../calculations/paintCalc')
 const { calcCoatingConsumption }         = require('../calculations/coatingCalc')
+const { calcCoatingCost }                = require('../calculations/coatingCostCalc')
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -86,10 +87,11 @@ async function createAssemblyCoating(assemblyId, data) {
   let materialNameSnapshot = data.materialNameSnapshot ?? null
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
-    select: { code: true, name: true, consumptionGm2: true },
+    select: { code: true, name: true, consumptionGm2: true, pricePerKg: true },
   })
   if (!materialCodeSnapshot) materialCodeSnapshot = mat?.code ?? null
   if (!materialNameSnapshot) materialNameSnapshot = mat?.name ?? null
+  const costSnapshotPerKg = data.costSnapshotPerKg ?? mat?.pricePerKg ?? null
 
   const draft = {
     assemblyId,
@@ -105,11 +107,13 @@ async function createAssemblyCoating(assemblyId, data) {
     position,
     materialCodeSnapshot,
     materialNameSnapshot,
+    costSnapshotPerKg,
   }
   const { theoreticalConsumptionKg, finalConsumptionKg } =
     await _resolveConsumption(prisma, assemblyId, draft, mat)
+  const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
   return prisma.assemblyCoating.create({
-    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg },
+    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg, calculatedCost },
     include: { coatingMaterial: true },
   })
 }
@@ -210,6 +214,8 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
         Number(layer.coatingMaterial.consumptionGm2),
         null  // lossFactorPercent unknown at apply time — user sets after
       )
+      const costSnapshotPerKg = layer.coatingMaterial.pricePerKg ?? null
+      const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
       return {
         assemblyId,
         coatingMaterialId:         layer.coatingMaterialId,
@@ -225,6 +231,8 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
         materialNameSnapshot:      layer.coatingMaterial.name,
         theoreticalConsumptionKg,
         finalConsumptionKg,
+        costSnapshotPerKg,
+        calculatedCost,
       }
     })
 
@@ -243,14 +251,27 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
 async function updateAssemblyCoating(coatingId, data) {
   const existing = await prisma.assemblyCoating.findUnique({
     where: { id: coatingId },
-    select: { assemblyId: true },
+    select: { assemblyId: true, coatingMaterialId: true, costSnapshotPerKg: true },
   })
   if (!existing) throw new Error('AssemblyCoating not found')
 
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
-    select: { code: true, name: true, consumptionGm2: true },
+    select: { code: true, name: true, consumptionGm2: true, pricePerKg: true },
   })
+
+  // Snapshot precedence:
+  // 1. Caller explicitly supplied costSnapshotPerKg → honour it (manual override)
+  // 2. coatingMaterialId changed → auto-refresh from new material's catalog price
+  // 3. Same material, no override → preserve existing snapshot unchanged
+  let costSnapshotPerKg
+  if (data.costSnapshotPerKg !== undefined) {
+    costSnapshotPerKg = data.costSnapshotPerKg ?? null
+  } else if (data.coatingMaterialId !== existing.coatingMaterialId) {
+    costSnapshotPerKg = mat?.pricePerKg ?? null
+  } else {
+    costSnapshotPerKg = existing.costSnapshotPerKg
+  }
 
   const draft = {
     coatingMaterialId:    data.coatingMaterialId,
@@ -263,12 +284,14 @@ async function updateAssemblyCoating(coatingId, data) {
     notes:                data.notes ?? null,
     materialCodeSnapshot: mat?.code ?? null,
     materialNameSnapshot: mat?.name ?? null,
+    costSnapshotPerKg,
   }
   const { theoreticalConsumptionKg, finalConsumptionKg } =
     await _resolveConsumption(prisma, existing.assemblyId, draft, mat)
+  const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
   return prisma.assemblyCoating.update({
     where: { id: coatingId },
-    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg },
+    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg, calculatedCost },
     include: { coatingMaterial: true },
   })
 }
