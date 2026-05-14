@@ -122,6 +122,8 @@ td{padding:9px 12px;vertical-align:middle;}
     <div class="nav-group">Справочники</div>
     <div class="nav-item" onclick="go('materials')"><span>🔩</span> Материалы</div>
     <div class="nav-item" onclick="go('prices')"><span>💰</span> Цены</div>
+    <div class="nav-group">Справочники</div>
+    <a class="nav-item" href="templates.html" style="color:var(--muted);text-decoration:none"><span>📦</span> Шаблоны</a>
   </nav>
   <div class="sidebar-bottom">
     <div class="debug-toggle" onclick="toggleDebug()">
@@ -322,6 +324,34 @@ td{padding:9px 12px;vertical-align:middle;}
     <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
       <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
       <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Добавить деталь</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE PICKER MODAL -->
+<div id="tmpl-picker-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:110;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:10px;width:540px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:15px">📦 Вставить шаблон</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeTmplPicker()">✕</button>
+    </div>
+    <div style="padding:18px">
+      <div class="field mb-16">
+        <label>Шаблон изделия</label>
+        <select id="tp-sel" onchange="previewTmpl(this.value)" style="width:100%">
+          <option value="">— загрузка... —</option>
+        </select>
+      </div>
+      <div class="field mb-16">
+        <label>Множитель (кол-во изделий)</label>
+        <input type="number" id="tp-mult" value="1" min="1" style="width:120px">
+        <span class="field-hint">Количество изделия в узле. qty детали = norm × node.qty × multiplier</span>
+      </div>
+      <div id="tp-preview" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;min-height:60px;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="closeTmplPicker()">Отмена</button>
+      <button class="btn btn-primary" id="tp-apply-btn" onclick="applyTmplPicker()">📦 Вставить детали</button>
     </div>
   </div>
 </div>
@@ -563,7 +593,9 @@ function renderAsms(){
           <input type="number" value="${a.qty}" min="1" style="width:54px;font-size:12px;text-align:center" title="Кол-во" onchange="updAQ('${a.id}',this.value)">
           <span class="text-xs text-muted">шт</span>${tots}
         </div>
-        <div class="gap-8"><button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+        <div class="gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+          <button class="btn btn-secondary btn-sm" onclick="openTmplPicker('${a.id}')" title="Вставить детали из шаблона">📦 Шаблон</button>
           <button class="btn btn-danger btn-sm" onclick="remA('${a.id}')">Удалить</button></div>
       </div>
       <table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead>
@@ -904,6 +936,125 @@ window.addEventListener('focus',async()=>{
 
 refresh();
 loadMats();
+
+// ─── Template Picker ──────────────────────────────────────────────────────────
+
+let _tmplList = [];
+let _tmplPickerAid = null;
+
+async function openTmplPicker(aid) {
+  _tmplPickerAid = aid;
+  document.getElementById('tp-preview').innerHTML = '<span style="color:var(--muted)">Выберите шаблон...</span>';
+  document.getElementById('tmpl-picker-bg').style.display = 'flex';
+  if (!_tmplList.length) {
+    try {
+      _tmplList = await ERPStore.listTemplates();
+    } catch(e) {
+      toast('Ошибка загрузки шаблонов: ' + e.message, 'error');
+      closeTmplPicker();
+      return;
+    }
+  }
+  const sel = document.getElementById('tp-sel');
+  if (!_tmplList.length) {
+    sel.innerHTML = '<option value="">Нет шаблонов — создайте в разделе Шаблоны</option>';
+  } else {
+    sel.innerHTML = _tmplList.map(t =>
+      `<option value="${t.id}">${t.code} — ${t.name}</option>`
+    ).join('');
+    previewTmpl(sel.value);
+  }
+  document.getElementById('tp-mult').value = 1;
+}
+
+function closeTmplPicker() {
+  document.getElementById('tmpl-picker-bg').style.display = 'none';
+}
+
+function _flattenNodes(nodes, multiplier, out) {
+  for (const node of nodes) {
+    const effQty = (node.qty || 1) * multiplier;
+    for (const p of (node.parts || [])) {
+      out.push({ ...p, _effQty: effQty });
+    }
+    if (node.children && node.children.length) {
+      _flattenNodes(node.children, effQty, out);
+    }
+  }
+  return out;
+}
+
+async function previewTmpl(id) {
+  if (!id) return;
+  const box = document.getElementById('tp-preview');
+  box.innerHTML = '<span style="color:var(--muted)">Загрузка...</span>';
+  try {
+    const t = await ERPStore.getTemplate(id);
+    const flat = _flattenNodes(t.nodes || [], 1, []);
+    if (!flat.length) {
+      box.innerHTML = '<div style="color:var(--muted)">Шаблон пустой — добавьте детали в разделе Шаблоны</div>';
+      return;
+    }
+    const MTYPE = { LINEAR: '📏', AREA: '⬜', PIECE: '🔩' };
+    let html = `<div style="font-weight:700;margin-bottom:8px">${t.code} — ${t.name}</div>`;
+    html += flat.map(p => {
+      const mat = MATS.find(m => m.id === p.materialDefinitionId);
+      let dims = '';
+      if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
+      else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
+      return `<div style="padding:3px 0 3px 8px;border-left:2px solid var(--border);margin-bottom:3px">
+        ${MTYPE[p.measurementType] || ''} <span class="mono" style="color:var(--accent)">${mat ? mat.code : '?'}</span>${dims} · ${p.quantity}×${p._effQty} = <strong>${p.quantity * p._effQty} шт</strong>
+        ${p.notes ? `<span style="color:var(--muted)"> — ${p.notes}</span>` : ''}
+      </div>`;
+    }).join('');
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<span style="color:var(--red)">Ошибка: ${e.message}</span>`;
+  }
+}
+
+async function applyTmplPicker() {
+  const tmplId = document.getElementById('tp-sel').value;
+  const mult = parseInt(document.getElementById('tp-mult').value) || 1;
+  if (!tmplId || !_tmplPickerAid) return;
+  const a = asms.find(a => a.id === _tmplPickerAid);
+  if (!a) return;
+  const btn = document.getElementById('tp-apply-btn');
+  btn.disabled = true; btn.textContent = 'Вставка...';
+  try {
+    const t = await ERPStore.getTemplate(tmplId);
+    const flat = _flattenNodes(t.nodes || [], mult, []);
+    if (!flat.length) { toast('Шаблон пустой', 'warning'); return; }
+    const MTYPE_MAP = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
+    let added = 0;
+    for (const p of flat) {
+      const mat = MATS.find(m => m.id === p.materialDefinitionId);
+      if (!mat) { console.warn('Material not found:', p.materialDefinitionId); continue; }
+      const mtype = MTYPE_MAP[p.measurementType] || 'linear';
+      const qty = (p.quantity || 1) * p._effQty;
+      a.parts.push({
+        id: 'pt' + nP++,
+        mid: p.materialDefinitionId,
+        name: p.notes || '',
+        mtype,
+        len: p.length != null ? Number(p.length) : null,
+        w: p.sheetWidth != null ? Number(p.sheetWidth) : null,
+        h: p.sheetHeight != null ? Number(p.sheetHeight) : null,
+        pw: p.directWeightKg != null ? Number(p.directWeightKg) : (mat.unitKg || null),
+        qty,
+      });
+      added++;
+    }
+    closeTmplPicker();
+    refresh();
+    saveDraft();
+    toast(`Шаблон «${t.code}» вставлен: ${added} деталей в узел «${a.name}»`, 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '📦 Вставить детали';
+  }
+}
 </script>
 </body>
 </html>
