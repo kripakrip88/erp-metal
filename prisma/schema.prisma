@@ -774,9 +774,12 @@ model AssemblyCoating {
   dilutionPercent      Decimal?    @db.Decimal(5, 2)
   notes                String?
   position             Int         @default(0)
-  materialCodeSnapshot String?
-  materialNameSnapshot String?
-  createdAt            DateTime    @default(now())
+  materialCodeSnapshot       String?
+  materialNameSnapshot       String?
+  lossFactorPercent          Decimal?    @db.Decimal(5, 2)
+  theoreticalConsumptionKg   Decimal?    @db.Decimal(12, 4)
+  finalConsumptionKg         Decimal?    @db.Decimal(12, 4)
+  createdAt                  DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
   assembly        Assembly        @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
