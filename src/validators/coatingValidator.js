@@ -64,6 +64,7 @@ function validateCoatingMaterial(body) {
 // ─── Assembly coating (runtime instance) ────────────────────────────────────
 
 function validateAssemblyCoating(body) {
+  if (body.calculatedCost !== undefined) throw new Error('calculatedCost — derived field, cannot be set directly')
   required(body.coatingMaterialId, 'coatingMaterialId')
   return {
     coatingMaterialId:  body.coatingMaterialId,
