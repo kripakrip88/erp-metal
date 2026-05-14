@@ -240,6 +240,8 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
 
     // createMany bypasses Prisma middleware/hooks — snapshot and calculation
     // fields must be fully computed before insert (no post-create triggers available).
+    // TODO: if audit/event/revision hooks appear, replace with batched create pipeline
+    //   (individual tx.assemblyCoating.create per row) to trigger middleware per insert.
     await tx.assemblyCoating.createMany({ data: rows })
 
     return tx.assemblyCoating.findMany({
@@ -250,6 +252,8 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
   })
 }
 
+// TODO: optimistic locking — add revision Int @default(1) to AssemblyCoating;
+//   check-and-increment on every update to prevent concurrent overwrites.
 async function updateAssemblyCoating(coatingId, data) {
   const existing = await prisma.assemblyCoating.findUnique({
     where: { id: coatingId },
@@ -298,6 +302,8 @@ async function updateAssemblyCoating(coatingId, data) {
   })
 }
 
+// TODO: hard delete — future: soft-delete via deletedAt or capture revision snapshot
+//   before delete to preserve coating history for deterministic ERP revision reproduction.
 async function deleteAssemblyCoating(coatingId) {
   return prisma.assemblyCoating.delete({ where: { id: coatingId } })
 }

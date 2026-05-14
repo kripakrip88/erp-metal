@@ -19,5 +19,7 @@ function calcCoatingCost(finalConsumptionKg, costSnapshotPerKg) {
 //   ERP revision pricing (lock cost at revision create time)
 //   margin engine (target margin % → selling price)
 //   profitability KPI (actual vs estimated cost per assembly)
+//   calculationFormulaVersion + pricingFormulaVersion per row —
+//     deterministic reproduction of historical ERP revisions when formulas change
 
 module.exports = { calcCoatingCost }
