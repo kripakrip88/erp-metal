@@ -1,4 +1,8 @@
 const prisma = require('../repositories/prisma')
+const { calcLinearPaint, calcAreaPaint } = require('../calculations/paintCalc')
+const { calcCoatingConsumption }         = require('../calculations/coatingCalc')
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 
 async function _companyId() {
   const c = await prisma.company.findFirst()
@@ -25,6 +29,38 @@ async function createCoatingMaterial(data) {
 
 async function updateCoatingMaterial(id, data) {
   return prisma.coatingMaterial.update({ where: { id }, data })
+}
+
+// ─── Consumption calculation helpers ─────────────────────────────────────────
+
+// Computes total paint area (m²) for an assembly from its parts.
+// client = prisma or a transaction tx.
+async function _assemblyPaintAreaM2(client, assemblyId) {
+  const asm = await client.assembly.findUnique({
+    where: { id: assemblyId },
+    include: { parts: { include: { materialDefinition: { include: { geometry: true } } } } },
+  })
+  if (!asm) return 0
+  const asmQty = asm.qty || 1
+  let area = 0
+  for (const part of asm.parts) {
+    const geo = part.materialDefinition?.geometry
+    if (!geo) continue
+    if (part.measurementType === 'LINEAR' && part.length) {
+      area += calcLinearPaint(Number(part.length), geo.paintSurfacePerMeter ? Number(geo.paintSurfacePerMeter) : null, part.quantity * asmQty)
+    } else if (part.measurementType === 'AREA' && part.sheetWidth && part.sheetHeight) {
+      area += calcAreaPaint(Number(part.sheetWidth), Number(part.sheetHeight), part.quantity * asmQty)
+    }
+  }
+  return Math.round(area * 10000) / 10000
+}
+
+// Resolves effective areaM2 and returns consumption calc fields.
+async function _resolveConsumption(client, assemblyId, coating, mat) {
+  const areaM2 = coating.autoAreaLink
+    ? await _assemblyPaintAreaM2(client, assemblyId)
+    : Number(coating.manualAreaM2 || 0)
+  return calcCoatingConsumption(areaM2, Number(mat.consumptionGm2), coating.lossFactorPercent)
 }
 
 // ─── Assembly coatings ────────────────────────────────────────────────────
@@ -57,23 +93,55 @@ async function createAssemblyCoating(assemblyId, data) {
     materialNameSnapshot = mat?.name ?? null
   }
 
+  const draft = {
+    assemblyId,
+    coatingMaterialId:    data.coatingMaterialId,
+    coatingSystemId:      data.coatingSystemId    ?? null,
+    layerNumber,
+    autoAreaLink:         data.autoAreaLink        ?? true,
+    manualAreaM2:         data.manualAreaM2        ?? null,
+    selectedDftMkm:       data.selectedDftMkm      ?? null,
+    dilutionPercent:      data.dilutionPercent      ?? null,
+    lossFactorPercent:    data.lossFactorPercent    ?? null,
+    notes:                data.notes               ?? null,
+    position,
+    materialCodeSnapshot,
+    materialNameSnapshot,
+  }
+  const { theoreticalConsumptionKg, finalConsumptionKg } =
+    await _resolveConsumption(prisma, assemblyId, draft, mat)
   return prisma.assemblyCoating.create({
-    data: {
-      assemblyId,
-      coatingMaterialId:    data.coatingMaterialId,
-      coatingSystemId:      data.coatingSystemId    ?? null,
-      layerNumber,
-      autoAreaLink:         data.autoAreaLink        ?? true,
-      manualAreaM2:         data.manualAreaM2        ?? null,
-      selectedDftMkm:       data.selectedDftMkm      ?? null,
-      dilutionPercent:      data.dilutionPercent      ?? null,
-      notes:                data.notes               ?? null,
-      position,
-      materialCodeSnapshot,
-      materialNameSnapshot,
-    },
+    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg },
     include: { coatingMaterial: true },
   })
+}
+
+// Recomputes consumption for all coatings of an assembly (e.g. after parts change).
+async function recalculateAssemblyCoatings(assemblyId) {
+  const coatings = await prisma.assemblyCoating.findMany({
+    where: { assemblyId },
+    include: { coatingMaterial: true },
+    orderBy: { position: 'asc' },
+  })
+  // autoAreaLink rows share the same area — compute once
+  let autoArea = null
+  const updates = []
+  for (const coating of coatings) {
+    let areaM2
+    if (coating.autoAreaLink) {
+      if (autoArea === null) autoArea = await _assemblyPaintAreaM2(prisma, assemblyId)
+      areaM2 = autoArea
+    } else {
+      areaM2 = Number(coating.manualAreaM2 || 0)
+    }
+    const { theoreticalConsumptionKg, finalConsumptionKg } =
+      calcCoatingConsumption(areaM2, Number(coating.coatingMaterial.consumptionGm2), coating.lossFactorPercent)
+    updates.push(prisma.assemblyCoating.update({
+      where: { id: coating.id },
+      data: { theoreticalConsumptionKg, finalConsumptionKg },
+    }))
+  }
+  return Promise.all(updates)
 }
 
 async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
@@ -145,17 +213,32 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
 }
 
 async function updateAssemblyCoating(coatingId, data) {
+  const existing = await prisma.assemblyCoating.findUnique({
+    where: { id: coatingId },
+    select: { assemblyId: true },
+  })
+  if (!existing) throw new Error('AssemblyCoating not found')
+
+  const mat = await prisma.coatingMaterial.findUnique({
+    where: { id: data.coatingMaterialId },
+    select: { consumptionGm2: true },
+  })
+
+  const draft = {
+    coatingMaterialId: data.coatingMaterialId,
+    layerNumber:       data.layerNumber,
+    autoAreaLink:      data.autoAreaLink,
+    manualAreaM2:      data.manualAreaM2    ?? null,
+    selectedDftMkm:    data.selectedDftMkm  ?? null,
+    dilutionPercent:   data.dilutionPercent  ?? null,
+    lossFactorPercent: data.lossFactorPercent ?? null,
+    notes:             data.notes ?? null,
+  }
+  const { theoreticalConsumptionKg, finalConsumptionKg } =
+    await _resolveConsumption(prisma, existing.assemblyId, draft, mat)
   return prisma.assemblyCoating.update({
     where: { id: coatingId },
-    data: {
-      coatingMaterialId: data.coatingMaterialId,
-      layerNumber:       data.layerNumber,
-      autoAreaLink:      data.autoAreaLink,
-      manualAreaM2:      data.manualAreaM2    ?? null,
-      selectedDftMkm:    data.selectedDftMkm  ?? null,
-      dilutionPercent:   data.dilutionPercent  ?? null,
-      notes:             data.notes ?? null,
-    },
+    data: { ...draft, theoreticalConsumptionKg, finalConsumptionKg },
     include: { coatingMaterial: true },
   })
 }
@@ -167,5 +250,6 @@ async function deleteAssemblyCoating(coatingId) {
 module.exports = {
   listCoatingMaterials, createCoatingMaterial, updateCoatingMaterial,
   listAssemblyCoatings, createAssemblyCoating, updateAssemblyCoating, deleteAssemblyCoating,
+  recalculateAssemblyCoatings,
   applyCoatingSystem,
 }
