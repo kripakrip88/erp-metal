@@ -118,7 +118,7 @@ async function createAssemblyCoating(assemblyId, data) {
   })
 }
 
-// Recomputes consumption for a single AssemblyCoating by id.
+// Recomputes consumption and cost for a single AssemblyCoating by id.
 async function recalculateAssemblyCoating(coatingId) {
   const coating = await prisma.assemblyCoating.findUnique({
     where: { id: coatingId },
@@ -127,9 +127,10 @@ async function recalculateAssemblyCoating(coatingId) {
   if (!coating) throw new Error('AssemblyCoating not found')
   const { theoreticalConsumptionKg, finalConsumptionKg } =
     await _resolveConsumption(prisma, coating.assemblyId, coating, coating.coatingMaterial)
+  const { calculatedCost } = calcCoatingCost(finalConsumptionKg, coating.costSnapshotPerKg)
   return prisma.assemblyCoating.update({
     where: { id: coatingId },
-    data: { theoreticalConsumptionKg, finalConsumptionKg },
+    data: { theoreticalConsumptionKg, finalConsumptionKg, calculatedCost },
     include: { coatingMaterial: true },
   })
 }
@@ -154,9 +155,10 @@ async function recalculateAssemblyCoatings(assemblyId) {
     }
     const { theoreticalConsumptionKg, finalConsumptionKg } =
       calcCoatingConsumption(areaM2, Number(coating.coatingMaterial.consumptionGm2), coating.lossFactorPercent)
+    const { calculatedCost } = calcCoatingCost(finalConsumptionKg, coating.costSnapshotPerKg)
     updates.push(prisma.assemblyCoating.update({
       where: { id: coating.id },
-      data: { theoreticalConsumptionKg, finalConsumptionKg },
+      data: { theoreticalConsumptionKg, finalConsumptionKg, calculatedCost },
     }))
   }
   return prisma.$transaction(updates)
