@@ -784,17 +784,23 @@ model AssemblyCoating {
 }
 
 model CoatingSystem {
-  id        String   @id @default(uuid())
-  companyId String
-  code      String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  companyId   String
+  code        String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  position    Int      @default(0)
+  uiColor     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   company          Company           @relation(fields: [companyId], references: [id])
   assemblyCoatings AssemblyCoating[]
 
   @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@index([companyId, position])
   @@map("coating_systems")
 }
 
