@@ -116,6 +116,22 @@ async function createAssemblyCoating(assemblyId, data) {
   })
 }
 
+// Recomputes consumption for a single AssemblyCoating by id.
+async function recalculateAssemblyCoating(coatingId) {
+  const coating = await prisma.assemblyCoating.findUnique({
+    where: { id: coatingId },
+    include: { coatingMaterial: true },
+  })
+  if (!coating) throw new Error('AssemblyCoating not found')
+  const { theoreticalConsumptionKg, finalConsumptionKg } =
+    await _resolveConsumption(prisma, coating.assemblyId, coating, coating.coatingMaterial)
+  return prisma.assemblyCoating.update({
+    where: { id: coatingId },
+    data: { theoreticalConsumptionKg, finalConsumptionKg },
+    include: { coatingMaterial: true },
+  })
+}
+
 // Recomputes consumption for all coatings of an assembly (e.g. after parts change).
 async function recalculateAssemblyCoatings(assemblyId) {
   const coatings = await prisma.assemblyCoating.findMany({
@@ -186,21 +202,33 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     const posOffset   = maxes?._max.position    != null ? maxes._max.position    + 1 : 0
     const layerOffset = maxes?._max.layerNumber != null ? maxes._max.layerNumber      : 0
 
+    // All new layers use autoAreaLink=true — compute area once for the batch
+    const autoAreaM2 = await _assemblyPaintAreaM2(tx, assemblyId)
+
     // Create independent runtime copies — snapshot origin, not live references
-    const rows = system.layers.map(layer => ({
-      assemblyId,
-      coatingMaterialId:    layer.coatingMaterialId,
-      coatingSystemId,
-      layerNumber:          layerOffset + layer.layerNumber,
-      autoAreaLink:         true,
-      manualAreaM2:         null,
-      selectedDftMkm:       layer.defaultDftMkm          ?? null,
-      dilutionPercent:      layer.defaultDilutionPercent  ?? null,
-      notes:                layer.notes                   ?? null,
-      position:             posOffset + layer.position,
-      materialCodeSnapshot: layer.coatingMaterial.code,
-      materialNameSnapshot: layer.coatingMaterial.name,
-    }))
+    const rows = system.layers.map(layer => {
+      const { theoreticalConsumptionKg, finalConsumptionKg } = calcCoatingConsumption(
+        autoAreaM2,
+        Number(layer.coatingMaterial.consumptionGm2),
+        null  // lossFactorPercent unknown at apply time — user sets after
+      )
+      return {
+        assemblyId,
+        coatingMaterialId:         layer.coatingMaterialId,
+        coatingSystemId,
+        layerNumber:               layerOffset + layer.layerNumber,
+        autoAreaLink:              true,
+        manualAreaM2:              null,
+        selectedDftMkm:            layer.defaultDftMkm         ?? null,
+        dilutionPercent:           layer.defaultDilutionPercent ?? null,
+        notes:                     layer.notes                  ?? null,
+        position:                  posOffset + layer.position,
+        materialCodeSnapshot:      layer.coatingMaterial.code,
+        materialNameSnapshot:      layer.coatingMaterial.name,
+        theoreticalConsumptionKg,
+        finalConsumptionKg,
+      }
+    })
 
     await tx.assemblyCoating.createMany({ data: rows })
 
@@ -250,6 +278,7 @@ async function deleteAssemblyCoating(coatingId) {
 module.exports = {
   listCoatingMaterials, createCoatingMaterial, updateCoatingMaterial,
   listAssemblyCoatings, createAssemblyCoating, updateAssemblyCoating, deleteAssemblyCoating,
+  recalculateAssemblyCoating,
   recalculateAssemblyCoatings,
   applyCoatingSystem,
 }

@@ -4,6 +4,7 @@ const { validateAssemblyCoating } = require('../validators/coatingValidator')
 const {
   listAssemblyCoatings, createAssemblyCoating,
   updateAssemblyCoating, deleteAssemblyCoating,
+  recalculateAssemblyCoating,
   recalculateAssemblyCoatings,
   applyCoatingSystem,
 } = require('../services/coatingService')
@@ -28,6 +29,9 @@ module.exports = [
   }},
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/coatings/recalculate', handler: async (req, res, params) => {
     json(res, await recalculateAssemblyCoatings(params.assemblyId))
+  }},
+  { method: 'POST', pathname: '/api/assemblies/:assemblyId/coatings/:coatingId/recalculate', handler: async (req, res, params) => {
+    json(res, await recalculateAssemblyCoating(params.coatingId))
   }},
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/apply-coating-system', handler: async (req, res, params) => {
     const body = await parseBody(req)
