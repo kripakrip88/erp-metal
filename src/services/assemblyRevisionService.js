@@ -53,29 +53,31 @@ async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freez
       orderBy: { position: 'asc' },
     })
 
-    if (coatings.length > 0) {
-      // createMany bypasses hooks — all snapshot/formula fields pre-computed here
-      await tx.assemblyRevisionCoatingSnapshot.createMany({
-        data: coatings.map(c => ({
-          assemblyRevisionId:        rev.id,
-          assemblyId:                rev.assemblyId,
-          coatingMaterialId:         c.coatingMaterialId,
-          materialCodeSnapshot:      c.materialCodeSnapshot ?? '',
-          materialNameSnapshot:      c.materialNameSnapshot ?? '',
-          layerNumber:               c.layerNumber,
-          position:                  c.position,
-          selectedDftMkm:            c.selectedDftMkm            ?? null,
-          dilutionPercent:           c.dilutionPercent            ?? null,
-          lossFactorPercent:         c.lossFactorPercent          ?? null,
-          theoreticalConsumptionKg:  c.theoreticalConsumptionKg  ?? null,
-          finalConsumptionKg:        c.finalConsumptionKg         ?? null,
-          costSnapshotPerKg:         c.costSnapshotPerKg          ?? null,
-          calculatedCost:            c.calculatedCost             ?? null,
-          calculationFormulaVersion: CALCULATION_FORMULA_VERSION,
-          pricingFormulaVersion:     PRICING_FORMULA_VERSION,
-        })),
-      })
+    if (coatings.length === 0) {
+      throw new Error('Cannot freeze an empty revision — add coatings first')
     }
+
+    // createMany bypasses hooks — all snapshot/formula fields pre-computed here
+    await tx.assemblyRevisionCoatingSnapshot.createMany({
+      data: coatings.map(c => ({
+        assemblyRevisionId:        rev.id,
+        assemblyId:                rev.assemblyId,
+        coatingMaterialId:         c.coatingMaterialId,
+        materialCodeSnapshot:      c.materialCodeSnapshot ?? '',
+        materialNameSnapshot:      c.materialNameSnapshot ?? '',
+        layerNumber:               c.layerNumber,
+        position:                  c.position,
+        selectedDftMkm:            c.selectedDftMkm            ?? null,
+        dilutionPercent:           c.dilutionPercent            ?? null,
+        lossFactorPercent:         c.lossFactorPercent          ?? null,
+        theoreticalConsumptionKg:  c.theoreticalConsumptionKg  ?? null,
+        finalConsumptionKg:        c.finalConsumptionKg         ?? null,
+        costSnapshotPerKg:         c.costSnapshotPerKg          ?? null,
+        calculatedCost:            c.calculatedCost             ?? null,
+        calculationFormulaVersion: CALCULATION_FORMULA_VERSION,
+        pricingFormulaVersion:     PRICING_FORMULA_VERSION,
+      })),
+    })
 
     return tx.assemblyRevision.update({
       where: { id: revisionId },
