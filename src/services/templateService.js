@@ -124,34 +124,60 @@ async function deleteNodePart(partId) {
 
 // ─── Apply template to Assembly ───────────────────────────────────────────────
 
-async function applyTemplateToAssembly(orderId, assemblyId, templateId) {
+function countTemplateParts(nodes) {
+  let total = 0
+  for (const node of nodes) {
+    total += node.parts.length
+    if (node.children) total += countTemplateParts(node.children)
+  }
+  return total
+}
+
+async function applyTemplateToAssembly(orderId, assemblyId, templateId, multiplier) {
+  const m = multiplier != null ? parseInt(multiplier) : 1
+  if (!m || m < 1) throw new Error('multiplier должен быть целым числом >= 1')
+
   const template = await templateRepo.findById(templateId)
-  if (!template) throw new Error('Шаблон не найден')
+  if (!template)        throw new Error('Шаблон не найден')
+  if (!template.isActive || template.deletedAt)
+                        throw new Error('Шаблон архивирован и недоступен для вставки')
+
+  const totalParts = countTemplateParts(template.nodes)
+  if (totalParts === 0) throw new Error('Шаблон не содержит деталей — вставка невозможна')
 
   const targetAssembly = await prisma.assembly.findUnique({ where: { id: assemblyId } })
-  if (!targetAssembly)                       throw new Error('Assembly не найден')
-  if (targetAssembly.orderId !== orderId)    throw new Error('Assembly не принадлежит заказу')
+  if (!targetAssembly)                    throw new Error('Assembly не найден')
+  if (targetAssembly.orderId !== orderId) throw new Error('Assembly не принадлежит заказу')
 
-  const topNodes = template.nodes // already filtered: parentNodeId === null
   let totalCreated = 0
 
   await prisma.$transaction(async (tx) => {
-    totalCreated = await cloneNodes(tx, topNodes, orderId, assemblyId)
+    totalCreated = await cloneNodes(tx, template.nodes, orderId, assemblyId, m, {
+      sourceTemplateId:      template.id,
+      sourceTemplateVersion: template.version,
+    })
   })
 
-  return { ok: true, templateId, assemblyId, nodesCreated: totalCreated }
+  return { ok: true, templateId, assemblyId, multiplier: m, nodesCreated: totalCreated }
 }
 
-async function cloneNodes(tx, nodes, orderId, parentAssemblyId) {
+// Вариант C: Assembly.qty = node.qty × multiplier, Part.quantity = templateNodePart.quantity
+async function cloneNodes(tx, nodes, orderId, parentAssemblyId, multiplier, templateMeta) {
   let count = 0
   for (const node of nodes) {
+    const isTopLevel = !!templateMeta
     const subAssembly = await tx.assembly.create({
       data: {
         orderId,
-        parentId: parentAssemblyId,
-        name:     node.name,
-        qty:      node.qty,
-        position: node.position,
+        parentId:             parentAssemblyId,
+        name:                 node.name,
+        qty:                  node.qty * multiplier,
+        position:             node.position,
+        // трассировка источника только на корневых узлах шаблона
+        ...(isTopLevel ? {
+          sourceTemplateId:      templateMeta.sourceTemplateId,
+          sourceTemplateVersion: templateMeta.sourceTemplateVersion,
+        } : {}),
       },
     })
     count++
@@ -167,7 +193,7 @@ async function cloneNodes(tx, nodes, orderId, parentAssemblyId) {
           sheetHeight:          p.sheetHeight,
           directWeightKg:       p.directWeightKg,
           surfaceAreaM2:        p.surfaceAreaM2,
-          quantity:             p.quantity,
+          quantity:             p.quantity, // без умножения — per-assembly норма
           notes:                p.notes,
           position:             p.position,
         },
@@ -175,7 +201,7 @@ async function cloneNodes(tx, nodes, orderId, parentAssemblyId) {
     }
 
     if (node.children && node.children.length > 0) {
-      count += await cloneNodes(tx, node.children, orderId, subAssembly.id)
+      count += await cloneNodes(tx, node.children, orderId, subAssembly.id, multiplier, null)
     }
   }
   return count

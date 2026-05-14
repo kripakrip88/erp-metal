@@ -14,6 +14,6 @@ module.exports = [
   { method: 'POST', pathname: '/api/orders/:orderId/assemblies/:assemblyId/apply-template', handler: async (req, res, params) => {
     const body = await parseBody(req)
     if (!body.templateId) return json(res, { error: 'templateId обязательное поле' }, 400)
-    json(res, await applyTemplateToAssembly(params.orderId, params.assemblyId, body.templateId))
+    json(res, await applyTemplateToAssembly(params.orderId, params.assemblyId, body.templateId, body.multiplier))
   }},
 ]
