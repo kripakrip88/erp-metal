@@ -108,6 +108,10 @@ td{padding:9px 12px;vertical-align:middle;}
 .gap-8{display:flex;gap:8px;align-items:center;}.gap-12{display:flex;gap:12px;align-items:center;}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);}
 .empty .icon{font-size:32px;margin-bottom:8px;}
+.bom-grp-hdr{background:#f1f5f9;cursor:pointer;user-select:none;}
+.bom-grp-hdr:hover{background:#e8eef5;}
+.bom-grp-hdr td{padding:5px 12px;border-top:2px solid var(--border2)!important;}
+.bom-grp-ungrouped td{padding:4px 12px;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.6px;text-transform:uppercase;border-top:2px solid var(--border)!important;background:#fafbfc;}
 </style>
 </head>
 <body>
@@ -579,6 +583,44 @@ function cAll(){
   return{tW:r4(tW),tC:r4(tC),tP:r4(tP),tPts,bM,ws:[...new Set(ws)]};
 }
 
+// Render parts grouped by BOM template node; ungrouped parts at the bottom
+function renderBomRows(a) {
+  if (!a.parts.length) return `<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`;
+  const groupMap = new Map();
+  const ungrouped = [];
+  for (const p of a.parts) {
+    if (p.bomGroupKey) {
+      if (!groupMap.has(p.bomGroupKey)) groupMap.set(p.bomGroupKey, {
+        key: p.bomGroupKey, label: p.bomGroupLabel||p.bomGroupKey,
+        sortPath: p.bomSortPath||'999', depth: p.bomDepth||0,
+        tmplCode: p.bomTemplateCode||'', parts: [],
+      });
+      groupMap.get(p.bomGroupKey).parts.push(p);
+    } else {
+      ungrouped.push(p);
+    }
+  }
+  const sorted = [...groupMap.values()].sort((x,y)=>x.sortPath.localeCompare(y.sortPath));
+  let html = '';
+  for (const grp of sorted) {
+    const collapsed = _bomCollapsed.has(`${a.id}:${grp.key}`);
+    const indent = 12 + grp.depth * 14;
+    html += `<tr class="bom-grp-hdr" onclick="toggleBomGroup('${a.id}','${grp.key.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      <td colspan="11" style="padding-left:${indent}px">
+        <span class="mono" style="font-size:11px;color:var(--muted)">${collapsed?'▶':'▼'}</span>
+        <span style="font-weight:700;font-size:12.5px;margin-left:4px">${grp.label}</span>
+        ${grp.tmplCode?`<span class="mono" style="font-size:11px;color:var(--muted);margin-left:6px">${grp.tmplCode}</span>`:''}
+        <span style="float:right;font-size:11px;color:var(--muted)">${grp.parts.length} дет.</span>
+      </td></tr>`;
+    if (!collapsed) for (const p of grp.parts) html += renderPR(p, a);
+  }
+  if (ungrouped.length) {
+    if (sorted.length) html += `<tr class="bom-grp-ungrouped"><td colspan="11">─── без шаблона ───</td></tr>`;
+    for (const p of ungrouped) html += renderPR(p, a);
+  }
+  return html;
+}
+
 function renderAsms(){
   const c=document.getElementById('asms-container');
   if(!asms.length){c.innerHTML=`<div class="card mb-16"><div class="empty"><div class="icon">📦</div>Узлов пока нет — добавьте первый ниже</div></div>`;return;}
@@ -586,7 +628,7 @@ function renderAsms(){
     let aW=0,aP=0,aC=0;
     for(const p of a.parts){const mat=MATS.find(m=>m.id===p.mid);if(!mat)continue;const{tot,pm2}=cPW(p,mat);const mu=a.qty;const wT=r4(tot*mu);aW+=wT;aP+=r4((pm2||0)*mu);const{cost}=cCost(wT,gP(p.mid));aC+=cost;}
     const tots=aW>0?`<span class="chip-w">${f3(aW/1000)} т</span><span class="chip-p">${aP.toFixed(2)} м²</span><span class="chip-c">₽ ${fm(Math.round(aC))}</span>`:'';
-    const rows=!a.parts.length?`<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`:a.parts.map(p=>renderPR(p,a)).join('');
+    const rows=renderBomRows(a);
     return`<div class="card mb-16">
       <div class="card-header">
         <div class="gap-12"><div style="font-weight:700;font-size:14px">${a.name}</div>
@@ -892,6 +934,14 @@ function _apiAsmsToSim(apiAsms){
       h:p.sheetHeight!=null?Number(p.sheetHeight):null,
       pw:p.directWeightKg!=null?Number(p.directWeightKg):null,
       qty:p.quantity||1,
+      bomTemplateCode:    p.bomTemplateCode||null,
+      bomTemplateId:      p.bomTemplateId||null,
+      bomTemplateVersion: p.bomTemplateVersion!=null?p.bomTemplateVersion:null,
+      bomGroupKey:        p.bomGroupKey||null,
+      bomGroupLabel:      p.bomGroupLabel||null,
+      bomDepth:           p.bomDepth!=null?p.bomDepth:null,
+      bomPath:            p.bomPath||null,
+      bomSortPath:        p.bomSortPath||null,
     }))
   }));
 }
@@ -941,6 +991,7 @@ loadMats();
 
 let _tmplList = [];
 let _tmplPickerAid = null;
+const _bomCollapsed = new Set(); // "asmId:bomGroupKey"
 
 async function openTmplPicker(aid) {
   _tmplPickerAid = aid;
@@ -971,16 +1022,29 @@ function closeTmplPicker() {
   document.getElementById('tmpl-picker-bg').style.display = 'none';
 }
 
-function _flattenNodes(nodes, multiplier, out) {
-  for (const node of nodes) {
+// Recursive flatten with full BOM metadata
+function _flattenNodesWithMeta(nodes, templateId, templateCode, multiplier, out, parentPath, depth, parentSortSeg) {
+  nodes.forEach((node, idx) => {
+    const seg = String(idx + 1).padStart(3, '0');
+    const sortPath = parentSortSeg ? `${parentSortSeg}.${seg}` : seg;
+    const path = [...parentPath, { id: node.id, label: node.name }];
     const effQty = (node.qty || 1) * multiplier;
     for (const p of (node.parts || [])) {
-      out.push({ ...p, _effQty: effQty });
+      out.push({
+        ...p,
+        _effQty: effQty,
+        bomTemplateCode: templateCode,
+        bomGroupKey:     `${templateId}:${node.id}`,
+        bomGroupLabel:   node.name,
+        bomDepth:        depth,
+        bomPath:         path,
+        bomSortPath:     sortPath,
+      });
     }
     if (node.children && node.children.length) {
-      _flattenNodes(node.children, effQty, out);
+      _flattenNodesWithMeta(node.children, templateId, templateCode, effQty, out, path, depth + 1, sortPath);
     }
-  }
+  });
   return out;
 }
 
@@ -990,23 +1054,34 @@ async function previewTmpl(id) {
   box.innerHTML = '<span style="color:var(--muted)">Загрузка...</span>';
   try {
     const t = await ERPStore.getTemplate(id);
-    const flat = _flattenNodes(t.nodes || [], 1, []);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, 1, [], [], 0, '');
     if (!flat.length) {
       box.innerHTML = '<div style="color:var(--muted)">Шаблон пустой — добавьте детали в разделе Шаблоны</div>';
       return;
     }
+    // Group by bomGroupKey for structured preview
+    const groups = new Map();
+    for (const p of flat) {
+      if (!groups.has(p.bomGroupKey)) groups.set(p.bomGroupKey, { label: p.bomGroupLabel, depth: p.bomDepth, sortPath: p.bomSortPath, parts: [] });
+      groups.get(p.bomGroupKey).parts.push(p);
+    }
+    const sorted = [...groups.values()].sort((a, b) => a.sortPath.localeCompare(b.sortPath));
     const MTYPE = { LINEAR: '📏', AREA: '⬜', PIECE: '🔩' };
-    let html = `<div style="font-weight:700;margin-bottom:8px">${t.code} — ${t.name}</div>`;
-    html += flat.map(p => {
-      const mat = MATS.find(m => m.id === p.materialDefinitionId);
-      let dims = '';
-      if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
-      else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
-      return `<div style="padding:3px 0 3px 8px;border-left:2px solid var(--border);margin-bottom:3px">
-        ${MTYPE[p.measurementType] || ''} <span class="mono" style="color:var(--accent)">${mat ? mat.code : '?'}</span>${dims} · ${p.quantity}×${p._effQty} = <strong>${p.quantity * p._effQty} шт</strong>
-        ${p.notes ? `<span style="color:var(--muted)"> — ${p.notes}</span>` : ''}
-      </div>`;
-    }).join('');
+    let html = `<div style="font-weight:700;margin-bottom:8px;font-size:12px">${t.code} — ${t.name}</div>`;
+    for (const grp of sorted) {
+      const indent = grp.depth * 12;
+      html += `<div style="padding:3px 0 1px ${indent}px;font-weight:700;font-size:12px;color:var(--text)">▸ ${grp.label}</div>`;
+      for (const p of grp.parts) {
+        const mat = MATS.find(m => m.id === p.materialDefinitionId);
+        let dims = '';
+        if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
+        else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
+        const totalQty = (p.quantity || 1) * p._effQty;
+        html += `<div style="padding:2px 0 2px ${indent + 14}px;font-size:11.5px;color:var(--muted)">
+          ${MTYPE[p.measurementType] || ''} <span class="mono" style="color:var(--accent)">${mat ? mat.code : '?'}</span>${dims} → <strong style="color:var(--text)">${totalQty} шт</strong>${p.notes ? ` <span style="color:var(--muted)">— ${p.notes}</span>` : ''}
+        </div>`;
+      }
+    }
     box.innerHTML = html;
   } catch(e) {
     box.innerHTML = `<span style="color:var(--red)">Ошибка: ${e.message}</span>`;
@@ -1023,25 +1098,32 @@ async function applyTmplPicker() {
   btn.disabled = true; btn.textContent = 'Вставка...';
   try {
     const t = await ERPStore.getTemplate(tmplId);
-    const flat = _flattenNodes(t.nodes || [], mult, []);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, mult, [], [], 0, '');
     if (!flat.length) { toast('Шаблон пустой', 'warning'); return; }
     const MTYPE_MAP = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
     let added = 0;
     for (const p of flat) {
       const mat = MATS.find(m => m.id === p.materialDefinitionId);
       if (!mat) { console.warn('Material not found:', p.materialDefinitionId); continue; }
-      const mtype = MTYPE_MAP[p.measurementType] || 'linear';
-      const qty = (p.quantity || 1) * p._effQty;
       a.parts.push({
-        id: 'pt' + nP++,
-        mid: p.materialDefinitionId,
+        id:   'pt' + nP++,
+        mid:  p.materialDefinitionId,
         name: p.notes || '',
-        mtype,
-        len: p.length != null ? Number(p.length) : null,
-        w: p.sheetWidth != null ? Number(p.sheetWidth) : null,
-        h: p.sheetHeight != null ? Number(p.sheetHeight) : null,
-        pw: p.directWeightKg != null ? Number(p.directWeightKg) : (mat.unitKg || null),
-        qty,
+        mtype: MTYPE_MAP[p.measurementType] || 'linear',
+        len:  p.length          != null ? Number(p.length)          : null,
+        w:    p.sheetWidth      != null ? Number(p.sheetWidth)      : null,
+        h:    p.sheetHeight     != null ? Number(p.sheetHeight)     : null,
+        pw:   p.directWeightKg  != null ? Number(p.directWeightKg)  : (mat.unitKg || null),
+        qty:  (p.quantity || 1) * p._effQty,
+        // BOM metadata
+        bomTemplateCode:    p.bomTemplateCode,
+        bomTemplateId:      t.id,
+        bomTemplateVersion: t.version,
+        bomGroupKey:        p.bomGroupKey,
+        bomGroupLabel:      p.bomGroupLabel,
+        bomDepth:           p.bomDepth,
+        bomPath:            p.bomPath,
+        bomSortPath:        p.bomSortPath,
       });
       added++;
     }
@@ -1054,6 +1136,12 @@ async function applyTmplPicker() {
   } finally {
     btn.disabled = false; btn.textContent = '📦 Вставить детали';
   }
+}
+
+function toggleBomGroup(asmId, groupKey) {
+  const k = `${asmId}:${groupKey}`;
+  if (_bomCollapsed.has(k)) _bomCollapsed.delete(k); else _bomCollapsed.add(k);
+  renderAsms();
 }
 </script>
 </body>

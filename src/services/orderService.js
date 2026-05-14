@@ -65,6 +65,14 @@ async function createPart(assemblyId, data) {
     quantity:        data.quantity || 1,
     notes:           data.notes || null,
     position:        data.position || 0,
+    bomTemplateCode:    data.bomTemplateCode    || null,
+    bomTemplateId:      data.bomTemplateId      || null,
+    bomTemplateVersion: data.bomTemplateVersion != null ? parseInt(data.bomTemplateVersion) : null,
+    bomGroupKey:        data.bomGroupKey        || null,
+    bomGroupLabel:      data.bomGroupLabel      || null,
+    bomDepth:           data.bomDepth           != null ? parseInt(data.bomDepth) : null,
+    bomPath:            data.bomPath            || null,
+    bomSortPath:        data.bomSortPath        || null,
   }})
 }
 

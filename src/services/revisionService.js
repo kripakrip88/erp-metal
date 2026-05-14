@@ -89,6 +89,14 @@ async function createRevision(orderId, notes) {
         currency:      'RUB',
         materialCost:  cost,
         assemblyName:  asm.name,
+        bomTemplateCode:    part.bomTemplateCode    ?? null,
+        bomTemplateId:      part.bomTemplateId      ?? null,
+        bomTemplateVersion: part.bomTemplateVersion ?? null,
+        bomGroupKey:        part.bomGroupKey        ?? null,
+        bomGroupLabel:      part.bomGroupLabel      ?? null,
+        bomDepth:           part.bomDepth           ?? null,
+        bomPath:            part.bomPath            ?? null,
+        bomSortPath:        part.bomSortPath        ?? null,
       })
     }
   }

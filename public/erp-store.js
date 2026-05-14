@@ -67,7 +67,7 @@ const ERPStore = (() => {
     })
   }
 
-  async function createPart(orderId, assemblyId, { materialDefinitionId, name, measurementType, length, sheetWidth, sheetHeight, directWeightKg, quantity, position }) {
+  async function createPart(orderId, assemblyId, { materialDefinitionId, name, measurementType, length, sheetWidth, sheetHeight, directWeightKg, quantity, position, bomTemplateCode, bomTemplateId, bomTemplateVersion, bomGroupKey, bomGroupLabel, bomDepth, bomPath, bomSortPath }) {
     return _fetch(
       '/api/orders/' + encodeURIComponent(orderId) +
       '/assemblies/' + encodeURIComponent(assemblyId) + '/parts',
@@ -83,6 +83,14 @@ const ERPStore = (() => {
           directWeightKg: directWeightKg  != null ? Number(directWeightKg) : null,
           quantity:       parseInt(quantity) || 1,
           position:       position || 0,
+          bomTemplateCode:    bomTemplateCode    || null,
+          bomTemplateId:      bomTemplateId      || null,
+          bomTemplateVersion: bomTemplateVersion != null ? parseInt(bomTemplateVersion) : null,
+          bomGroupKey:        bomGroupKey        || null,
+          bomGroupLabel:      bomGroupLabel      || null,
+          bomDepth:           bomDepth           != null ? parseInt(bomDepth) : null,
+          bomPath:            bomPath            || null,
+          bomSortPath:        bomSortPath        || null,
         }),
       }
     )
@@ -122,6 +130,14 @@ const ERPStore = (() => {
           directWeightKg:  p.mtype === 'piece'  ? p.pw   : null,
           quantity:        p.qty || 1,
           position:        j,
+          bomTemplateCode:    p.bomTemplateCode    || null,
+          bomTemplateId:      p.bomTemplateId      || null,
+          bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null,
+          bomGroupKey:        p.bomGroupKey        || null,
+          bomGroupLabel:      p.bomGroupLabel      || null,
+          bomDepth:           p.bomDepth           != null ? p.bomDepth : null,
+          bomPath:            p.bomPath            || null,
+          bomSortPath:        p.bomSortPath        || null,
         })
       }
     }
