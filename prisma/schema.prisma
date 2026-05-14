@@ -451,6 +451,14 @@ model Part {
   quantity             Int
   notes                String?
   position             Int             @default(0)
+  bomTemplateCode      String?
+  bomTemplateId        String?
+  bomTemplateVersion   Int?
+  bomGroupKey          String?
+  bomGroupLabel        String?
+  bomDepth             Int?
+  bomPath              Json?
+  bomSortPath          String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
@@ -553,6 +561,14 @@ model RevisionPart {
   phaseName                 String?
   notes                     String?
   position                  Int      @default(0)
+  bomTemplateCode           String?
+  bomTemplateId             String?
+  bomTemplateVersion        Int?
+  bomGroupKey               String?
+  bomGroupLabel             String?
+  bomDepth                  Int?
+  bomPath                   Json?
+  bomSortPath               String?
 
   revision QuoteRevision @relation(fields: [revisionId], references: [id])
 
