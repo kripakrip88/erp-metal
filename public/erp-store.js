@@ -88,6 +88,47 @@ const ERPStore = (() => {
     )
   }
 
+  // ─── Coating materials (catalog) ─────────────────────────────────
+
+  async function listCoatingMaterials() {
+    return _fetch('/api/coating-materials')
+  }
+
+  async function createCoatingMaterial(data) {
+    return _fetch('/api/coating-materials', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async function updateCoatingMaterial(id, data) {
+    return _fetch('/api/coating-materials/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  // ─── Assembly coatings ────────────────────────────────────────────
+
+  async function listAssemblyCoatings(assemblyId) {
+    return _fetch('/api/assemblies/' + encodeURIComponent(assemblyId) + '/coatings')
+  }
+
+  async function createAssemblyCoating(assemblyId, data) {
+    return _fetch('/api/assemblies/' + encodeURIComponent(assemblyId) + '/coatings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async function updateAssemblyCoating(assemblyId, coatingId, data) {
+    return _fetch(
+      '/api/assemblies/' + encodeURIComponent(assemblyId) + '/coatings/' + encodeURIComponent(coatingId),
+      { method: 'PUT', body: JSON.stringify(data) }
+    )
+  }
+
+  async function deleteAssemblyCoating(assemblyId, coatingId) {
+    return _fetch(
+      '/api/assemblies/' + encodeURIComponent(assemblyId) + '/coatings/' + encodeURIComponent(coatingId),
+      { method: 'DELETE' }
+    )
+  }
+
   // ─── Revisions ────────────────────────────────────────────────────
 
   async function loadRevisions(orderId) {
@@ -104,7 +145,7 @@ const ERPStore = (() => {
   // ─── Full sync (simulator "Зафиксировать ревизию") ────────────────
   // Очищает старые узлы, записывает новые, создаёт ревизию.
   // Возвращает { revision } или бросает ошибку.
-  async function syncAndRevise(orderId, asms, notes) {
+  async function syncAndRevise(orderId, asms, notes, asmCoatings) {
     await clearAssemblies(orderId)
 
     for (let i = 0; i < asms.length; i++) {
@@ -122,6 +163,19 @@ const ERPStore = (() => {
           directWeightKg:  p.mtype === 'piece'  ? p.pw   : null,
           quantity:        p.qty || 1,
           position:        j,
+        })
+      }
+      // Save coating layers for this assembly
+      const coatings = asmCoatings?.[a.id] || []
+      for (const c of coatings) {
+        await createAssemblyCoating(dbAsm.id, {
+          coatingMaterialId: c.coatingMaterialId,
+          layerNumber:       c.layerNumber,
+          autoAreaLink:      c.autoAreaLink,
+          manualAreaM2:      c.manualAreaM2 ?? null,
+          selectedDftMkm:    c.selectedDftMkm ?? null,
+          dilutionPercent:   c.dilutionPercent ?? null,
+          notes:             c.notes ?? null,
         })
       }
     }
@@ -169,6 +223,15 @@ const ERPStore = (() => {
     clearAssemblies,
     createAssembly,
     createPart,
+    // Coating materials
+    listCoatingMaterials,
+    createCoatingMaterial,
+    updateCoatingMaterial,
+    // Assembly coatings
+    listAssemblyCoatings,
+    createAssemblyCoating,
+    updateAssemblyCoating,
+    deleteAssemblyCoating,
     // Revisions
     loadRevisions,
     createRevision,

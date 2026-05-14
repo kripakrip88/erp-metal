@@ -101,6 +101,22 @@ td{padding:9px 12px;vertical-align:middle;}
 .diff-pos{color:var(--red);}.diff-neg{color:var(--green);}
 .diff-row{padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;}
 .diff-row.added{background:#f0fdf4;}.diff-row.removed{background:#fef2f2;}.diff-row.changed{background:#fffbeb;}
+.asm-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:#fafbfc;}
+.asm-tab{padding:7px 16px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;}
+.asm-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
+.asm-tab:hover:not(.active){color:var(--text);}
+.lkm-table{width:100%;border-collapse:collapse;}
+.lkm-table thead th{padding:7px 10px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
+.lkm-table tbody tr{border-bottom:1px solid var(--border);}
+.lkm-table tbody tr:last-child{border-bottom:none;}
+.lkm-table tbody tr:hover{background:#fafbfc;}
+.lkm-table td{padding:8px 10px;vertical-align:middle;font-size:12px;}
+.lkm-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px;}
+.lkm-footer{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:#fafbfc;}
+.chip-paint{font-family:'JetBrains Mono';font-size:11px;background:#fdf4ff;color:#7e22ce;border:1px solid #e9d5ff;border-radius:4px;padding:1px 6px;}
+.lkm-type-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.lkm-primer{background:#fef9c3;color:#92400e;}.lkm-base{background:#dbeafe;color:#1e40af;}
+.lkm-top{background:#d1fae5;color:#065f46;}.lkm-clear{background:#f1f5f9;color:#475569;}.lkm-other{background:#fae8ff;color:#86198f;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.success{background:#15803d;}.toast.error{background:var(--red);}.toast.warning{background:#d97706;}
@@ -417,6 +433,10 @@ function showLoader(show) {
 
 let dbg=false,asms=[],revs=[],nA=10,nP=100,curA=null,curEP=null,curMT='linear',curC='all',selM=null;
 let _currentOrderId=null;
+let COATINGS_CATALOG=[];
+let _asmCoatings={};   // localAsmId → [{id,coatingMaterialId,layerNumber,autoAreaLink,manualAreaM2,selectedDftMkm,dilutionPercent,notes}]
+let _asmTab={};        // localAsmId → 'parts'|'lkm'
+let _lkmEdit=null;     // {asmId, layerId|null} for the modal
 
 // Draft persistence — localStorage только для временного черновика
 const DRAFT_KEY='erp_draft';
@@ -499,6 +519,12 @@ function cAll(){
   return{tW:r4(tW),tC:r4(tC),tP:r4(tP),tPts,bM,ws:[...new Set(ws)]};
 }
 
+function calcAsmPaintArea(a){
+  let area=0;const mu=a.qty||1;
+  for(const p of a.parts){const mat=MATS.find(m=>m.id===p.mid);if(!mat)continue;const{pm2}=cPW(p,mat);area+=r4((pm2||0)*mu);}
+  return r4(area);
+}
+
 function renderAsms(){
   const c=document.getElementById('asms-container');
   if(!asms.length){c.innerHTML=`<div class="card mb-16"><div class="empty"><div class="icon">📦</div>Узлов пока нет — добавьте первый ниже</div></div>`;return;}
@@ -506,7 +532,14 @@ function renderAsms(){
     let aW=0,aP=0,aC=0;
     for(const p of a.parts){const mat=MATS.find(m=>m.id===p.mid);if(!mat)continue;const{tot,pm2}=cPW(p,mat);const mu=a.qty;const wT=r4(tot*mu);aW+=wT;aP+=r4((pm2||0)*mu);const{cost}=cCost(wT,gP(p.mid));aC+=cost;}
     const tots=aW>0?`<span class="chip-w">${f3(aW/1000)} т</span><span class="chip-p">${aP.toFixed(2)} м²</span><span class="chip-c">₽ ${fm(Math.round(aC))}</span>`:'';
-    const rows=!a.parts.length?`<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`:a.parts.map(p=>renderPR(p,a)).join('');
+    const tab=_asmTab[a.id]||'parts';
+    const lkmLayers=_asmCoatings[a.id]||[];
+    const lkmBadge=lkmLayers.length?`<span style="background:#ede9fe;color:#6d28d9;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px">${lkmLayers.length}</span>`:'';
+    const rows=tab==='parts'
+      ?(!a.parts.length?`<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`:a.parts.map(p=>renderPR(p,a)).join(''))
+      :'';
+    const partsTable=tab==='parts'?`<table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'';
+    const lkmSection=tab==='lkm'?renderLKMTab(a):'';
     return`<div class="card mb-16">
       <div class="card-header">
         <div class="gap-12"><div style="font-weight:700;font-size:14px">${a.name}</div>
@@ -516,10 +549,133 @@ function renderAsms(){
         <div class="gap-8"><button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
           <button class="btn btn-danger btn-sm" onclick="remA('${a.id}')">Удалить</button></div>
       </div>
-      <table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead>
-      <tbody>${rows}</tbody></table>
+      <div class="asm-tabs">
+        <div class="asm-tab${tab==='parts'?' active':''}" onclick="setAsmTab('${a.id}','parts')">Детали</div>
+        <div class="asm-tab${tab==='lkm'?' active':''}" onclick="setAsmTab('${a.id}','lkm')">ЛКМ${lkmBadge}</div>
+      </div>
+      ${partsTable}${lkmSection}
     </div>`;
   }).join('');
+}
+
+function setAsmTab(asmId,tab){_asmTab[asmId]=tab;renderAsms();}
+
+function renderLKMTab(a){
+  const layers=_asmCoatings[a.id]||[];
+  const autoArea=calcAsmPaintArea(a);
+  const hasCatalog=COATINGS_CATALOG.length>0;
+  if(!hasCatalog)return`<div class="lkm-empty">Каталог ЛКМ не загружен — проверьте соединение с сервером</div>`;
+  let rows='';
+  for(const layer of layers){
+    const mat=COATINGS_CATALOG.find(m=>m.id===layer.coatingMaterialId);
+    if(!mat){rows+=`<tr><td colspan="9"><span class="text-muted text-xs">Материал не найден</span></td></tr>`;continue;}
+    const areaM2=layer.autoAreaLink?autoArea:(layer.manualAreaM2||0);
+    const{cKg,cL,tKg,tCost}=calcLKMRow(layer,mat,areaM2);
+    const typeCls={'PRIMER':'lkm-primer','BASE_COAT':'lkm-base','TOPCOAT':'lkm-top','CLEAR':'lkm-clear','OTHER':'lkm-other'}[mat.coatingType]||'lkm-other';
+    const typeLabel={'PRIMER':'Грунт','BASE_COAT':'Промежут.','TOPCOAT':'Финиш','CLEAR':'Лак','OTHER':'Прочее'}[mat.coatingType]||mat.coatingType;
+    rows+=`<tr>
+      <td><span class="lkm-type-badge ${typeCls}">${typeLabel}</span></td>
+      <td><span class="mono" style="color:var(--accent);font-weight:700">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
+      <td>${layer.autoAreaLink?`<span class="chip-p">${autoArea.toFixed(2)} м² <span class="text-xs" style="opacity:.7">авто</span></span>`:`<span class="chip-p">${Number(layer.manualAreaM2||0).toFixed(2)} м² <span class="text-xs" style="opacity:.7">ручн</span></span>`}</td>
+      <td class="mono">${layer.selectedDftMkm??mat.referenceDftMkm} мкм</td>
+      <td class="mono">${layer.dilutionPercent!=null?layer.dilutionPercent:mat.recommendedDilutionPercent??0}%</td>
+      <td><span class="chip-w">${cKg.toFixed(3)} кг</span>${cL!=null?`<br><span class="text-xs text-muted">${cL.toFixed(3)} л`:''}${cL!=null?`</span>`:''}</td>
+      <td><span class="chip-w">${tKg.toFixed(3)} кг</span></td>
+      <td>${tCost!=null?`<span class="chip-c">₽${fm(Math.round(tCost))}</span>`:'<span class="text-muted text-xs">нет цены</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-xs" onclick="openLKMEdit('${a.id}','${layer.id}')" style="margin-right:4px">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteLKMLayer('${a.id}','${layer.id}')">✕</button>
+      </td>
+    </tr>`;
+  }
+  if(!layers.length)rows=`<tr><td colspan="9"><div class="lkm-empty">Слоёв нет — добавьте первый</div></td></tr>`;
+  const shortcuts=[{t:'П',type:'PRIMER'},{t:'Э',type:'BASE_COAT'},{t:'Л',type:'TOPCOAT'}].map(s=>{
+    const m=COATINGS_CATALOG.find(x=>x.coatingType===s.type);
+    return m?`<button class="btn btn-secondary btn-xs" onclick="quickLKM('${a.id}','${m.id}')" title="${m.name}">${s.t}</button>`:'';
+  }).join('');
+  return`<table class="lkm-table"><thead><tr><th>Тип</th><th>Материал</th><th>Площадь</th><th>ДПП</th><th>Разб.</th><th>Расход</th><th>Итого кг</th><th>Стоимость</th><th></th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <div class="lkm-footer">
+    <button class="btn btn-secondary btn-sm" onclick="openLKMEdit('${a.id}',null)">+ Слой</button>
+    ${shortcuts}
+    <span class="text-xs text-muted" style="margin-left:auto">авто-площадь: <strong>${autoArea.toFixed(2)} м²</strong></span>
+  </div>`;
+}
+
+function calcLKMRow(layer,mat,areaM2){
+  const actualDFT=layer.selectedDftMkm??mat.referenceDftMkm;
+  const dilution=layer.dilutionPercent!=null?Number(layer.dilutionPercent):(mat.recommendedDilutionPercent!=null?Number(mat.recommendedDilutionPercent):0);
+  const cKg=r4(Number(areaM2)*Number(mat.consumptionGm2)*(actualDFT/mat.referenceDftMkm)/1000);
+  const cL=Number(mat.densityKgL)>0?r4(cKg/Number(mat.densityKgL)):null;
+  const tKg=r4(cKg*(1+dilution/100));
+  const tCost=mat.pricePerKg!=null?r4(tKg*Number(mat.pricePerKg)):null;
+  return{cKg,cL,tKg,tCost};
+}
+
+function quickLKM(asmId,materialId){
+  if(!_asmCoatings[asmId])_asmCoatings[asmId]=[];
+  const layers=_asmCoatings[asmId];
+  const mat=COATINGS_CATALOG.find(m=>m.id===materialId);
+  const id='lkm'+(Date.now());
+  layers.push({id,coatingMaterialId:materialId,layerNumber:layers.length+1,autoAreaLink:true,manualAreaM2:null,selectedDftMkm:null,dilutionPercent:null,notes:null});
+  toast(`Слой ${mat?.name||''} добавлен`,'success');
+  renderAsms();
+}
+
+let _lkmCurAsm=null,_lkmCurId=null;
+function openLKMEdit(asmId,layerId){
+  _lkmCurAsm=asmId;_lkmCurId=layerId;
+  const layer=layerId?(_asmCoatings[asmId]||[]).find(l=>l.id===layerId):null;
+  // Populate material select
+  const sel=document.getElementById('lkm-mat-sel');
+  const typeLabel={'PRIMER':'Грунт','BASE_COAT':'Промежуточный','TOPCOAT':'Финишный','CLEAR':'Лак','OTHER':'Прочее'};
+  const grouped={};
+  for(const m of COATINGS_CATALOG){if(!grouped[m.coatingType])grouped[m.coatingType]=[];grouped[m.coatingType].push(m);}
+  sel.innerHTML='<option value="">— выберите —</option>'+Object.entries(grouped).map(([type,mats])=>`<optgroup label="${typeLabel[type]||type}">${mats.map(m=>`<option value="${m.id}">${m.code} — ${m.name}</option>`).join('')}</optgroup>`).join('');
+  sel.value=layer?.coatingMaterialId||'';
+  document.getElementById('lkm-auto').checked=layer?layer.autoAreaLink:true;
+  document.getElementById('lkm-manual-area').value=layer?.manualAreaM2||'';
+  document.getElementById('lkm-dft').value=layer?.selectedDftMkm||'';
+  document.getElementById('lkm-dilution').value=layer?.dilutionPercent!=null?layer.dilutionPercent:'';
+  document.getElementById('lkm-notes').value=layer?.notes||'';
+  document.getElementById('lkm-layer-num').value=layer?.layerNumber||(((_asmCoatings[asmId]||[]).length)+1);
+  document.getElementById('lkm-modal-title').textContent=layerId?'Редактировать слой':'Добавить слой ЛКМ';
+  toggleLKMManual();
+  document.getElementById('lkm-modal-bg').style.display='flex';
+}
+function closeLKMModal(){document.getElementById('lkm-modal-bg').style.display='none';}
+function toggleLKMManual(){const auto=document.getElementById('lkm-auto').checked;document.getElementById('lkm-manual-wrap').style.display=auto?'none':'block';}
+function saveLKMLayer(){
+  const matId=document.getElementById('lkm-mat-sel').value;
+  if(!matId){toast('Выберите материал','error');return;}
+  const auto=document.getElementById('lkm-auto').checked;
+  const manualArea=document.getElementById('lkm-manual-area').value;
+  const dft=document.getElementById('lkm-dft').value;
+  const dilution=document.getElementById('lkm-dilution').value;
+  const notes=document.getElementById('lkm-notes').value;
+  const layerNum=parseInt(document.getElementById('lkm-layer-num').value)||1;
+  const layer={
+    id:_lkmCurId||('lkm'+Date.now()),
+    coatingMaterialId:matId,
+    layerNumber:layerNum,
+    autoAreaLink:auto,
+    manualAreaM2:!auto&&manualArea?Number(manualArea):null,
+    selectedDftMkm:dft?parseInt(dft):null,
+    dilutionPercent:dilution!==''?Number(dilution):null,
+    notes:notes||null,
+  };
+  if(!_asmCoatings[_lkmCurAsm])_asmCoatings[_lkmCurAsm]=[];
+  const layers=_asmCoatings[_lkmCurAsm];
+  if(_lkmCurId){const idx=layers.findIndex(l=>l.id===_lkmCurId);if(idx>=0)layers[idx]=layer;}
+  else layers.push(layer);
+  closeLKMModal();
+  renderAsms();
+  toast('Слой сохранён','success');
+}
+function deleteLKMLayer(asmId,layerId){
+  if(!_asmCoatings[asmId])return;
+  _asmCoatings[asmId]=_asmCoatings[asmId].filter(l=>l.id!==layerId);
+  renderAsms();
 }
 
 function renderPR(p,a){
@@ -669,7 +825,7 @@ async function commitRevision(){
       history.replaceState(null,'','simulator.html?orderId='+encodeURIComponent(order.id));
     }
     showLoader(true);
-    const revision=await ERPStore.syncAndRevise(_currentOrderId,asms,null);
+    const revision=await ERPStore.syncAndRevise(_currentOrderId,asms,null,_asmCoatings);
     localStorage.removeItem(DRAFT_KEY);
     showLoader(false);
     const tW=revision.calculation?.totalWeightKg||r.tW;
@@ -826,6 +982,63 @@ function _apiAsmsToSim(apiAsms){
 })();
 refresh();
 loadMats();
+(async()=>{try{if(typeof ERPStore!=='undefined'){COATINGS_CATALOG=await ERPStore.listCoatingMaterials();}}catch(e){console.warn('coating catalog load failed',e);}})();
 </script>
+
+<!-- LKM Layer Modal -->
+<div id="lkm-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center" onclick="if(event.target===this)closeLKMModal()">
+  <div style="background:var(--surface);border-radius:10px;width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)">
+      <div id="lkm-modal-title" style="font-weight:700;font-size:14px">Добавить слой ЛКМ</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeLKMModal()">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div class="field">
+        <label>Материал *</label>
+        <select id="lkm-mat-sel" style="width:100%">
+          <option value="">— выберите —</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Номер слоя</label>
+          <input id="lkm-layer-num" type="number" min="1" value="1" style="width:100%">
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--text)">
+            <input id="lkm-auto" type="checkbox" checked onchange="toggleLKMManual()" style="width:14px;height:14px;padding:0">
+            Авто-площадь
+          </label>
+          <span class="field-hint">Брать из деталей узла</span>
+        </div>
+      </div>
+      <div id="lkm-manual-wrap" style="display:none">
+        <div class="field">
+          <label>Площадь (м²)</label>
+          <input id="lkm-manual-area" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>ДПП мкм (override)</label>
+          <input id="lkm-dft" type="number" min="1" placeholder="из каталога">
+          <span class="field-hint">Пусто = эталонное значение</span>
+        </div>
+        <div class="field">
+          <label>Разбавление % (override)</label>
+          <input id="lkm-dilution" type="number" step="0.1" min="0" placeholder="из каталога">
+        </div>
+      </div>
+      <div class="field">
+        <label>Примечание</label>
+        <input id="lkm-notes" type="text" placeholder="необязательно">
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="closeLKMModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveLKMLayer()">Сохранить слой</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -26,8 +26,10 @@ async function createRevision(orderId, notes) {
 
   let totalWeight = 0, totalCost = 0, totalPaint = 0
   const revParts = []
+  const asmPaintMap = {}  // assemblyId → total paint area (incl. asmQty)
 
   for (const asm of order.assemblies) {
+    asmPaintMap[asm.id] = 0
     const asmQty = asm.qty || 1
     for (const part of asm.parts) {
       const mat    = part.materialDefinition
@@ -63,6 +65,7 @@ async function createRevision(orderId, notes) {
       totalWeight += totalW
       totalCost   += cost
       totalPaint  += paint
+      asmPaintMap[asm.id] = Math.round((asmPaintMap[asm.id] + paint) * 10000) / 10000
 
       revParts.push({
         materialDefinitionId: mat.id,
@@ -93,12 +96,57 @@ async function createRevision(orderId, notes) {
     }
   }
 
+  // Snapshot assembly coatings
+  const revCoatingRows = []
+  for (const asm of order.assemblies) {
+    const coatings = await prisma.assemblyCoating.findMany({
+      where: { assemblyId: asm.id },
+      include: { coatingMaterial: true },
+      orderBy: { position: 'asc' },
+    })
+    const asmPaintM2 = asmPaintMap[asm.id] || 0
+    for (const coating of coatings) {
+      const mat = coating.coatingMaterial
+      const areaM2 = coating.autoAreaLink ? asmPaintM2 : Number(coating.manualAreaM2 || 0)
+      const actualDFT = coating.selectedDftMkm ?? mat.referenceDftMkm
+      const dilution  = coating.dilutionPercent != null
+        ? Number(coating.dilutionPercent)
+        : (mat.recommendedDilutionPercent != null ? Number(mat.recommendedDilutionPercent) : 0)
+      const consumptionKg = Math.round(areaM2 * Number(mat.consumptionGm2) * (actualDFT / mat.referenceDftMkm) / 1000 * 10000) / 10000
+      const consumptionL  = Number(mat.densityKgL) > 0
+        ? Math.round(consumptionKg / Number(mat.densityKgL) * 10000) / 10000
+        : null
+      const totalKg    = Math.round(consumptionKg * (1 + dilution / 100) * 10000) / 10000
+      const totalCostC = mat.pricePerKg != null
+        ? Math.round(totalKg * Number(mat.pricePerKg) * 100) / 100
+        : null
+      revCoatingRows.push({
+        assemblyId:     asm.id,
+        assemblyName:   asm.name,
+        coatingCode:    mat.code,
+        coatingName:    mat.name,
+        coatingType:    mat.coatingType,
+        layerNumber:    coating.layerNumber,
+        position:       coating.position,
+        areaM2,
+        consumptionKg,
+        consumptionL,
+        totalKg,
+        selectedDftMkm:  actualDFT,
+        dilutionPercent: dilution,
+        pricePerKg:      mat.pricePerKg != null ? Number(mat.pricePerKg) : null,
+        totalCost:       totalCostC,
+      })
+    }
+  }
+
   return prisma.quoteRevision.create({
     data: {
       orderId, revisionNumber: revNum,
       createdById: user?.id || company.id,
       status: 'DRAFT', notes: notes || null, currency: 'RUB',
       parts: { create: revParts },
+      assemblyCoatings: { create: revCoatingRows },
       calculation: { create: {
         calculationVersion: '2.0',
         totalWeightKg:    totalWeight,
@@ -110,7 +158,7 @@ async function createRevision(orderId, notes) {
         costBreakdown: {}, pricingSummary: {}, warnings: [],
       }}
     },
-    include: { parts: true, calculation: true }
+    include: { parts: true, assemblyCoatings: true, calculation: true }
   })
 }
 

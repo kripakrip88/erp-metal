@@ -156,6 +156,14 @@ enum SteelGrade {
   OTHER
 }
 
+enum CoatingType {
+  PRIMER
+  BASE_COAT
+  TOPCOAT
+  CLEAR
+  OTHER
+}
+
 model Company {
   id        String   @id @default(uuid())
   name      String
@@ -179,6 +187,7 @@ model Company {
   stockItems          StockItem[]
   exchangeRates       ExchangeRate[]
   workCenters         WorkCenter[]
+  coatingMaterials    CoatingMaterial[]
 
   @@map("companies")
 }
@@ -412,12 +421,13 @@ model Assembly {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
-  order        Order         @relation(fields: [orderId], references: [id])
-  phase        Phase?        @relation(fields: [phaseId], references: [id])
-  parent       Assembly?     @relation("AssemblyTree", fields: [parentId], references: [id])
-  children     Assembly[]    @relation("AssemblyTree")
+  order        Order            @relation(fields: [orderId], references: [id])
+  phase        Phase?           @relation(fields: [phaseId], references: [id])
+  parent       Assembly?        @relation("AssemblyTree", fields: [parentId], references: [id])
+  children     Assembly[]       @relation("AssemblyTree")
   parts        Part[]
   routingSteps RoutingStep[]
+  coatings     AssemblyCoating[]
 
   @@map("assemblies")
 }
@@ -491,11 +501,12 @@ model QuoteRevision {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
-  order       Order                @relation(fields: [orderId], references: [id])
-  createdBy   User                 @relation("RevisionCreatedBy", fields: [createdById], references: [id])
-  parts       RevisionPart[]
-  costLines   RevisionCostLine[]
-  calculation RevisionCalculation?
+  order            Order                     @relation(fields: [orderId], references: [id])
+  createdBy        User                      @relation("RevisionCreatedBy", fields: [createdById], references: [id])
+  parts            RevisionPart[]
+  costLines        RevisionCostLine[]
+  calculation      RevisionCalculation?
+  assemblyCoatings RevisionAssemblyCoating[]
 
   @@unique([orderId, revisionNumber])
   @@map("quote_revisions")
@@ -723,4 +734,72 @@ model OutboxEvent {
   @@index([processedAt, createdAt])
   @@index([aggregateType, aggregateId])
   @@map("outbox_events")
+}
+
+model CoatingMaterial {
+  id                        String      @id @default(uuid())
+  companyId                 String
+  code                      String
+  name                      String
+  coatingType               CoatingType
+  consumptionGm2            Decimal     @db.Decimal(10, 4)
+  referenceDftMkm           Int
+  densityKgL                Decimal     @db.Decimal(8, 4)
+  recommendedDilutionPercent Decimal?   @db.Decimal(5, 2)
+  pricePerKg                Decimal?    @db.Decimal(12, 2)
+  supplierName              String?
+  notes                     String?
+  isActive                  Boolean     @default(true)
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  company          Company           @relation(fields: [companyId], references: [id])
+  assemblyCoatings AssemblyCoating[]
+
+  @@unique([companyId, code])
+  @@map("coating_materials")
+}
+
+model AssemblyCoating {
+  id                 String      @id @default(uuid())
+  assemblyId         String
+  coatingMaterialId  String
+  layerNumber        Int         @default(1)
+  autoAreaLink       Boolean     @default(true)
+  manualAreaM2       Decimal?    @db.Decimal(12, 4)
+  selectedDftMkm     Int?
+  dilutionPercent    Decimal?    @db.Decimal(5, 2)
+  notes              String?
+  position           Int         @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  assembly        Assembly        @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
+
+  @@map("assembly_coatings")
+}
+
+model RevisionAssemblyCoating {
+  id              String   @id @default(uuid())
+  revisionId      String
+  assemblyId      String
+  assemblyName    String
+  coatingCode     String
+  coatingName     String
+  coatingType     String
+  layerNumber     Int
+  position        Int      @default(0)
+  areaM2          Decimal  @db.Decimal(12, 4)
+  consumptionKg   Decimal  @db.Decimal(12, 4)
+  consumptionL    Decimal? @db.Decimal(12, 4)
+  totalKg         Decimal  @db.Decimal(12, 4)
+  selectedDftMkm  Int
+  dilutionPercent Decimal  @db.Decimal(5, 2)
+  pricePerKg      Decimal? @db.Decimal(12, 2)
+  totalCost       Decimal? @db.Decimal(14, 2)
+
+  revision QuoteRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  @@map("revision_assembly_coatings")
 }
