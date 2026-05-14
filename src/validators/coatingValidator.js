@@ -22,6 +22,12 @@ function positiveDecimal(value, field) {
   return n
 }
 
+function nonNegativeDecimal(value, field) {
+  const n = Number(value)
+  if (isNaN(n) || n < 0) throw new Error(`${field} должен быть числом >= 0`)
+  return n
+}
+
 function dilutionPercent(value, field) {
   const n = Number(value)
   if (isNaN(n) || n < 0 || n > 100) throw new Error(`${field} должен быть числом от 0 до 100`)
@@ -63,7 +69,7 @@ function validateAssemblyCoating(body) {
     coatingMaterialId: body.coatingMaterialId,
     layerNumber:    body.layerNumber    != null ? positiveInt(body.layerNumber, 'layerNumber')         : null,
     autoAreaLink:   body.autoAreaLink   != null ? Boolean(body.autoAreaLink)                           : true,
-    manualAreaM2:   body.manualAreaM2   != null ? positiveDecimal(body.manualAreaM2, 'manualAreaM2')   : null,
+    manualAreaM2:   body.manualAreaM2   != null ? nonNegativeDecimal(body.manualAreaM2, 'manualAreaM2') : null,
     selectedDftMkm: body.selectedDftMkm != null ? positiveInt(body.selectedDftMkm, 'selectedDftMkm')  : null,
     dilutionPercent: body.dilutionPercent != null
       ? dilutionPercent(body.dilutionPercent, 'dilutionPercent') : null,
