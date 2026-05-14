@@ -151,10 +151,91 @@ const ERPStore = (() => {
     return '₽ ' + Number(Math.round(rub)).toLocaleString('ru-RU')
   }
 
+  // ─── Templates ────────────────────────────────────────────────────
+
+  async function listTemplates() {
+    return _fetch('/api/templates')
+  }
+
+  async function getTemplate(id) {
+    return _fetch('/api/templates/' + encodeURIComponent(id))
+  }
+
+  async function createTemplate({ code, name, description }) {
+    return _fetch('/api/templates', {
+      method: 'POST',
+      body: JSON.stringify({ code, name, description: description || null }),
+    })
+  }
+
+  async function updateTemplate(id, data) {
+    return _fetch('/api/templates/' + encodeURIComponent(id), {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async function deleteTemplate(id) {
+    return _fetch('/api/templates/' + encodeURIComponent(id), { method: 'DELETE' })
+  }
+
+  async function createTemplateNode(templateId, { parentNodeId, name, qty, position }) {
+    return _fetch('/api/templates/' + encodeURIComponent(templateId) + '/nodes', {
+      method: 'POST',
+      body: JSON.stringify({ parentNodeId: parentNodeId || null, name, qty: qty || 1, position: position || 0 }),
+    })
+  }
+
+  async function updateTemplateNode(templateId, nodeId, data) {
+    return _fetch(
+      '/api/templates/' + encodeURIComponent(templateId) + '/nodes/' + encodeURIComponent(nodeId),
+      { method: 'PUT', body: JSON.stringify(data) }
+    )
+  }
+
+  async function deleteTemplateNode(templateId, nodeId) {
+    return _fetch(
+      '/api/templates/' + encodeURIComponent(templateId) + '/nodes/' + encodeURIComponent(nodeId),
+      { method: 'DELETE' }
+    )
+  }
+
+  async function createTemplateNodePart(templateId, nodeId, body) {
+    return _fetch(
+      '/api/templates/' + encodeURIComponent(templateId) + '/nodes/' + encodeURIComponent(nodeId) + '/parts',
+      { method: 'POST', body: JSON.stringify(body) }
+    )
+  }
+
+  async function updateTemplateNodePart(templateId, nodeId, partId, body) {
+    return _fetch(
+      '/api/templates/' + encodeURIComponent(templateId) + '/nodes/' + encodeURIComponent(nodeId) + '/parts/' + encodeURIComponent(partId),
+      { method: 'PUT', body: JSON.stringify(body) }
+    )
+  }
+
+  async function deleteTemplateNodePart(templateId, nodeId, partId) {
+    return _fetch(
+      '/api/templates/' + encodeURIComponent(templateId) + '/nodes/' + encodeURIComponent(nodeId) + '/parts/' + encodeURIComponent(partId),
+      { method: 'DELETE' }
+    )
+  }
+
+  async function applyTemplate(orderId, assemblyId, templateId, multiplier) {
+    return _fetch(
+      '/api/orders/' + encodeURIComponent(orderId) + '/assemblies/' + encodeURIComponent(assemblyId) + '/apply-template',
+      { method: 'POST', body: JSON.stringify({ templateId, multiplier: multiplier || 1 }) }
+    )
+  }
+
   // ─── URL helpers ──────────────────────────────────────────────────
 
   function buildSimulatorURL(orderId) {
     return 'simulator.html?orderId=' + encodeURIComponent(orderId)
+  }
+
+  function buildTemplatesURL() {
+    return 'templates.html'
   }
 
   // ─── Public API ───────────────────────────────────────────────────
@@ -173,11 +254,25 @@ const ERPStore = (() => {
     loadRevisions,
     createRevision,
     syncAndRevise,
+    // Templates
+    listTemplates,
+    getTemplate,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+    createTemplateNode,
+    updateTemplateNode,
+    deleteTemplateNode,
+    createTemplateNodePart,
+    updateTemplateNodePart,
+    deleteTemplateNodePart,
+    applyTemplate,
     // Helpers
     formatDate,
     formatWeight,
     formatMoney,
     buildSimulatorURL,
+    buildTemplatesURL,
   }
 
 })()
