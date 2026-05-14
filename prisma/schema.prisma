@@ -783,6 +783,7 @@ model AssemblyCoating {
   coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
   coatingSystem   CoatingSystem?  @relation(fields: [coatingSystemId], references: [id], onDelete: SetNull)
 
+  @@unique([assemblyId, layerNumber])
   @@index([assemblyId])
   @@index([coatingSystemId])
   @@map("assembly_coatings")
@@ -825,6 +826,7 @@ model CoatingSystemLayer {
   coatingSystem   CoatingSystem   @relation(fields: [coatingSystemId], references: [id], onDelete: Cascade)
   coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
 
+  @@unique([coatingSystemId, layerNumber])
   @@unique([coatingSystemId, position])
   @@map("coating_system_layers")
 }

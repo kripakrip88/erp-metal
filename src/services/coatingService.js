@@ -98,6 +98,7 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     })
     if (!system) throw new Error('CoatingSystem not found')
     if (!system.isActive) throw new Error('CoatingSystem is inactive')
+    if (system.layers.length === 0) throw new Error('CoatingSystem has no layers')
 
     // Cross-company guard: system and assembly must belong to the same tenant
     if (system.companyId !== assembly.order.companyId) {

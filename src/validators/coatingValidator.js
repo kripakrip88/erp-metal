@@ -63,7 +63,7 @@ function validateAssemblyCoating(body) {
     coatingMaterialId: body.coatingMaterialId,
     layerNumber:    body.layerNumber    != null ? positiveInt(body.layerNumber, 'layerNumber')         : null,
     autoAreaLink:   body.autoAreaLink   != null ? Boolean(body.autoAreaLink)                           : true,
-    manualAreaM2:   body.manualAreaM2   != null ? Number(body.manualAreaM2)                            : null,
+    manualAreaM2:   body.manualAreaM2   != null ? positiveDecimal(body.manualAreaM2, 'manualAreaM2')   : null,
     selectedDftMkm: body.selectedDftMkm != null ? positiveInt(body.selectedDftMkm, 'selectedDftMkm')  : null,
     dilutionPercent: body.dilutionPercent != null
       ? dilutionPercent(body.dilutionPercent, 'dilutionPercent') : null,
