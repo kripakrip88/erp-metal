@@ -779,6 +779,8 @@ model AssemblyCoating {
   lossFactorPercent          Decimal?    @db.Decimal(5, 2)
   theoreticalConsumptionKg   Decimal?    @db.Decimal(12, 4)
   finalConsumptionKg         Decimal?    @db.Decimal(12, 4)
+  costSnapshotPerKg          Decimal?    @db.Decimal(12, 2)
+  calculatedCost             Decimal?    @db.Decimal(14, 2)
   createdAt                  DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
