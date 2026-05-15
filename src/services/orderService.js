@@ -1,5 +1,11 @@
 const orderRepo = require('../repositories/orderRepo')
 const prisma    = require('../repositories/prisma')
+const {
+  LOCKED_ORDER_STATUSES,
+  TOPOLOGY_LOCKED_STATUSES,
+  assertOrderStructureMutable,
+  assertAssemblyStructureMutable,
+} = require('./orderIntegrityService')
 
 async function getCompany() {
   return prisma.company.findFirst()
@@ -32,6 +38,7 @@ async function createOrder(data) {
 }
 
 async function createAssembly(orderId, data) {
+  await assertOrderStructureMutable(orderId)
   return prisma.assembly.create({ data: {
     orderId,
     name:        data.name,
@@ -41,18 +48,56 @@ async function createAssembly(orderId, data) {
   }})
 }
 
+// Released assemblies are structurally immutable.
+// Never mutate fabrication topology after release.
 async function clearAssemblies(orderId) {
-  // Delete parts first (FK constraint), then assemblies
-  const asms = await prisma.assembly.findMany({ where: { orderId }, select: { id: true } })
-  const asmIds = asms.map(a => a.id)
-  if (asmIds.length > 0) {
-    await prisma.part.deleteMany({ where: { assemblyId: { in: asmIds } } })
-    await prisma.assembly.deleteMany({ where: { orderId } })
-  }
-  return { deleted: asmIds.length }
+  return prisma.$transaction(async (tx) => {
+    // Re-check inside transaction for TOCTOU safety
+    const order = await tx.order.findUnique({
+      where:  { id: orderId },
+      select: { status: true },
+    })
+    if (!order) throw new Error('Order not found')
+    if (TOPOLOGY_LOCKED_STATUSES.includes(order.status)) {
+      throw new Error(`Order structure is locked in production lifecycle (${order.status})`)
+    }
+
+    // Hard block: any assembly with a released revision is structurally frozen.
+    // Clearing after release would silently destroy the production baseline.
+    const releasedAsm = await tx.assembly.findFirst({
+      where:  { orderId, releasedRevisionId: { not: null } },
+      select: { name: true },
+    })
+    if (releasedAsm) {
+      throw new Error(
+        `Cannot clear assemblies — "${releasedAsm.name}" has a released revision`
+      )
+    }
+
+    const asms   = await tx.assembly.findMany({ where: { orderId }, select: { id: true } })
+    const asmIds = asms.map(a => a.id)
+    if (asmIds.length === 0) return { deleted: 0 }
+
+    // Explicit FK-safe deletion order — Assembly ↔ AssemblyRevision circular FK requires
+    // pointer nullification before revision rows can be deleted.
+    await tx.assemblyRevisionCoatingSnapshot.deleteMany({
+      where: { assemblyRevision: { assemblyId: { in: asmIds } } },
+    })
+    await tx.assembly.updateMany({
+      where: { id: { in: asmIds } },
+      data:  { currentRevisionId: null, releasedRevisionId: null },
+    })
+    await tx.assemblyRevision.deleteMany({ where: { assemblyId: { in: asmIds } } })
+    await tx.assemblyCoating.deleteMany({ where: { assemblyId: { in: asmIds } } })
+    await tx.part.deleteMany({ where: { assemblyId: { in: asmIds } } })
+    await tx.assembly.deleteMany({ where: { id: { in: asmIds } } })
+
+    return { deleted: asmIds.length }
+  })
 }
 
 async function createPart(assemblyId, data) {
+  await assertAssemblyStructureMutable(assemblyId)
   return prisma.part.create({ data: {
     assemblyId,
     materialDefinitionId: data.materialDefinitionId,
