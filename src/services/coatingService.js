@@ -2,6 +2,7 @@ const prisma = require('../repositories/prisma')
 const { calcLinearPaint, calcAreaPaint } = require('../calculations/paintCalc')
 const { calcCoatingConsumption }         = require('../calculations/coatingCalc')
 const { calcCoatingCost }                = require('../calculations/coatingCostCalc')
+const { assertAssemblyMutable }          = require('./assemblyRevisionService')
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ async function listAssemblyCoatings(assemblyId) {
 }
 
 async function createAssemblyCoating(assemblyId, data) {
+  await assertAssemblyMutable(assemblyId)
   const last = await prisma.assemblyCoating.findFirst({
     where: { assemblyId },
     orderBy: { position: 'desc' },
@@ -125,6 +127,7 @@ async function recalculateAssemblyCoating(coatingId) {
     include: { coatingMaterial: true },
   })
   if (!coating) throw new Error('AssemblyCoating not found')
+  await assertAssemblyMutable(coating.assemblyId)
   const { theoreticalConsumptionKg, finalConsumptionKg } =
     await _resolveConsumption(prisma, coating.assemblyId, coating, coating.coatingMaterial)
   const { calculatedCost } = calcCoatingCost(finalConsumptionKg, coating.costSnapshotPerKg)
@@ -137,6 +140,7 @@ async function recalculateAssemblyCoating(coatingId) {
 
 // Recomputes consumption for all coatings of an assembly (e.g. after parts change).
 async function recalculateAssemblyCoatings(assemblyId) {
+  await assertAssemblyMutable(assemblyId)
   const coatings = await prisma.assemblyCoating.findMany({
     where: { assemblyId },
     include: { coatingMaterial: true },
@@ -166,7 +170,7 @@ async function recalculateAssemblyCoatings(assemblyId) {
 
 async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
   const replaceExisting = options.replaceExisting ?? false
-
+  await assertAssemblyMutable(assemblyId)
   return prisma.$transaction(async (tx) => {
     // Verify assembly exists and capture companyId for cross-tenant guard
     const assembly = await tx.assembly.findUnique({
@@ -270,6 +274,7 @@ async function updateAssemblyCoating(coatingId, data) {
     },
   })
   if (!existing) throw new Error('AssemblyCoating not found')
+  await assertAssemblyMutable(existing.assemblyId)
 
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
@@ -336,6 +341,12 @@ async function updateAssemblyCoating(coatingId, data) {
 // TODO: hard delete — future: soft-delete via deletedAt or capture revision snapshot
 //   before delete to preserve coating history for deterministic ERP revision reproduction.
 async function deleteAssemblyCoating(coatingId) {
+  const coating = await prisma.assemblyCoating.findUnique({
+    where:  { id: coatingId },
+    select: { assemblyId: true },
+  })
+  if (!coating) throw new Error('AssemblyCoating not found')
+  await assertAssemblyMutable(coating.assemblyId)
   return prisma.assemblyCoating.delete({ where: { id: coatingId } })
 }
 
