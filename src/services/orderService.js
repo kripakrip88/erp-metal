@@ -1,5 +1,6 @@
-const orderRepo = require('../repositories/orderRepo')
-const prisma    = require('../repositories/prisma')
+const orderRepo       = require('../repositories/orderRepo')
+const prisma          = require('../repositories/prisma')
+const PART_CATEGORIES = require('../constants/partCategories')
 const {
   LOCKED_ORDER_STATUSES,
   TOPOLOGY_LOCKED_STATUSES,
@@ -158,6 +159,9 @@ async function createPart(assemblyId, data) {
     bomDepth:           data.bomDepth           != null ? parseInt(data.bomDepth) : null,
     bomPath:            data.bomPath            || null,
     bomSortPath:        data.bomSortPath        || null,
+    partCategory:       Object.values(PART_CATEGORIES).includes(data.partCategory)
+                          ? data.partCategory
+                          : PART_CATEGORIES.MATERIAL,
   }})
   safeAudit({
     eventType:  AUDIT_EVENTS.PART_CREATED,

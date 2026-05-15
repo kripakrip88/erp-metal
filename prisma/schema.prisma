@@ -490,12 +490,15 @@ model Part {
   bomDepth             Int?
   bomPath              Json?
   bomSortPath          String?
+  partCategory         String          @default("MATERIAL")
+  stableUid            String          @default(cuid())
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
   assembly           Assembly           @relation(fields: [assemblyId], references: [id])
   materialDefinition MaterialDefinition @relation(fields: [materialDefinitionId], references: [id])
 
+  @@index([partCategory])
   @@map("parts")
 }
 

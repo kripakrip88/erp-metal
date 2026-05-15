@@ -1,0 +1,6 @@
+module.exports = {
+  MATERIAL: 'MATERIAL',
+  FASTENER: 'FASTENER',
+  SERVICE:  'SERVICE',
+  ASSEMBLY: 'ASSEMBLY',
+}
