@@ -7,24 +7,42 @@ function validateUUID(value, field) {
   return value
 }
 
+// Returns null if absent, validates format if present
+function validateOptionalUUID(value, field) {
+  if (value == null || value === '') return null
+  return validateUUID(value, field)
+}
+
+function validateNotes(value) {
+  if (!value) return null
+  if (value.length > 2000) throw new Error('notes не должен превышать 2000 символов')
+  return value
+}
+
+function validateFreezeReason(value) {
+  if (!value) return null
+  if (value.length > 1000) throw new Error('freezeReason не должен превышать 1000 символов')
+  return value
+}
+
 function validateCreateDraft(body) {
   return {
-    notes:           body.notes           || null,
-    createdByUserId: body.createdByUserId || null,
+    notes:           validateNotes(body.notes),
+    createdByUserId: validateOptionalUUID(body.createdByUserId, 'createdByUserId'),
   }
 }
 
 function validateFreeze(body) {
   return {
-    frozenByUserId: body.frozenByUserId || null,
-    freezeReason:   body.freezeReason   || null,
+    frozenByUserId: validateOptionalUUID(body.frozenByUserId, 'frozenByUserId'),
+    freezeReason:   validateFreezeReason(body.freezeReason),
   }
 }
 
 function validateClone(body) {
   return {
-    notes:           body.notes           || null,
-    createdByUserId: body.createdByUserId || null,
+    notes:           validateNotes(body.notes),
+    createdByUserId: validateOptionalUUID(body.createdByUserId, 'createdByUserId'),
   }
 }
 

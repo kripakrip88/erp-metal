@@ -339,7 +339,10 @@ async function compareRevisions(revisionIdA, revisionIdB) {
 // TODO: merge restore — merge restored coatings with existing live rows
 // TODO: dry-run restore — preview changes without committing (returns diff only)
 // TODO: restore preview diff — show what would change before committing
-// TODO: restore audit trail — log restore event with userId and timestamp
+// TODO: conflict detection — detect live-state divergence before overwriting
+// TODO: restore approval workflow — require sign-off before commit
+// TODO: restore audit event — log restore actor, source revision, timestamp
+// TODO: restore rollback snapshot — auto-snapshot current state before overwriting
 // TODO: restore authorization — require explicit approval before overwriting live state
 async function restoreAssemblyFromRevision(revisionId) {
   const revision = await prisma.assemblyRevision.findUnique({
