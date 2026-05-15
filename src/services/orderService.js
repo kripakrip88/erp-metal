@@ -6,6 +6,7 @@ const {
   assertOrderStructureMutable,
   assertAssemblyStructureMutable,
 } = require('./orderIntegrityService')
+const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 
 async function getCompany() {
   return prisma.company.findFirst()
@@ -38,20 +39,40 @@ async function createOrder(data) {
 }
 
 async function createAssembly(orderId, data) {
-  await assertOrderStructureMutable(orderId)
-  return prisma.assembly.create({ data: {
+  try {
+    await assertOrderStructureMutable(orderId)
+  } catch (err) {
+    safeAudit({
+      eventType:  AUDIT_EVENTS.STRUCTURE_MUTATION_BLOCKED,
+      entityType: 'ORDER',
+      entityId:   orderId,
+      orderId,
+      payload:    { reason: err.message, operation: 'createAssembly' },
+    })
+    throw err
+  }
+  const asm = await prisma.assembly.create({ data: {
     orderId,
     name:        data.name,
     description: data.description || null,
     qty:         data.qty != null ? parseInt(data.qty) : 1,
     position:    data.position || 0,
   }})
+  safeAudit({
+    eventType:  AUDIT_EVENTS.ASSEMBLY_CREATED,
+    entityType: 'ASSEMBLY',
+    entityId:   asm.id,
+    orderId,
+    assemblyId: asm.id,
+    payload:    { name: asm.name, qty: asm.qty, position: asm.position },
+  })
+  return asm
 }
 
 // Released assemblies are structurally immutable.
 // Never mutate fabrication topology after release.
 async function clearAssemblies(orderId) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Re-check inside transaction for TOCTOU safety
     const order = await tx.order.findUnique({
       where:  { id: orderId },
@@ -94,11 +115,30 @@ async function clearAssemblies(orderId) {
 
     return { deleted: asmIds.length }
   })
+  safeAudit({
+    eventType:  AUDIT_EVENTS.ASSEMBLY_CLEARED,
+    entityType: 'ORDER',
+    entityId:   orderId,
+    orderId,
+    payload:    { deletedCount: result.deleted },
+  })
+  return result
 }
 
 async function createPart(assemblyId, data) {
-  await assertAssemblyStructureMutable(assemblyId)
-  return prisma.part.create({ data: {
+  try {
+    await assertAssemblyStructureMutable(assemblyId)
+  } catch (err) {
+    safeAudit({
+      eventType:  AUDIT_EVENTS.STRUCTURE_MUTATION_BLOCKED,
+      entityType: 'ASSEMBLY',
+      entityId:   assemblyId,
+      assemblyId,
+      payload:    { reason: err.message, operation: 'createPart' },
+    })
+    throw err
+  }
+  const part = await prisma.part.create({ data: {
     assemblyId,
     materialDefinitionId: data.materialDefinitionId,
     name:            data.name || null,
@@ -111,6 +151,14 @@ async function createPart(assemblyId, data) {
     notes:           data.notes || null,
     position:        data.position || 0,
   }})
+  safeAudit({
+    eventType:  AUDIT_EVENTS.PART_CREATED,
+    entityType: 'PART',
+    entityId:   part.id,
+    assemblyId,
+    payload:    { assemblyId, materialDefinitionId: part.materialDefinitionId, quantity: part.quantity },
+  })
+  return part
 }
 
 module.exports = { listOrders, getOrder, createOrder, createAssembly, clearAssemblies, createPart }

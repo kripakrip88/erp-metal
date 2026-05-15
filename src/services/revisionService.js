@@ -2,6 +2,7 @@ const prisma = require('../repositories/prisma')
 const { calcLinearWeight, calcAreaWeight } = require('../calculations/weightCalc')
 const { calcLinearPaint, calcAreaPaint }   = require('../calculations/paintCalc')
 const { calcMaterialCost }                 = require('../calculations/costCalc')
+const { AUDIT_EVENTS, safeAudit }          = require('./auditService')
 
 // Commercial quote snapshots must NEVER read live engineering workspace data.
 // releasedRevisionId is the single source of truth for commercial provenance.
@@ -11,14 +12,16 @@ const { calcMaterialCost }                 = require('../calculations/costCalc')
 
 // Sets order.activeQuoteRevisionId inside an existing transaction.
 // Supersedes the current active quote if it differs from the new target.
+// Returns the previous activeQuoteRevisionId for post-commit audit use.
 async function _activateRevisionInTx(tx, orderId, newRevisionId) {
   const order = await tx.order.findUnique({
     where:  { id: orderId },
     select: { activeQuoteRevisionId: true },
   })
-  if (order.activeQuoteRevisionId && order.activeQuoteRevisionId !== newRevisionId) {
+  const previousActiveId = order.activeQuoteRevisionId ?? null
+  if (previousActiveId && previousActiveId !== newRevisionId) {
     await tx.quoteRevision.update({
-      where: { id: order.activeQuoteRevisionId },
+      where: { id: previousActiveId },
       data:  { status: 'SUPERSEDED' },
     })
   }
@@ -26,6 +29,7 @@ async function _activateRevisionInTx(tx, orderId, newRevisionId) {
     where: { id: orderId },
     data:  { activeQuoteRevisionId: newRevisionId },
   })
+  return previousActiveId
 }
 
 // Public standalone version — owns its own transaction.
@@ -38,13 +42,35 @@ async function setActiveQuoteRevision(orderId, quoteRevisionId) {
   if (qr.orderId !== orderId) throw new Error('QuoteRevision does not belong to this order')
   if (qr.status === 'REJECTED') throw new Error('Cannot activate a REJECTED quote revision')
 
-  return prisma.$transaction(async (tx) => {
-    await _activateRevisionInTx(tx, orderId, quoteRevisionId)
+  let previousActiveQuoteRevisionId = null
+
+  const result = await prisma.$transaction(async (tx) => {
+    previousActiveQuoteRevisionId = await _activateRevisionInTx(tx, orderId, quoteRevisionId)
     return tx.order.findUnique({
       where:  { id: orderId },
       select: { id: true, activeQuoteRevisionId: true },
     })
   })
+
+  safeAudit({
+    eventType:       AUDIT_EVENTS.QUOTE_REVISION_ACTIVATED,
+    entityType:      'QUOTE_REVISION',
+    entityId:        quoteRevisionId,
+    orderId,
+    quoteRevisionId,
+    payload:         { previousActiveQuoteRevisionId, supersededRevisionId: previousActiveQuoteRevisionId, sourceReleasedRevisionIds: null },
+  })
+  if (previousActiveQuoteRevisionId) {
+    safeAudit({
+      eventType:       AUDIT_EVENTS.QUOTE_REVISION_SUPERSEDED,
+      entityType:      'QUOTE_REVISION',
+      entityId:        previousActiveQuoteRevisionId,
+      orderId,
+      quoteRevisionId: previousActiveQuoteRevisionId,
+      payload:         { supersededBy: quoteRevisionId },
+    })
+  }
+  return result
 }
 
 // ─── Unreferenced frozen revision audit ──────────────────────────────────────
@@ -105,7 +131,9 @@ async function createRevision(orderId, notes) {
   const company = await prisma.company.findFirst()
   const user    = await prisma.user.findFirst({ where: { companyId: company.id } })
 
-  return prisma.$transaction(async (tx) => {
+  let previousActiveQuoteRevisionId = null
+
+  const quoteRevision = await prisma.$transaction(async (tx) => {
     // ── Load assemblies ───────────────────────────────────────────────────────
     const order = await tx.order.findUnique({
       where:  { id: orderId },
@@ -345,10 +373,41 @@ async function createRevision(orderId, notes) {
     })
 
     // ── Auto-activate: supersede previous active quote inside same transaction ─
-    await _activateRevisionInTx(tx, orderId, quoteRevision.id)
+    previousActiveQuoteRevisionId = await _activateRevisionInTx(tx, orderId, quoteRevision.id)
 
     return quoteRevision
   })
+
+  safeAudit({
+    eventType:       AUDIT_EVENTS.QUOTE_REVISION_CREATED,
+    entityType:      'QUOTE_REVISION',
+    entityId:        quoteRevision.id,
+    orderId,
+    quoteRevisionId: quoteRevision.id,
+    companyId:       company.id,
+    payload:         { revisionNumber: quoteRevision.revisionNumber, sourceReleasedRevisionIds: quoteRevision.sourceReleasedRevisionIds },
+  })
+  safeAudit({
+    eventType:       AUDIT_EVENTS.QUOTE_REVISION_ACTIVATED,
+    entityType:      'QUOTE_REVISION',
+    entityId:        quoteRevision.id,
+    orderId,
+    quoteRevisionId: quoteRevision.id,
+    companyId:       company.id,
+    payload:         { previousActiveQuoteRevisionId, supersededRevisionId: previousActiveQuoteRevisionId, sourceReleasedRevisionIds: quoteRevision.sourceReleasedRevisionIds },
+  })
+  if (previousActiveQuoteRevisionId) {
+    safeAudit({
+      eventType:       AUDIT_EVENTS.QUOTE_REVISION_SUPERSEDED,
+      entityType:      'QUOTE_REVISION',
+      entityId:        previousActiveQuoteRevisionId,
+      orderId,
+      quoteRevisionId: previousActiveQuoteRevisionId,
+      companyId:       company.id,
+      payload:         { supersededBy: quoteRevision.id },
+    })
+  }
+  return quoteRevision
 }
 
 module.exports = {

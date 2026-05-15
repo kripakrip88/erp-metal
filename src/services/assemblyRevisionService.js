@@ -1,5 +1,6 @@
 const prisma        = require('../repositories/prisma')
 const { Prisma }    = require('@prisma/client')
+const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 
 // Formula version constants — bump when calculation logic changes so old revisions
 // remain deterministically reproducible.
@@ -72,10 +73,19 @@ async function createDraftRevision(assemblyId, { createdByUserId = null, notes =
 
   // DB partial unique index is the final integrity layer against concurrent DRAFT creation.
   try {
-    return await prisma.assemblyRevision.create({
+    const rev = await prisma.assemblyRevision.create({
       data: { assemblyId, revisionNumber, status: 'DRAFT', createdByUserId, notes },
       include: { coatingSnapshots: { orderBy: { position: 'asc' } } },
     })
+    safeAudit({
+      eventType:  AUDIT_EVENTS.REVISION_DRAFT_CREATED,
+      entityType: 'ASSEMBLY_REVISION',
+      entityId:   rev.id,
+      assemblyId: rev.assemblyId,
+      revisionId: rev.id,
+      payload:    { revisionNumber: rev.revisionNumber, assemblyId: rev.assemblyId },
+    })
+    return rev
   } catch (err) {
     if (err.code === 'P2002') throw new Error('Assembly already has active DRAFT revision')
     throw err
@@ -85,7 +95,7 @@ async function createDraftRevision(assemblyId, { createdByUserId = null, notes =
 // ─── 5.3.3 — Freeze pipeline ─────────────────────────────────────────────────
 
 async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freezeReason = null } = {}) {
-  return prisma.$transaction(async (tx) => {
+  const frozen = await prisma.$transaction(async (tx) => {
     const rev = await _loadRevision(tx, revisionId)
     _assertDraft(rev)
     // Order-status-only guard: do not use assertAssemblyMutable here because it would
@@ -155,12 +165,27 @@ async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freez
       include: { coatingSnapshots: { orderBy: { position: 'asc' } } },
     })
   })
+  safeAudit({
+    eventType:  AUDIT_EVENTS.REVISION_FROZEN,
+    entityType: 'ASSEMBLY_REVISION',
+    entityId:   frozen.id,
+    assemblyId: frozen.assemblyId,
+    revisionId: frozen.id,
+    payload:    {
+      revisionNumber: frozen.revisionNumber,
+      assemblyId:     frozen.assemblyId,
+      frozenAt:       frozen.frozenAt,
+      snapshotCount:  frozen.coatingSnapshots.length,
+      totalCost:      frozen.totalCalculatedCost,
+    },
+  })
+  return frozen
 }
 
 // ─── 5.3.4 — Clone revision ───────────────────────────────────────────────────
 
 async function createAssemblyRevisionFromRevision(sourceRevisionId, { createdByUserId = null, notes = null } = {}) {
-  return prisma.$transaction(async (tx) => {
+  const cloned = await prisma.$transaction(async (tx) => {
     const source = await _loadRevision(tx, sourceRevisionId)
     // Only clone from frozen revisions — DRAFT would create ambiguous state
     if (source.status === 'DRAFT') {
@@ -211,6 +236,15 @@ async function createAssemblyRevisionFromRevision(sourceRevisionId, { createdByU
       include: { coatingSnapshots: { orderBy: { position: 'asc' } } },
     })
   })
+  safeAudit({
+    eventType:  AUDIT_EVENTS.REVISION_CLONED,
+    entityType: 'ASSEMBLY_REVISION',
+    entityId:   cloned.id,
+    assemblyId: cloned.assemblyId,
+    revisionId: cloned.id,
+    payload:    { revisionNumber: cloned.revisionNumber, sourceRevisionId },
+  })
+  return cloned
 }
 
 // ─── 5.3.5 — Immutable protection ────────────────────────────────────────────
@@ -419,6 +453,14 @@ async function restoreAssemblyFromRevision(revisionId) {
     select: { order: { select: { status: true } } },
   })
   if (asm && LOCKED_ORDER_STATUSES.includes(asm.order.status)) {
+    safeAudit({
+      eventType:  AUDIT_EVENTS.RESTORE_BLOCKED,
+      entityType: 'ASSEMBLY_REVISION',
+      entityId:   revisionId,
+      assemblyId: revision.assemblyId,
+      revisionId,
+      payload:    { reason: `Cannot restore — order is in ${asm.order.status} state`, orderStatus: asm.order.status, attemptedRevisionId: revisionId, blocked: true },
+    })
     throw new Error(`Cannot restore — order is in ${asm.order.status} state`)
   }
 
@@ -431,7 +473,7 @@ async function restoreAssemblyFromRevision(revisionId) {
   // TODO: restore lock window (block concurrent restores on same assembly)
   // TODO: dual-confirm restore (require explicit confirmation token before commit)
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Replace all live coatings atomically — restore overwrites, does not merge
     await tx.assemblyCoating.deleteMany({ where: { assemblyId: revision.assemblyId } })
 
@@ -462,6 +504,15 @@ async function restoreAssemblyFromRevision(revisionId) {
       assemblyId:    revision.assemblyId,
     }
   })
+  safeAudit({
+    eventType:  AUDIT_EVENTS.REVISION_RESTORED,
+    entityType: 'ASSEMBLY_REVISION',
+    entityId:   revisionId,
+    assemblyId: revision.assemblyId,
+    revisionId,
+    payload:    { sourceRevisionId: revisionId, sourceRevisionNumber: revision.revisionNumber, restoredSnapshotCount: revision.coatingSnapshots.length, blocked: false },
+  })
+  return result
 }
 
 // ─── 5.4.2 — Revision release foundation ─────────────────────────────────────
@@ -489,20 +540,25 @@ async function setCurrentRevision(assemblyId, revisionId) {
 // Requires a transaction: the pointer swap and the currentRevisionId clear must
 // be atomic to prevent a concurrent caller from seeing a half-updated state.
 async function releaseAssemblyRevision(assemblyId, revisionId) {
-  return prisma.$transaction(async (tx) => {
+  let previousReleasedRevisionId = null
+  let releasedRevisionNumber     = null
+
+  const result = await prisma.$transaction(async (tx) => {
     const rev = await tx.assemblyRevision.findUnique({
       where:  { id: revisionId },
-      select: { assemblyId: true, status: true },
+      select: { assemblyId: true, status: true, revisionNumber: true },
     })
     if (!rev) throw new Error('AssemblyRevision not found')
     if (rev.assemblyId !== assemblyId) throw new Error('Revision does not belong to this assembly')
     if (rev.status !== 'FROZEN') throw new Error('Only FROZEN revisions can be released as production baseline')
+    releasedRevisionNumber = rev.revisionNumber
 
     const assembly = await tx.assembly.findUnique({
       where:  { id: assemblyId },
-      select: { currentRevisionId: true },
+      select: { currentRevisionId: true, releasedRevisionId: true },
     })
     if (!assembly) throw new Error('Assembly not found')
+    previousReleasedRevisionId = assembly.releasedRevisionId
 
     // If the released revision was tracked as the current DRAFT (now frozen),
     // clear the pointer — there is no longer an active draft in this lineage.
@@ -517,6 +573,16 @@ async function releaseAssemblyRevision(assemblyId, revisionId) {
       select: { id: true, currentRevisionId: true, releasedRevisionId: true },
     })
   })
+
+  safeAudit({
+    eventType:  AUDIT_EVENTS.REVISION_RELEASED,
+    entityType: 'ASSEMBLY_REVISION',
+    entityId:   revisionId,
+    assemblyId,
+    revisionId,
+    payload:    { revisionId, revisionNumber: releasedRevisionNumber, previousReleasedRevisionId },
+  })
+  return result
 }
 
 // ─── 5.3.7 — Audit foundation ─────────────────────────────────────────────────
@@ -537,6 +603,7 @@ async function releaseAssemblyRevision(assemblyId, revisionId) {
 // TODO: e-sign integration — digital signature on frozen revisions
 
 module.exports = {
+  LOCKED_ORDER_STATUSES,
   createDraftRevision,
   freezeAssemblyRevision,
   createAssemblyRevisionFromRevision,

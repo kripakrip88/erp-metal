@@ -1,4 +1,5 @@
 const prisma = require('../repositories/prisma')
+const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 
 // ─── 5.4.3 — Order status transition engine ───────────────────────────────────
 
@@ -100,12 +101,15 @@ async function validateAssembliesReadyForRelease(orderId, tx = prisma) {
 // IMPORTANT: skips assemblies that already have releasedRevisionId — never overwrites
 // a manually pinned production baseline without explicit operator action.
 // Runs inside the parent transaction (tx) to keep the pin + status update atomic.
+// Returns the list of assembly IDs that were auto-pinned during this call
+// (assemblies that previously had no releasedRevisionId).
 async function applyOrderRelease(orderId, tx = prisma) {
   const assemblies = await tx.assembly.findMany({
     where:  { orderId },
     select: { id: true, name: true, releasedRevisionId: true },
   })
 
+  const autoReleased = []
   for (const asm of assemblies) {
     if (asm.releasedRevisionId) continue
 
@@ -125,7 +129,9 @@ async function applyOrderRelease(orderId, tx = prisma) {
       where: { id: asm.id },
       data:  { releasedRevisionId: frozenRevision.id },
     })
+    autoReleased.push(asm.id)
   }
+  return autoReleased
 }
 
 // ─── Main orchestrator ────────────────────────────────────────────────────────
@@ -142,11 +148,26 @@ async function transitionOrderStatus(orderId, nextStatus, _opts = {}) {
     select: { id: true, status: true },
   })
   if (!order) throw new Error('Order not found')
-  validateOrderStatusTransition(order.status, nextStatus)
 
+  // Audit blocked transitions before re-throwing (best-effort, never blocks response).
+  try {
+    validateOrderStatusTransition(order.status, nextStatus)
+  } catch (err) {
+    safeAudit({
+      eventType:  AUDIT_EVENTS.RELEASE_BLOCKED,
+      entityType: 'ORDER',
+      entityId:   orderId,
+      orderId,
+      payload:    { reason: err.message, fromStatus: order.status, attemptedStatus: nextStatus },
+    })
+    throw err
+  }
+
+  const fromStatus     = order.status
   const requiresRelease = RELEASE_GATE_STATUSES.has(nextStatus)
+  let autoReleasedAssemblies = []
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Re-read inside tx: status may have changed between the pre-check and tx start.
     const current = await tx.order.findUnique({
       where:  { id: orderId },
@@ -157,7 +178,7 @@ async function transitionOrderStatus(orderId, nextStatus, _opts = {}) {
 
     if (requiresRelease) {
       // Auto-pin any unpinned assemblies — must run before validation.
-      await applyOrderRelease(orderId, tx)
+      autoReleasedAssemblies = await applyOrderRelease(orderId, tx)
       // Validate every assembly now has a valid frozen released revision.
       await validateAssembliesReadyForRelease(orderId, tx)
     }
@@ -168,6 +189,15 @@ async function transitionOrderStatus(orderId, nextStatus, _opts = {}) {
       select: { id: true, status: true, activeQuoteRevisionId: true },
     })
   })
+
+  safeAudit({
+    eventType:  AUDIT_EVENTS.ORDER_STATUS_CHANGED,
+    entityType: 'ORDER',
+    entityId:   orderId,
+    orderId,
+    payload:    { fromStatus, toStatus: nextStatus, autoReleasedAssemblies },
+  })
+  return result
 }
 
 module.exports = {
