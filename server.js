@@ -13,6 +13,7 @@ const routes = [
   ...require('./src/routes/coatings'),
   ...require('./src/routes/assemblyRevisions'),
   ...require('./src/routes/procurement'),
+  ...require('./src/routes/inventory'),
   { method: 'GET', pathname: '/api/health', handler: async (req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},

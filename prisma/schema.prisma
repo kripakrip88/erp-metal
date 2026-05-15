@@ -193,9 +193,10 @@ model Company {
   stockItems          StockItem[]
   exchangeRates       ExchangeRate[]
   workCenters         WorkCenter[]
-  coatingMaterials    CoatingMaterial[]
-  coatingSystems      CoatingSystem[]
+  coatingMaterials     CoatingMaterial[]
+  coatingSystems       CoatingSystem[]
   materialReservations MaterialReservation[]
+  inventoryBalances    InventoryBalance[]
 
   @@map("companies")
 }
@@ -779,6 +780,7 @@ model CoatingMaterial {
   assemblyCoatings     AssemblyCoating[]
   systemLayers         CoatingSystemLayer[]
   materialReservations MaterialReservation[]
+  inventoryBalances    InventoryBalance[]
 
   @@unique([companyId, code])
   @@map("coating_materials")
@@ -992,4 +994,27 @@ model MaterialReservation {
   @@index([materialId])
   @@index([status])
   @@map("material_reservations")
+}
+
+// Inventory balances are compatibility abstractions, not warehouse transactions.
+// Reserved quantities are derived exclusively from immutable reservation records.
+// Available quantity must never be computed from live engineering workspace state.
+model InventoryBalance {
+  id                String   @id @default(cuid())
+  companyId         String
+  materialId        String
+  uom               String   @default("kg")
+  physicalQuantity  Decimal  @db.Decimal(15, 4) @default(0)
+  reservedQuantity  Decimal  @db.Decimal(15, 4) @default(0)
+  availableQuantity Decimal  @db.Decimal(15, 4) @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  material CoatingMaterial @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, materialId])
+  @@index([companyId])
+  @@index([materialId])
+  @@map("inventory_balances")
 }
