@@ -122,11 +122,6 @@ async function getRevisions(orderId) {
   })
 }
 
-// ─── 5.4.5 — Snapshot-driven quote revision creation ─────────────────────────
-
-// Commercial quote snapshots must NEVER read live engineering workspace data.
-// releasedRevisionId is the single source of truth for commercial provenance.
-// Quote revisions are immutable commercial documents.
 async function createRevision(orderId, notes) {
   const company = await prisma.company.findFirst()
   const user    = await prisma.user.findFirst({ where: { companyId: company.id } })
@@ -147,65 +142,6 @@ async function createRevision(orderId, notes) {
       orderBy: { position: 'asc' },
     })
     if (assemblies.length === 0) throw new Error('Order has no assemblies')
-
-    // ── RV-1: every assembly must have a releasedRevisionId ───────────────────
-    for (const asm of assemblies) {
-      if (!asm.releasedRevisionId) {
-        throw new Error(`Assembly "${asm.name}" must have released revision before quote creation`)
-      }
-    }
-
-    // ── RV-2 + RV-3: released revision must belong to assembly and be FROZEN ──
-    const releasedRevIds = assemblies.map(a => a.releasedRevisionId)
-    const frozenRevisions = await tx.assemblyRevision.findMany({
-      where:  { id: { in: releasedRevIds } },
-      select: { id: true, assemblyId: true, status: true },
-    })
-    const revMap = Object.fromEntries(frozenRevisions.map(r => [r.id, r]))
-
-    for (const asm of assemblies) {
-      const rev = revMap[asm.releasedRevisionId]
-      if (!rev) {
-        throw new Error(`Released revision for assembly "${asm.name}" not found`)
-      }
-      if (rev.assemblyId !== asm.id) {
-        throw new Error(`Released revision does not belong to assembly "${asm.name}"`)
-      }
-      if (rev.status !== 'FROZEN') {
-        throw new Error(`Released revision for assembly "${asm.name}" is not frozen`)
-      }
-    }
-
-    // ── Load coating snapshots for all released revisions ─────────────────────
-    const snapshots = await tx.assemblyRevisionCoatingSnapshot.findMany({
-      where:   { assemblyRevisionId: { in: releasedRevIds } },
-      orderBy: [{ assemblyRevisionId: 'asc' }, { position: 'asc' }],
-    })
-
-    // Group by revisionId for per-assembly access
-    const snapshotsByRevId = {}
-    for (const snap of snapshots) {
-      if (!snapshotsByRevId[snap.assemblyRevisionId]) snapshotsByRevId[snap.assemblyRevisionId] = []
-      snapshotsByRevId[snap.assemblyRevisionId].push(snap)
-    }
-
-    // ── RV-4: each released revision must have at least one coating snapshot ──
-    for (const asm of assemblies) {
-      const revSnaps = snapshotsByRevId[asm.releasedRevisionId]
-      if (!revSnaps || revSnaps.length === 0) {
-        throw new Error(`Released revision for assembly "${asm.name}" contains no coating snapshots`)
-      }
-    }
-
-    // ── Batch-load coating materials (for coatingType, densityKgL, consumptionGm2) ─
-    const matIds = [...new Set(snapshots.map(s => s.coatingMaterialId).filter(Boolean))]
-    const materials = matIds.length > 0
-      ? await tx.coatingMaterial.findMany({
-          where:  { id: { in: matIds } },
-          select: { id: true, coatingType: true, densityKgL: true, consumptionGm2: true },
-        })
-      : []
-    const matById = Object.fromEntries(materials.map(m => [m.id, m]))
 
     // ── Load parts with full material data for BOM weight/cost calculation ────
     const asmIds = assemblies.map(a => a.id)
@@ -303,52 +239,47 @@ async function createRevision(orderId, notes) {
       })
     }
 
-    // ── Build coating rows exclusively from frozen engineering snapshots ───────
-    // assemblyRevisionId is mandatory — every row traces to an exact engineering freeze.
-    const revCoatingRows        = []
-    const sourceReleasedRevisionIds = {}
+    // ── Build coating rows from live AssemblyCoating workspace ───────────────
+    const asmCoatings = await tx.assemblyCoating.findMany({
+      where:   { assemblyId: { in: asmIds } },
+      include: { coatingMaterial: true },
+      orderBy: [{ assemblyId: 'asc' }, { position: 'asc' }],
+    })
+    const asmById2 = Object.fromEntries(assemblies.map(a => [a.id, a]))
 
-    for (const asm of assemblies) {
-      const revSnaps = snapshotsByRevId[asm.releasedRevisionId]
-      sourceReleasedRevisionIds[asm.id] = asm.releasedRevisionId
+    const revCoatingRows = []
+    for (const c of asmCoatings) {
+      const asm    = asmById2[c.assemblyId]
+      const mat    = c.coatingMaterial
+      const theorKg      = c.theoreticalConsumptionKg ? Number(c.theoreticalConsumptionKg) : 0
+      const finalKg      = c.finalConsumptionKg       ? Number(c.finalConsumptionKg)       : theorKg
+      const consumptionGm2 = mat?.consumptionGm2 ? Number(mat.consumptionGm2) : 0
+      const areaM2       = consumptionGm2 > 0
+        ? Math.round(theorKg * 1000 / consumptionGm2 * 10000) / 10000
+        : (c.manualAreaM2 ? Number(c.manualAreaM2) : 0)
+      const densityKgL   = mat?.densityKgL && Number(mat.densityKgL) > 0 ? Number(mat.densityKgL) : null
+      const consumptionL = densityKgL
+        ? Math.round(theorKg / densityKgL * 10000) / 10000
+        : null
 
-      for (const snap of revSnaps) {
-        const mat         = snap.coatingMaterialId ? matById[snap.coatingMaterialId] : null
-        const consumptionGm2 = mat ? Number(mat.consumptionGm2) : 0
-        // Derive areaM2 from the frozen consumption figure: theoreticalKg * 1000 / consumptionGm2
-        const theorKg     = snap.theoreticalConsumptionKg ? Number(snap.theoreticalConsumptionKg) : 0
-        const areaM2      = consumptionGm2 > 0
-          ? Math.round(theorKg * 1000 / consumptionGm2 * 10000) / 10000
-          : 0
-        const consumptionKg   = theorKg
-        const finalKg         = snap.finalConsumptionKg ? Number(snap.finalConsumptionKg) : consumptionKg
-        const densityKgL      = mat && Number(mat.densityKgL) > 0 ? Number(mat.densityKgL) : null
-        const consumptionL    = densityKgL
-          ? Math.round(consumptionKg / densityKgL * 10000) / 10000
-          : null
-        // selectedDftMkm and dilutionPercent are NOT NULL in the schema — default to 0
-        const selectedDftMkm  = snap.selectedDftMkm  ?? 0
-        const dilutionPercent = snap.dilutionPercent  != null ? Number(snap.dilutionPercent) : 0
-
-        revCoatingRows.push({
-          assemblyId:        asm.id,
-          assemblyName:      asm.name,
-          coatingCode:       snap.materialCodeSnapshot,
-          coatingName:       snap.materialNameSnapshot,
-          coatingType:       mat?.coatingType ?? 'OTHER',
-          layerNumber:       snap.layerNumber,
-          position:          snap.position,
-          areaM2,
-          consumptionKg,
-          consumptionL,
-          totalKg:           finalKg,
-          selectedDftMkm,
-          dilutionPercent,
-          pricePerKg:        snap.costSnapshotPerKg  != null ? Number(snap.costSnapshotPerKg) : null,
-          totalCost:         snap.calculatedCost     != null ? Number(snap.calculatedCost)    : null,
-          assemblyRevisionId: asm.releasedRevisionId,
-        })
-      }
+      revCoatingRows.push({
+        assemblyId:        asm.id,
+        assemblyName:      asm.name,
+        coatingCode:       c.materialCodeSnapshot ?? mat?.code ?? '',
+        coatingName:       c.materialNameSnapshot ?? mat?.name ?? '',
+        coatingType:       mat?.coatingType ?? 'OTHER',
+        layerNumber:       c.layerNumber,
+        position:          c.position,
+        areaM2,
+        consumptionKg:     theorKg,
+        consumptionL,
+        totalKg:           finalKg,
+        selectedDftMkm:    c.selectedDftMkm  ?? 0,
+        dilutionPercent:   c.dilutionPercent  != null ? Number(c.dilutionPercent) : 0,
+        pricePerKg:        c.costSnapshotPerKg != null ? Number(c.costSnapshotPerKg) : null,
+        totalCost:         c.calculatedCost    != null ? Number(c.calculatedCost)   : null,
+        assemblyRevisionId: asm.releasedRevisionId ?? null,
+      })
     }
 
     // ── Revision number ───────────────────────────────────────────────────────
@@ -363,7 +294,6 @@ async function createRevision(orderId, notes) {
         orderId, revisionNumber: revNum,
         createdById: user?.id || company.id,
         status: 'DRAFT', notes: notes || null, currency: 'RUB',
-        sourceReleasedRevisionIds,
         parts:           { create: revParts },
         assemblyCoatings: { create: revCoatingRows },
         calculation:     { create: {
