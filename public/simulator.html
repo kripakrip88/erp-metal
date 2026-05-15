@@ -450,6 +450,7 @@ async function loadMats() {
         mid: m.id,
         sup: prof[0]?.supplierName||'',
         price: parseFloat(price.pricePerTon),
+        ppp: price.pricePerPiece != null ? parseFloat(price.pricePerPiece) : null,
         from: price.validFrom?.slice(0,10)||'2026-01-01',
         to: price.validTo?.slice(0,10)||null,
       });
@@ -478,26 +479,13 @@ function showLoader(show) {
   el.style.display = show ? 'flex' : 'none';
 }
 
-
-
-function showLoader(show) {
-  let el = document.getElementById('loader-overlay');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'loader-overlay';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Manrope,sans-serif';
-    el.innerHTML = '<div style="width:40px;height:40px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#6b7280;font-size:13px">Загрузка материалов из базы...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
-    document.body.appendChild(el);
-  }
-  el.style.display = show ? 'flex' : 'none';
-}
-
 let dbg=false,asms=[],revs=[],nA=10,nP=100,curA=null,curEP=null,curMT='linear',curC='all',selM=null;
 let _currentOrderId=null;
 let COATINGS_CATALOG=[];
 let _asmCoatings={};   // localAsmId → [{id,coatingMaterialId,layerNumber,autoAreaLink,manualAreaM2,selectedDftMkm,dilutionPercent,notes}]
-let _asmTab={};        // localAsmId → 'parts'|'lkm'
-let _lkmEdit=null;     // {asmId, layerId|null} for the modal
+let _asmTab={};           // localAsmId → 'parts'|'fasteners'|'lkm'
+let _curPartCategory='MATERIAL'; // category set by openMod for current modal session
+let _lkmEdit=null;        // {asmId, layerId|null} for the modal
 
 // Draft persistence — localStorage только для временного черновика
 const DRAFT_KEY='erp_draft';
@@ -657,8 +645,12 @@ function renderAsms(){
     const tab=_asmTab[a.id]||'parts';
     const lkmLayers=_asmCoatings[a.id]||[];
     const lkmBadge=lkmLayers.length?`<span style="background:#ede9fe;color:#6d28d9;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px">${lkmLayers.length}</span>`:'';
-    const rows=tab==='parts'?renderBomRows(a):'';
+    const fasteners=a.parts.filter(p=>p.partCategory==='FASTENER');
+    const fastBadge=fasteners.length?`<span style="background:#fef3c7;color:#b45309;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px">${fasteners.length}</span>`:'';
+    const materialParts=a.parts.filter(p=>p.partCategory!=='FASTENER');
+    const rows=tab==='parts'?renderBomRows({...a,parts:materialParts}):'';
     const partsTable=tab==='parts'?`<table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'';
+    const fastenersSection=tab==='fasteners'?renderFastenersTab(a,fasteners):'';
     const lkmSection=tab==='lkm'?renderLKMTab(a):'';
     return`<div class="card mb-16">
       <div class="card-header">
@@ -667,20 +659,58 @@ function renderAsms(){
           <span class="text-xs text-muted">шт</span>${tots}
         </div>
         <div class="gap-8">
-          <button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+          <button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}','MATERIAL')">+ Деталь</button>
+          <button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}','FASTENER')" style="color:#b45309">+ Метиз</button>
           <button class="btn btn-secondary btn-sm" onclick="openTmplPicker('${a.id}')" title="Вставить детали из шаблона">📦 Шаблон</button>
           <button class="btn btn-danger btn-sm" onclick="remA('${a.id}')">Удалить</button></div>
       </div>
       <div class="asm-tabs">
-        <div class="asm-tab${tab==='parts'?' active':''}" onclick="setAsmTab('${a.id}','parts')">Детали</div>
+        <div class="asm-tab${tab==='parts'?' active':''}" onclick="setAsmTab('${a.id}','parts')">Материалы</div>
+        <div class="asm-tab${tab==='fasteners'?' active':''}" onclick="setAsmTab('${a.id}','fasteners')">Метизы${fastBadge}</div>
         <div class="asm-tab${tab==='lkm'?' active':''}" onclick="setAsmTab('${a.id}','lkm')">ЛКМ${lkmBadge}</div>
       </div>
-      ${partsTable}${lkmSection}
+      ${partsTable}${fastenersSection}${lkmSection}
     </div>`;
   }).join('');
 }
 
 function setAsmTab(asmId,tab){_asmTab[asmId]=tab;renderAsms();}
+
+function renderFastenersTab(a,fasteners){
+  if(!fasteners.length)return`<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Метизов нет — нажмите «+ Метиз»</div>`;
+  const mu=a.qty||1;
+  let html=`<table><thead><tr><th>Материал</th><th>Наименование</th><th>Масса шт</th><th>Кол.</th><th>Масса×узел</th><th>Цена/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
+  let totW=0,totC=0;
+  for(const p of fasteners){
+    const mat=MATS.find(m=>m.id===p.mid);
+    const pw=p.pw!=null?Number(p.pw):(mat?.unitKg||0);
+    const wT=r4(pw*(p.qty||1)*mu);
+    const pr=gP(p.mid);
+    const ppp=pr?.ppp!=null?pr.ppp:null;
+    const cost=ppp!=null?r4(ppp*(p.qty||1)*mu):calcMaterialCostSimple(wT,pr?.price);
+    totW+=wT;totC+=cost;
+    html+=`<tr>
+      <td class="mono" style="font-size:11px">${mat?mat.code:'?'}</td>
+      <td style="font-size:12px">${p.name||mat?.name||''}</td>
+      <td style="text-align:right">${pw?pw.toFixed(4)+' кг':'—'}</td>
+      <td style="text-align:center">${p.qty||1}</td>
+      <td style="text-align:right;font-weight:600">${wT?wT.toFixed(4)+' кг':'—'}</td>
+      <td style="text-align:right">${ppp!=null?'₽'+fm(ppp):'—'}</td>
+      <td style="text-align:right;color:var(--green)">${cost?'₽'+fm(Math.round(cost)):'—'}</td>
+      <td><button class="btn btn-secondary btn-xs" onclick="openEdit('${a.id}','${p.id}')">✏</button>
+          <button class="btn btn-danger btn-xs" onclick="remP('${a.id}','${p.id}')">✕</button></td>
+    </tr>`;
+  }
+  html+=`</tbody><tfoot><tr style="font-weight:700;background:#fef9ee">
+    <td colspan="4" style="text-align:right;font-size:11px;color:var(--muted)">Итого метизов:</td>
+    <td style="text-align:right">${totW.toFixed(4)} кг</td>
+    <td></td><td style="text-align:right;color:var(--green)">${totC?'₽'+fm(Math.round(totC)):'—'}</td>
+    <td></td>
+  </tr></tfoot></table>`;
+  return html;
+}
+
+function calcMaterialCostSimple(wKg,ppt){return ppt&&wKg?r4(wKg/1000*ppt):0;}
 
 function renderLKMTab(a){
   const layers=_asmCoatings[a.id]||[];
@@ -861,7 +891,17 @@ function updAQ(id,v){const a=asms.find(a=>a.id===id);if(a){a.qty=Math.max(1,pars
 function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.filter(p=>p.id!==pid);refresh();saveDraft();}}
 function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;_currentOrderId=null;localStorage.removeItem(DRAFT_KEY);document.getElementById('rev-count').textContent=0;refresh();}
 
-function openMod(aid){curA=aid;curEP=null;selM=null;curC='all';resetForm();document.getElementById('modal-title').textContent='Добавить деталь';document.getElementById('btn-confirm').textContent='Добавить деталь';document.getElementById('modal-ov').style.display='flex';buildCF();setMType('linear');}
+function openMod(aid,category='MATERIAL'){
+  curA=aid;_curPartCategory=category;curEP=null;selM=null;
+  curC=category==='FASTENER'?'piece':'all';
+  resetForm();
+  const isFast=category==='FASTENER';
+  document.getElementById('modal-title').textContent=isFast?'Добавить метиз':'Добавить деталь';
+  document.getElementById('btn-confirm').textContent=isFast?'Добавить метиз':'Добавить деталь';
+  document.getElementById('modal-ov').style.display='flex';
+  buildCF();
+  setMType(isFast?'piece':'linear');
+}
 function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-name').value=p.name||'';
   // Restore PIECE pw state
   if(p.mtype==='piece'&&selM){
@@ -949,9 +989,9 @@ function confirmPart(){
     if(hasDefault&&overriding&&!f.pw){toast('Введите массу или снимите флажок','error');return;}
   }
   const a=asms.find(a=>a.id===curA);if(!a)return;
-  const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw};
+  const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw,partCategory:curEP?undefined:_curPartCategory};
   if(curEP){const i=a.parts.findIndex(p=>p.id===curEP);if(i!==-1)a.parts[i]={...a.parts[i],...pd};toast('Деталь обновлена','success');}
-  else{a.parts.push({id:'pt'+nP++,...pd});toast('Деталь добавлена','success');}
+  else{a.parts.push({id:'pt'+nP++,...pd,partCategory:_curPartCategory});toast(_curPartCategory==='FASTENER'?'Метиз добавлен':'Деталь добавлена','success');}
   closeModal();refresh();saveDraft();
 }
 
