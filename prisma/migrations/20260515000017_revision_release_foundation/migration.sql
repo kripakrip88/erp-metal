@@ -7,14 +7,14 @@
 -- ─── Column additions ─────────────────────────────────────────────────────────
 
 ALTER TABLE "assemblies"
-    ADD COLUMN "currentRevisionId"   UUID,
-    ADD COLUMN "releasedRevisionId"  UUID;
+    ADD COLUMN "currentRevisionId"   TEXT,
+    ADD COLUMN "releasedRevisionId"  TEXT;
 
 ALTER TABLE "orders"
-    ADD COLUMN "activeQuoteRevisionId" UUID;
+    ADD COLUMN "activeQuoteRevisionId" TEXT;
 
 ALTER TABLE "revision_assembly_coatings"
-    ADD COLUMN "assemblyRevisionId" UUID;
+    ADD COLUMN "assemblyRevisionId" TEXT;
 
 -- ─── Foreign keys ─────────────────────────────────────────────────────────────
 
