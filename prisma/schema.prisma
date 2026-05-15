@@ -507,16 +507,17 @@ model RoutingStep {
 }
 
 model QuoteRevision {
-  id                 String         @id @default(uuid())
-  orderId            String
-  createdById        String
-  revisionNumber     Int
-  status             RevisionStatus @default(DRAFT)
-  notes              String?
-  currency           CurrencyCode   @default(RUB)
-  calculationVersion String         @default("2.0")
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                        String         @id @default(uuid())
+  orderId                   String
+  createdById               String
+  revisionNumber            Int
+  status                    RevisionStatus @default(DRAFT)
+  notes                     String?
+  currency                  CurrencyCode   @default(RUB)
+  calculationVersion        String         @default("2.0")
+  sourceReleasedRevisionIds Json?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 
   order          Order    @relation("OrderRevisions", fields: [orderId], references: [id])
   createdBy      User     @relation("RevisionCreatedBy", fields: [createdById], references: [id])
@@ -527,6 +528,7 @@ model QuoteRevision {
   assemblyCoatings RevisionAssemblyCoating[]
 
   @@unique([orderId, revisionNumber])
+  @@index([orderId, status])
   @@map("quote_revisions")
 }
 

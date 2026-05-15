@@ -113,22 +113,4 @@ async function createPart(assemblyId, data) {
   }})
 }
 
-// ─── 5.4.2 — Active quote pointer ─────────────────────────────────────────────
-
-// Pins a QuoteRevision as the active quote for an order.
-// Ownership check: quote must belong to the same order.
-async function setActiveQuoteRevision(orderId, quoteRevisionId) {
-  const qr = await prisma.quoteRevision.findUnique({
-    where:  { id: quoteRevisionId },
-    select: { orderId: true },
-  })
-  if (!qr) throw new Error('QuoteRevision not found')
-  if (qr.orderId !== orderId) throw new Error('QuoteRevision does not belong to this order')
-  return prisma.order.update({
-    where:  { id: orderId },
-    data:   { activeQuoteRevisionId: quoteRevisionId },
-    select: { id: true, activeQuoteRevisionId: true },
-  })
-}
-
-module.exports = { listOrders, getOrder, createOrder, createAssembly, clearAssemblies, createPart, setActiveQuoteRevision }
+module.exports = { listOrders, getOrder, createOrder, createAssembly, clearAssemblies, createPart }
