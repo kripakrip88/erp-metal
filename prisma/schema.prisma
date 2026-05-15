@@ -195,6 +195,7 @@ model Company {
   workCenters         WorkCenter[]
   coatingMaterials    CoatingMaterial[]
   coatingSystems      CoatingSystem[]
+  materialReservations MaterialReservation[]
 
   @@map("companies")
 }
@@ -391,6 +392,7 @@ model Order {
   revisions           QuoteRevision[]  @relation("OrderRevisions")
   activeQuoteRevision QuoteRevision?   @relation("ActiveQuoteRevision", fields: [activeQuoteRevisionId], references: [id], onDelete: SetNull)
   files               OrderFile[]
+  materialReservations MaterialReservation[]
 
   @@unique([companyId, orderNumber])
   @@index([activeQuoteRevisionId])
@@ -773,9 +775,10 @@ model CoatingMaterial {
   createdAt                 DateTime    @default(now())
   updatedAt                 DateTime    @updatedAt
 
-  company            Company              @relation(fields: [companyId], references: [id])
-  assemblyCoatings   AssemblyCoating[]
-  systemLayers       CoatingSystemLayer[]
+  company              Company               @relation(fields: [companyId], references: [id])
+  assemblyCoatings     AssemblyCoating[]
+  systemLayers         CoatingSystemLayer[]
+  materialReservations MaterialReservation[]
 
   @@unique([companyId, code])
   @@map("coating_materials")
@@ -911,6 +914,7 @@ model AssemblyRevision {
   currentForAssemblies   Assembly[]                        @relation("CurrentRevision")
   releasedForAssemblies  Assembly[]                        @relation("ReleasedRevision")
   revisionCoatingLinks   RevisionAssemblyCoating[]
+  materialReservations   MaterialReservation[]
 
   @@unique([assemblyId, revisionNumber])
   @@index([assemblyId, status])
@@ -938,9 +942,54 @@ model AssemblyRevisionCoatingSnapshot {
   pricingFormulaVersion     String?
   createdAt                 DateTime @default(now())
 
-  assemblyRevision AssemblyRevision @relation(fields: [assemblyRevisionId], references: [id], onDelete: Cascade)
+  assemblyRevision     AssemblyRevision      @relation(fields: [assemblyRevisionId], references: [id], onDelete: Cascade)
+  materialReservations MaterialReservation[]
 
   @@index([assemblyRevisionId])
   @@index([assemblyId])
   @@map("assembly_revision_coating_snapshots")
+}
+
+enum ReservationType {
+  PROCUREMENT
+  PRODUCTION
+  MANUAL
+}
+
+enum ReservationStatus {
+  RESERVED
+  RELEASED
+  CANCELLED
+}
+
+model MaterialReservation {
+  id                  String            @id @default(cuid())
+  companyId           String
+  orderId             String
+  assemblyRevisionId  String
+  materialId          String
+  coatingSnapshotId   String?
+  reservationType     ReservationType   @default(PROCUREMENT)
+  status              ReservationStatus @default(RESERVED)
+  reservedQuantity    Decimal           @db.Decimal(12, 4)
+  unit                String            @default("kg")
+  notes               String?
+  reservedAt          DateTime          @default(now())
+  releasedAt          DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  company         Company                          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  order           Order                            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  assemblyRevision AssemblyRevision               @relation(fields: [assemblyRevisionId], references: [id], onDelete: Restrict)
+  material        CoatingMaterial                  @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  coatingSnapshot AssemblyRevisionCoatingSnapshot? @relation(fields: [coatingSnapshotId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, assemblyRevisionId, materialId, coatingSnapshotId])
+  @@index([orderId])
+  @@index([assemblyRevisionId])
+  @@index([materialId])
+  @@index([status])
+  @@map("material_reservations")
 }

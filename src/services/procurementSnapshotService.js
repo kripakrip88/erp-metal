@@ -69,6 +69,7 @@ function _buildAssemblySnapshot(asm, revision, snapshots, matById) {
       supplier:                 mat?.supplierName ?? null,
       color:                    null,        // not captured in current schema version
       manufacturer:             null,        // not captured in current schema version
+      snapshotId:               snap.id,
       snapshotRevisionId:       snap.assemblyRevisionId,
     }
   })
