@@ -156,6 +156,20 @@ enum SteelGrade {
   OTHER
 }
 
+enum CoatingType {
+  PRIMER
+  BASE_COAT
+  TOPCOAT
+  CLEAR
+  OTHER
+}
+
+enum AssemblyRevisionStatus {
+  DRAFT
+  FROZEN
+  ARCHIVED
+}
+
 enum MaterialDomain {
   STRUCTURAL
   FASTENER
@@ -186,7 +200,11 @@ model Company {
   stockItems          StockItem[]
   exchangeRates       ExchangeRate[]
   workCenters         WorkCenter[]
-  productTemplates    ProductTemplate[]
+  coatingMaterials     CoatingMaterial[]
+  coatingSystems       CoatingSystem[]
+  materialReservations MaterialReservation[]
+  inventoryBalances    InventoryBalance[]
+  productTemplates     ProductTemplate[]
 
   @@map("companies")
 }
@@ -377,16 +395,20 @@ model Order {
   version      Int         @default(1)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  deletedAt    DateTime?
+  deletedAt             DateTime?
+  activeQuoteRevisionId String?
 
-  company    Company         @relation(fields: [companyId], references: [id])
-  createdBy  User            @relation("CreatedByUser", fields: [createdById], references: [id])
-  phases     Phase[]
-  assemblies Assembly[]
-  revisions  QuoteRevision[]
-  files      OrderFile[]
+  company             Company         @relation(fields: [companyId], references: [id])
+  createdBy           User            @relation("CreatedByUser", fields: [createdById], references: [id])
+  phases              Phase[]
+  assemblies          Assembly[]
+  revisions           QuoteRevision[]  @relation("OrderRevisions")
+  activeQuoteRevision QuoteRevision?   @relation("ActiveQuoteRevision", fields: [activeQuoteRevisionId], references: [id], onDelete: SetNull)
+  files               OrderFile[]
+  materialReservations MaterialReservation[]
 
   @@unique([companyId, orderNumber])
+  @@index([activeQuoteRevisionId])
   @@map("orders")
 }
 
@@ -421,19 +443,28 @@ model Assembly {
   version               Int         @default(1)
   projectSteelGrade     SteelGrade?
   actualSteelGrade      SteelGrade?
+  currentRevisionId     String?
+  releasedRevisionId    String?
   sourceTemplateId      String?
   sourceTemplateVersion Int?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
 
-  order          Order            @relation(fields: [orderId], references: [id])
-  phase          Phase?           @relation(fields: [phaseId], references: [id])
-  parent         Assembly?        @relation("AssemblyTree", fields: [parentId], references: [id])
-  children       Assembly[]       @relation("AssemblyTree")
-  parts          Part[]
-  routingSteps   RoutingStep[]
-  sourceTemplate ProductTemplate? @relation(fields: [sourceTemplateId], references: [id])
+  order            Order             @relation(fields: [orderId], references: [id])
+  phase            Phase?            @relation(fields: [phaseId], references: [id])
+  parent           Assembly?         @relation("AssemblyTree", fields: [parentId], references: [id])
+  children         Assembly[]        @relation("AssemblyTree")
+  parts            Part[]
+  routingSteps     RoutingStep[]
+  coatings         AssemblyCoating[]
+  revisions        AssemblyRevision[]  @relation("AssemblyRevisions")
+  currentRevision  AssemblyRevision?   @relation("CurrentRevision",  fields: [currentRevisionId],  references: [id], onDelete: SetNull)
+  releasedRevision AssemblyRevision?   @relation("ReleasedRevision", fields: [releasedRevisionId], references: [id], onDelete: Restrict)
+  sourceTemplate   ProductTemplate?    @relation(fields: [sourceTemplateId], references: [id])
 
+  @@index([currentRevisionId])
+  @@index([releasedRevisionId])
+  @@index([sourceTemplateId])
   @@map("assemblies")
 }
 
@@ -504,24 +535,28 @@ model RoutingStep {
 }
 
 model QuoteRevision {
-  id                 String         @id @default(uuid())
-  orderId            String
-  createdById        String
-  revisionNumber     Int
-  status             RevisionStatus @default(DRAFT)
-  notes              String?
-  currency           CurrencyCode   @default(RUB)
-  calculationVersion String         @default("2.0")
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                        String         @id @default(uuid())
+  orderId                   String
+  createdById               String
+  revisionNumber            Int
+  status                    RevisionStatus @default(DRAFT)
+  notes                     String?
+  currency                  CurrencyCode   @default(RUB)
+  calculationVersion        String         @default("2.0")
+  sourceReleasedRevisionIds Json?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 
-  order       Order                @relation(fields: [orderId], references: [id])
-  createdBy   User                 @relation("RevisionCreatedBy", fields: [createdById], references: [id])
-  parts       RevisionPart[]
-  costLines   RevisionCostLine[]
-  calculation RevisionCalculation?
+  order          Order    @relation("OrderRevisions", fields: [orderId], references: [id])
+  createdBy      User     @relation("RevisionCreatedBy", fields: [createdById], references: [id])
+  activeForOrder Order[]  @relation("ActiveQuoteRevision")
+  parts            RevisionPart[]
+  costLines        RevisionCostLine[]
+  calculation      RevisionCalculation?
+  assemblyCoatings RevisionAssemblyCoating[]
 
   @@unique([orderId, revisionNumber])
+  @@index([orderId, status])
   @@map("quote_revisions")
 }
 
@@ -757,12 +792,272 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
-model ProductTemplate {
-  id          String    @id @default(uuid())
+model CoatingMaterial {
+  id                        String      @id @default(uuid())
+  companyId                 String
+  code                      String
+  name                      String
+  coatingType               CoatingType
+  consumptionGm2            Decimal     @db.Decimal(10, 4)
+  referenceDftMkm           Int
+  densityKgL                Decimal     @db.Decimal(8, 4)
+  recommendedDilutionPercent Decimal?   @db.Decimal(5, 2)
+  pricePerKg                Decimal?    @db.Decimal(12, 2)
+  supplierName              String?
+  notes                     String?
+  isActive                  Boolean     @default(true)
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  company              Company               @relation(fields: [companyId], references: [id])
+  assemblyCoatings     AssemblyCoating[]
+  systemLayers         CoatingSystemLayer[]
+  materialReservations MaterialReservation[]
+  inventoryBalances    InventoryBalance[]
+
+  @@unique([companyId, code])
+  @@map("coating_materials")
+}
+
+model AssemblyCoating {
+  id                   String      @id @default(uuid())
+  assemblyId           String
+  coatingMaterialId    String
+  coatingSystemId      String?
+  layerNumber          Int         @default(1)
+  autoAreaLink         Boolean     @default(true)
+  manualAreaM2         Decimal?    @db.Decimal(12, 4)
+  selectedDftMkm       Int?
+  dilutionPercent      Decimal?    @db.Decimal(5, 2)
+  notes                String?
+  position             Int         @default(0)
+  materialCodeSnapshot       String?
+  materialNameSnapshot       String?
+  lossFactorPercent          Decimal?    @db.Decimal(5, 2)
+  theoreticalConsumptionKg   Decimal?    @db.Decimal(12, 4)
+  finalConsumptionKg         Decimal?    @db.Decimal(12, 4)
+  costSnapshotPerKg          Decimal?    @db.Decimal(12, 2)
+  // snapshot-derived estimate — NOT accounting fact; do not use for procurement, invoicing, or financial reporting
+  calculatedCost             Decimal?    @db.Decimal(14, 2)
+  createdAt                  DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  assembly        Assembly        @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
+  coatingSystem   CoatingSystem?  @relation(fields: [coatingSystemId], references: [id], onDelete: SetNull)
+
+  @@unique([assemblyId, layerNumber])
+  @@index([assemblyId])
+  @@index([coatingSystemId])
+  @@map("assembly_coatings")
+}
+
+model CoatingSystem {
+  id          String   @id @default(uuid())
   companyId   String
   code        String
   name        String
   description String?
+  isActive    Boolean  @default(true)
+  position    Int      @default(0)
+  uiColor     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company          Company              @relation(fields: [companyId], references: [id])
+  assemblyCoatings AssemblyCoating[]
+  layers           CoatingSystemLayer[]
+
+  @@unique([companyId, code])
+  @@index([companyId, isActive])
+  @@index([companyId, position])
+  @@map("coating_systems")
+}
+
+model CoatingSystemLayer {
+  id                     String   @id @default(uuid())
+  coatingSystemId        String
+  coatingMaterialId      String
+  layerNumber            Int
+  defaultDftMkm          Int?
+  defaultDilutionPercent Decimal? @db.Decimal(5, 2)
+  notes                  String?
+  position               Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  coatingSystem   CoatingSystem   @relation(fields: [coatingSystemId], references: [id], onDelete: Cascade)
+  coatingMaterial CoatingMaterial @relation(fields: [coatingMaterialId], references: [id])
+
+  @@unique([coatingSystemId, layerNumber])
+  @@unique([coatingSystemId, position])
+  @@map("coating_system_layers")
+}
+
+model RevisionAssemblyCoating {
+  id              String   @id @default(uuid())
+  revisionId      String
+  assemblyId      String
+  assemblyName    String
+  coatingCode     String
+  coatingName     String
+  coatingType     String
+  layerNumber     Int
+  position        Int      @default(0)
+  areaM2          Decimal  @db.Decimal(12, 4)
+  consumptionKg   Decimal  @db.Decimal(12, 4)
+  consumptionL    Decimal? @db.Decimal(12, 4)
+  totalKg         Decimal  @db.Decimal(12, 4)
+  selectedDftMkm  Int
+  dilutionPercent Decimal  @db.Decimal(5, 2)
+  pricePerKg         Decimal? @db.Decimal(12, 2)
+  totalCost          Decimal? @db.Decimal(14, 2)
+  assemblyRevisionId String?
+
+  revision         QuoteRevision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  assemblyRevision AssemblyRevision? @relation(fields: [assemblyRevisionId], references: [id], onDelete: SetNull)
+
+  @@index([assemblyRevisionId])
+  @@map("revision_assembly_coatings")
+}
+
+model AssemblyRevision {
+  id                    String                 @id @default(uuid())
+  assemblyId            String
+  revisionNumber        Int
+  status                AssemblyRevisionStatus @default(DRAFT)
+  createdFromRevisionId String?
+  notes                 String?
+  frozenAt              DateTime?
+  frozenByUserId        String?
+  freezeReason          String?
+  // Aggregated financial totals — computed at freeze time, immutable thereafter.
+  // NOTE: snapshot-derived ERP estimate — not an accounting fact.
+  // TODO: labor totals, material totals, routing totals, overhead totals,
+  //   margin totals, tax snapshots, multi-currency totals
+  totalTheoreticalConsumptionKg Decimal? @db.Decimal(14, 4)
+  totalFinalConsumptionKg       Decimal? @db.Decimal(14, 4)
+  totalCalculatedCost           Decimal? @db.Decimal(16, 2)
+  createdByUserId       String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  assembly               Assembly                          @relation("AssemblyRevisions", fields: [assemblyId], references: [id], onDelete: Cascade)
+  createdFromRevision    AssemblyRevision?                 @relation("RevisionChain", fields: [createdFromRevisionId], references: [id])
+  derivedRevisions       AssemblyRevision[]                @relation("RevisionChain")
+  coatingSnapshots       AssemblyRevisionCoatingSnapshot[]
+  currentForAssemblies   Assembly[]                        @relation("CurrentRevision")
+  releasedForAssemblies  Assembly[]                        @relation("ReleasedRevision")
+  revisionCoatingLinks   RevisionAssemblyCoating[]
+  materialReservations   MaterialReservation[]
+
+  @@unique([assemblyId, revisionNumber])
+  @@index([assemblyId, status])
+  @@index([assemblyId, revisionNumber])
+  @@map("assembly_revisions")
+}
+
+model AssemblyRevisionCoatingSnapshot {
+  id                        String   @id @default(uuid())
+  assemblyRevisionId        String
+  assemblyId                String
+  coatingMaterialId         String?
+  materialCodeSnapshot      String
+  materialNameSnapshot      String
+  layerNumber               Int
+  position                  Int      @default(0)
+  selectedDftMkm            Int?
+  dilutionPercent           Decimal? @db.Decimal(5, 2)
+  lossFactorPercent         Decimal? @db.Decimal(5, 2)
+  theoreticalConsumptionKg  Decimal? @db.Decimal(12, 4)
+  finalConsumptionKg        Decimal? @db.Decimal(12, 4)
+  costSnapshotPerKg         Decimal? @db.Decimal(12, 2)
+  calculatedCost            Decimal? @db.Decimal(14, 2)
+  calculationFormulaVersion String?
+  pricingFormulaVersion     String?
+  createdAt                 DateTime @default(now())
+
+  assemblyRevision     AssemblyRevision      @relation(fields: [assemblyRevisionId], references: [id], onDelete: Cascade)
+  materialReservations MaterialReservation[]
+
+  @@index([assemblyRevisionId])
+  @@index([assemblyId])
+  @@map("assembly_revision_coating_snapshots")
+}
+
+enum ReservationType {
+  PROCUREMENT
+  PRODUCTION
+  MANUAL
+}
+
+enum ReservationStatus {
+  RESERVED
+  RELEASED
+  CANCELLED
+}
+
+model MaterialReservation {
+  id                  String            @id @default(cuid())
+  companyId           String
+  orderId             String
+  assemblyRevisionId  String
+  materialId          String
+  coatingSnapshotId   String?
+  reservationType     ReservationType   @default(PROCUREMENT)
+  status              ReservationStatus @default(RESERVED)
+  reservedQuantity    Decimal           @db.Decimal(12, 4)
+  unit                String            @default("kg")
+  notes               String?
+  reservedAt          DateTime          @default(now())
+  releasedAt          DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  company          Company                          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  order            Order                            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  assemblyRevision AssemblyRevision                 @relation(fields: [assemblyRevisionId], references: [id], onDelete: Restrict)
+  material         CoatingMaterial                  @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  coatingSnapshot  AssemblyRevisionCoatingSnapshot? @relation(fields: [coatingSnapshotId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, assemblyRevisionId, materialId, coatingSnapshotId])
+  @@index([orderId])
+  @@index([assemblyRevisionId])
+  @@index([materialId])
+  @@index([status])
+  @@map("material_reservations")
+}
+
+// Inventory balances are compatibility abstractions, not warehouse transactions.
+// Reserved quantities are derived exclusively from immutable reservation records.
+// Available quantity must never be computed from live engineering workspace state.
+model InventoryBalance {
+  id                String   @id @default(cuid())
+  companyId         String
+  materialId        String
+  uom               String   @default("kg")
+  physicalQuantity  Decimal  @db.Decimal(15, 4) @default(0)
+  reservedQuantity  Decimal  @db.Decimal(15, 4) @default(0)
+  availableQuantity Decimal  @db.Decimal(15, 4) @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  material CoatingMaterial @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, materialId])
+  @@index([companyId])
+  @@index([materialId])
+  @@map("inventory_balances")
+}
+
+model ProductTemplate {
+  id                   String    @id @default(uuid())
+  companyId            String
+  code                 String
+  name                 String
+  description          String?
   isActive             Boolean   @default(true)
   version              Int       @default(1)
   estimatedWeightKg    Decimal?  @db.Decimal(12, 4)
@@ -790,10 +1085,10 @@ model ProductTemplateNode {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  template   ProductTemplate          @relation(fields: [templateId], references: [id])
-  parent     ProductTemplateNode?     @relation("NodeTree", fields: [parentNodeId], references: [id])
-  children   ProductTemplateNode[]    @relation("NodeTree")
-  parts      ProductTemplateNodePart[]
+  template  ProductTemplate           @relation(fields: [templateId], references: [id])
+  parent    ProductTemplateNode?      @relation("NodeTree", fields: [parentNodeId], references: [id])
+  children  ProductTemplateNode[]     @relation("NodeTree")
+  parts     ProductTemplateNodePart[]
 
   @@map("product_template_nodes")
 }
