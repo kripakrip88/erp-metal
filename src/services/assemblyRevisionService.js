@@ -6,6 +6,10 @@ const { Prisma }    = require('@prisma/client')
 const CALCULATION_FORMULA_VERSION = '1.0'
 const PRICING_FORMULA_VERSION     = '1.0'
 
+// Order statuses that permanently lock assembly mutations regardless of revision state.
+// Defined at module top so both assertAssemblyMutable and _assertOrderEditable share it.
+const LOCKED_ORDER_STATUSES = ['PRODUCTION', 'COMPLETED', 'DELIVERED']
+
 // ─── 5.3.8 RF-1 — Decimal normalisation for deterministic revision diffing ────
 
 // Decimal/string normalization required for deterministic ERP revision diffing.
@@ -20,6 +24,20 @@ function normaliseCompareValue(value) {
 }
 
 // ─── Internal guards ──────────────────────────────────────────────────────────
+
+// Lightweight order-only lock check — used by revision operations that must NOT
+// be blocked by the presence of a frozen revision (e.g. freeze, clone).
+// Coating mutations use the heavier assertAssemblyMutable which checks both.
+async function _assertOrderEditable(assemblyId, client = prisma) {
+  const asm = await client.assembly.findUnique({
+    where:  { id: assemblyId },
+    select: { order: { select: { status: true } } },
+  })
+  if (!asm) throw new Error('Assembly not found')
+  if (LOCKED_ORDER_STATUSES.includes(asm.order.status)) {
+    throw new Error(`Assembly is locked — order is in ${asm.order.status} state`)
+  }
+}
 
 async function _loadRevision(tx, revisionId) {
   const rev = await tx.assemblyRevision.findUnique({ where: { id: revisionId } })
@@ -36,6 +54,11 @@ function _assertDraft(rev) {
 // ─── 5.3.1 — Create draft revision ───────────────────────────────────────────
 
 async function createDraftRevision(assemblyId, { createdByUserId = null, notes = null } = {}) {
+  // Blocks if order is in a locked state OR if a frozen revision already exists.
+  // A frozen revision means the next draft must be created via clone (createAssemblyRevisionFromRevision)
+  // to preserve the revision lineage chain.
+  await assertAssemblyMutable(assemblyId)
+
   const existingDraft = await prisma.assemblyRevision.findFirst({
     where: { assemblyId, status: 'DRAFT' },
   })
@@ -65,6 +88,9 @@ async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freez
   return prisma.$transaction(async (tx) => {
     const rev = await _loadRevision(tx, revisionId)
     _assertDraft(rev)
+    // Order-status-only guard: do not use assertAssemblyMutable here because it would
+    // block on the presence of a previous frozen revision, which is valid during re-freeze.
+    await _assertOrderEditable(rev.assemblyId, tx)
 
     // Snapshot all current live AssemblyCoating rows at freeze time
     const coatings = await tx.assemblyCoating.findMany({
@@ -140,6 +166,8 @@ async function createAssemblyRevisionFromRevision(sourceRevisionId, { createdByU
     if (source.status === 'DRAFT') {
       throw new Error('Cannot clone an unfrozen DRAFT revision — freeze it first')
     }
+    // Order-status-only guard: frozen revision presence is expected (it is the source).
+    await _assertOrderEditable(source.assemblyId, tx)
 
     const existingDraft = await tx.assemblyRevision.findFirst({
       where: { assemblyId: source.assemblyId, status: 'DRAFT' },
@@ -198,22 +226,33 @@ async function assertRevisionMutable(revisionId) {
   if (rev.status !== 'DRAFT') throw new Error('Frozen revision cannot be modified')
 }
 
-// ─── 5.3.2 — Assembly-level immutability enforcement ─────────────────────────
+// ─── 5.3.2 / 5.4.2 — Assembly-level immutability enforcement ─────────────────
 
-// Blocks any mutation on an assembly that participates in a FROZEN revision.
+// Blocks any mutation on an assembly that participates in a FROZEN revision
+// OR whose parent order has advanced past the editable lifecycle phase.
 // Call before create/update/delete/recalculate on AssemblyCoating rows.
-// Centralized — single query, no inline duplicates across mutation flows.
+// Centralized — single query pair (parallel), no inline duplicates across mutation flows.
 // TODO: partial locking by revision scope (lock only specific coating layers)
 // TODO: optimistic locking (revision counter on AssemblyRevision, check-and-increment)
 // TODO: concurrent revision branching (allow multiple DRAFT revisions per assembly)
 // TODO: assembly revision merge strategy (merge diverged DRAFT branches)
 async function assertAssemblyMutable(assemblyId) {
-  const locked = await prisma.assemblyRevision.findFirst({
-    where:  { assemblyId, status: 'FROZEN' },
-    select: { id: true },
-    take:   1,
-  })
+  const [locked, asm] = await Promise.all([
+    prisma.assemblyRevision.findFirst({
+      where:  { assemblyId, status: 'FROZEN' },
+      select: { id: true },
+      take:   1,
+    }),
+    prisma.assembly.findUnique({
+      where:  { id: assemblyId },
+      select: { order: { select: { status: true } } },
+    }),
+  ])
+  if (!asm) throw new Error('Assembly not found')
   if (locked) throw new Error('Assembly is locked by a frozen revision')
+  if (LOCKED_ORDER_STATUSES.includes(asm.order.status)) {
+    throw new Error(`Assembly is locked — order is in ${asm.order.status} state`)
+  }
 }
 
 // ─── Read ─────────────────────────────────────────────────────────────────────
@@ -372,6 +411,17 @@ async function restoreAssemblyFromRevision(revisionId) {
   if (revision.status !== 'FROZEN') throw new Error('Can only restore from a FROZEN revision')
   if (revision.coatingSnapshots.length === 0) throw new Error('Revision has no coating snapshots to restore')
 
+  // Block restore when the order is in a locked lifecycle state.
+  // Restoring after PRODUCTION would silently overwrite the production baseline,
+  // invalidating any procurement, nesting, or routing work already under way.
+  const asm = await prisma.assembly.findUnique({
+    where:  { id: revision.assemblyId },
+    select: { order: { select: { status: true } } },
+  })
+  if (asm && LOCKED_ORDER_STATUSES.includes(asm.order.status)) {
+    throw new Error(`Cannot restore — order is in ${asm.order.status} state`)
+  }
+
   // Restore is an explicit privileged rollback operation.
   // Frozen revisions protect normal mutations, but restore intentionally
   // overwrites live assembly state from historical snapshot.
@@ -414,6 +464,61 @@ async function restoreAssemblyFromRevision(revisionId) {
   })
 }
 
+// ─── 5.4.2 — Revision release foundation ─────────────────────────────────────
+
+// Points Assembly.currentRevisionId at a DRAFT revision.
+// Call after createDraftRevision to register the new draft as the active workspace.
+async function setCurrentRevision(assemblyId, revisionId) {
+  const rev = await prisma.assemblyRevision.findUnique({
+    where:  { id: revisionId },
+    select: { assemblyId: true, status: true },
+  })
+  if (!rev) throw new Error('AssemblyRevision not found')
+  if (rev.assemblyId !== assemblyId) throw new Error('Revision does not belong to this assembly')
+  if (rev.status !== 'DRAFT') throw new Error('currentRevisionId may only point to a DRAFT revision')
+  return prisma.assembly.update({
+    where:  { id: assemblyId },
+    data:   { currentRevisionId: revisionId },
+    select: { id: true, currentRevisionId: true, releasedRevisionId: true },
+  })
+}
+
+// Pins a FROZEN revision as the production/quote baseline for an assembly.
+// Atomically sets releasedRevisionId; clears currentRevisionId if the released
+// revision was the one tracked as the current DRAFT (i.e. it was just frozen).
+// Requires a transaction: the pointer swap and the currentRevisionId clear must
+// be atomic to prevent a concurrent caller from seeing a half-updated state.
+async function releaseAssemblyRevision(assemblyId, revisionId) {
+  return prisma.$transaction(async (tx) => {
+    const rev = await tx.assemblyRevision.findUnique({
+      where:  { id: revisionId },
+      select: { assemblyId: true, status: true },
+    })
+    if (!rev) throw new Error('AssemblyRevision not found')
+    if (rev.assemblyId !== assemblyId) throw new Error('Revision does not belong to this assembly')
+    if (rev.status !== 'FROZEN') throw new Error('Only FROZEN revisions can be released as production baseline')
+
+    const assembly = await tx.assembly.findUnique({
+      where:  { id: assemblyId },
+      select: { currentRevisionId: true },
+    })
+    if (!assembly) throw new Error('Assembly not found')
+
+    // If the released revision was tracked as the current DRAFT (now frozen),
+    // clear the pointer — there is no longer an active draft in this lineage.
+    const clearCurrent = assembly.currentRevisionId === revisionId
+
+    return tx.assembly.update({
+      where:  { id: assemblyId },
+      data:   {
+        releasedRevisionId: revisionId,
+        ...(clearCurrent ? { currentRevisionId: null } : {}),
+      },
+      select: { id: true, currentRevisionId: true, releasedRevisionId: true },
+    })
+  })
+}
+
 // ─── 5.3.7 — Audit foundation ─────────────────────────────────────────────────
 // Audit-ready fields captured on every revision:
 //   createdByUserId, frozenByUserId, freezeReason, createdFromRevisionId (source linkage)
@@ -441,4 +546,6 @@ module.exports = {
   listAssemblyRevisions,
   getAssemblyRevision,
   compareRevisions,
+  setCurrentRevision,
+  releaseAssemblyRevision,
 }

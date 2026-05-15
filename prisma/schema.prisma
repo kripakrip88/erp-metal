@@ -381,16 +381,19 @@ model Order {
   version      Int         @default(1)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  deletedAt    DateTime?
+  deletedAt             DateTime?
+  activeQuoteRevisionId String?
 
-  company    Company         @relation(fields: [companyId], references: [id])
-  createdBy  User            @relation("CreatedByUser", fields: [createdById], references: [id])
-  phases     Phase[]
-  assemblies Assembly[]
-  revisions  QuoteRevision[]
-  files      OrderFile[]
+  company             Company         @relation(fields: [companyId], references: [id])
+  createdBy           User            @relation("CreatedByUser", fields: [createdById], references: [id])
+  phases              Phase[]
+  assemblies          Assembly[]
+  revisions           QuoteRevision[]  @relation("OrderRevisions")
+  activeQuoteRevision QuoteRevision?   @relation("ActiveQuoteRevision", fields: [activeQuoteRevisionId], references: [id], onDelete: SetNull)
+  files               OrderFile[]
 
   @@unique([companyId, orderNumber])
+  @@index([activeQuoteRevisionId])
   @@map("orders")
 }
 
@@ -424,19 +427,25 @@ model Assembly {
   position          Int         @default(0)
   version           Int         @default(1)
   projectSteelGrade SteelGrade?
-  actualSteelGrade  SteelGrade?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  actualSteelGrade    SteelGrade?
+  currentRevisionId   String?
+  releasedRevisionId  String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
-  order        Order            @relation(fields: [orderId], references: [id])
-  phase        Phase?           @relation(fields: [phaseId], references: [id])
-  parent       Assembly?        @relation("AssemblyTree", fields: [parentId], references: [id])
-  children     Assembly[]       @relation("AssemblyTree")
-  parts        Part[]
-  routingSteps RoutingStep[]
-  coatings     AssemblyCoating[]
-  revisions    AssemblyRevision[]
+  order            Order             @relation(fields: [orderId], references: [id])
+  phase            Phase?            @relation(fields: [phaseId], references: [id])
+  parent           Assembly?         @relation("AssemblyTree", fields: [parentId], references: [id])
+  children         Assembly[]        @relation("AssemblyTree")
+  parts            Part[]
+  routingSteps     RoutingStep[]
+  coatings         AssemblyCoating[]
+  revisions        AssemblyRevision[]  @relation("AssemblyRevisions")
+  currentRevision  AssemblyRevision?   @relation("CurrentRevision",  fields: [currentRevisionId],  references: [id], onDelete: SetNull)
+  releasedRevision AssemblyRevision?   @relation("ReleasedRevision", fields: [releasedRevisionId], references: [id], onDelete: Restrict)
 
+  @@index([currentRevisionId])
+  @@index([releasedRevisionId])
   @@map("assemblies")
 }
 
@@ -509,8 +518,9 @@ model QuoteRevision {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
-  order            Order                     @relation(fields: [orderId], references: [id])
-  createdBy        User                      @relation("RevisionCreatedBy", fields: [createdById], references: [id])
+  order          Order    @relation("OrderRevisions", fields: [orderId], references: [id])
+  createdBy      User     @relation("RevisionCreatedBy", fields: [createdById], references: [id])
+  activeForOrder Order[]  @relation("ActiveQuoteRevision")
   parts            RevisionPart[]
   costLines        RevisionCostLine[]
   calculation      RevisionCalculation?
@@ -860,11 +870,14 @@ model RevisionAssemblyCoating {
   totalKg         Decimal  @db.Decimal(12, 4)
   selectedDftMkm  Int
   dilutionPercent Decimal  @db.Decimal(5, 2)
-  pricePerKg      Decimal? @db.Decimal(12, 2)
-  totalCost       Decimal? @db.Decimal(14, 2)
+  pricePerKg         Decimal? @db.Decimal(12, 2)
+  totalCost          Decimal? @db.Decimal(14, 2)
+  assemblyRevisionId String?
 
-  revision QuoteRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  revision         QuoteRevision     @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  assemblyRevision AssemblyRevision? @relation(fields: [assemblyRevisionId], references: [id], onDelete: SetNull)
 
+  @@index([assemblyRevisionId])
   @@map("revision_assembly_coatings")
 }
 
@@ -889,10 +902,13 @@ model AssemblyRevision {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
-  assembly            Assembly                          @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
-  createdFromRevision AssemblyRevision?                 @relation("RevisionChain", fields: [createdFromRevisionId], references: [id])
-  derivedRevisions    AssemblyRevision[]                @relation("RevisionChain")
-  coatingSnapshots    AssemblyRevisionCoatingSnapshot[]
+  assembly               Assembly                          @relation("AssemblyRevisions", fields: [assemblyId], references: [id], onDelete: Cascade)
+  createdFromRevision    AssemblyRevision?                 @relation("RevisionChain", fields: [createdFromRevisionId], references: [id])
+  derivedRevisions       AssemblyRevision[]                @relation("RevisionChain")
+  coatingSnapshots       AssemblyRevisionCoatingSnapshot[]
+  currentForAssemblies   Assembly[]                        @relation("CurrentRevision")
+  releasedForAssemblies  Assembly[]                        @relation("ReleasedRevision")
+  revisionCoatingLinks   RevisionAssemblyCoating[]
 
   @@unique([assemblyId, revisionNumber])
   @@index([assemblyId, status])
