@@ -124,6 +124,10 @@ td{padding:9px 12px;vertical-align:middle;}
 .gap-8{display:flex;gap:8px;align-items:center;}.gap-12{display:flex;gap:12px;align-items:center;}
 .empty{text-align:center;padding:40px 20px;color:var(--muted);}
 .empty .icon{font-size:32px;margin-bottom:8px;}
+.bom-grp-hdr{background:#f1f5f9;cursor:pointer;user-select:none;}
+.bom-grp-hdr:hover{background:#e8eef5;}
+.bom-grp-hdr td{padding:5px 12px;border-top:2px solid var(--border2)!important;}
+.bom-grp-ungrouped td{padding:4px 12px;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.6px;text-transform:uppercase;border-top:2px solid var(--border)!important;background:#fafbfc;}
 </style>
 </head>
 <body>
@@ -138,6 +142,8 @@ td{padding:9px 12px;vertical-align:middle;}
     <div class="nav-group">Справочники</div>
     <div class="nav-item" onclick="go('materials')"><span>🔩</span> Материалы</div>
     <div class="nav-item" onclick="go('prices')"><span>💰</span> Цены</div>
+    <div class="nav-group">Справочники</div>
+    <a class="nav-item" href="templates.html" style="color:var(--muted);text-decoration:none"><span>📦</span> Шаблоны</a>
   </nav>
   <div class="sidebar-bottom">
     <div class="debug-toggle" onclick="toggleDebug()">
@@ -281,6 +287,9 @@ td{padding:9px 12px;vertical-align:middle;}
           <div class="mat-dropdown" id="mat-dd"></div>
         </div>
         <div id="mat-sel" style="display:none;margin-top:6px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:12px"></div>
+        <div style="margin-top:4px;text-align:right">
+          <button class="btn btn-secondary btn-xs" onclick="window.open('materials.html','_blank')">+ Создать материал</button>
+        </div>
       </div>
       <div id="rem-hint" style="display:none;margin-bottom:12px"></div>
       <div id="dims-linear">
@@ -307,7 +316,15 @@ td{padding:9px 12px;vertical-align:middle;}
       <div id="dims-piece" style="display:none">
         <div class="grid2 mb-16">
           <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
-          <div class="field"><label>Масса 1 шт, кг</label><input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0.001" oninput="calcPart()"></div>
+          <div class="field">
+            <label>Масса 1 шт, кг</label>
+            <div id="pw-default" style="display:none;padding:7px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;font-size:13px;color:#15803d;font-family:'JetBrains Mono'"></div>
+            <div id="pw-override-wrap" style="display:none;align-items:center;gap:6px;margin-top:4px">
+              <input type="checkbox" id="pw-override" onchange="onPwOverride()">
+              <span style="font-size:12px;font-weight:500;color:var(--muted);cursor:pointer" onclick="document.getElementById('pw-override').click()">Переопределить вручную</span>
+            </div>
+            <input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0" oninput="calcPart()" style="margin-top:4px">
+          </div>
         </div>
       </div>
       <div class="field mb-16"><label>Название (необязательно)</label><input id="p-name" placeholder="Косынка К-1"></div>
@@ -331,6 +348,34 @@ td{padding:9px 12px;vertical-align:middle;}
   </div>
 </div>
 
+<!-- TEMPLATE PICKER MODAL -->
+<div id="tmpl-picker-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:110;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:10px;width:540px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:15px">📦 Вставить шаблон</div>
+      <button class="btn btn-secondary btn-sm" onclick="closeTmplPicker()">✕</button>
+    </div>
+    <div style="padding:18px">
+      <div class="field mb-16">
+        <label>Шаблон изделия</label>
+        <select id="tp-sel" onchange="previewTmpl(this.value)" style="width:100%">
+          <option value="">— загрузка... —</option>
+        </select>
+      </div>
+      <div class="field mb-16">
+        <label>Множитель (кол-во изделий)</label>
+        <input type="number" id="tp-mult" value="1" min="1" style="width:120px">
+        <span class="field-hint">Количество изделия в узле. qty детали = norm × node.qty × multiplier</span>
+      </div>
+      <div id="tp-preview" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;min-height:60px;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="closeTmplPicker()">Отмена</button>
+      <button class="btn btn-primary" id="tp-apply-btn" onclick="applyTmplPicker()">📦 Вставить детали</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="erp-store.js"></script>
@@ -347,53 +392,69 @@ document.addEventListener('DOMContentLoaded', function(){
   if (topbarRight) topbarRight.prepend(btn);
 });
 
-const CATS=[
-  {id:'all',label:'Все'},{id:'tube_sq',label:'Трубы профильные'},{id:'tube_rnd',label:'Трубы круглые'},
-  {id:'angle',label:'Уголки'},{id:'channel',label:'Швеллеры и балки'},{id:'sheet',label:'Листовой прокат'},
-  {id:'rebar',label:'Арматура и прутки'},{id:'piece',label:'Штучные (крепёж)'},
-];
-
-// Map API profileType → simulator cat
-const PROFILE_CAT = {
-  'RECTANGULAR_TUBE':'tube_sq','ROUND_TUBE':'tube_rnd','ANGLE':'angle',
-  'CHANNEL':'channel','BEAM':'channel','SHEET':'sheet','PLATE':'sheet',
-  'ROUND_BAR':'rebar','FLAT_BAR':'rebar',
-};
+// CATS and slug map populated from /api/material-categories in loadMats()
+let CATS=[], _catSlugMap={};
 
 // MATS and PRICES loaded from API
 let MATS=[], PRICES=[], matsLoaded=false;
+let _matsChangedAt=localStorage.getItem('materials_changed')||'0';
 const REMS=[];
+
+function flatCats(cats, depth=0){
+  const result=[];
+  for(const c of cats){
+    _catSlugMap[c.id]=c.slug;
+    result.push({id:c.slug, label:'  '.repeat(depth)+c.name});
+    if(c.children?.length) result.push(...flatCats(c.children, depth+1));
+  }
+  return result;
+}
 
 async function loadMats() {
   try {
     showLoader(true);
-    const res = await fetch(`${API}/api/materials`);
-    const data = await res.json();
-    MATS = data.map(m => {
+    const [catsData, matsData] = await Promise.all([
+      fetch(`${API}/api/material-categories`).then(r=>r.json()),
+      fetch(`${API}/api/materials`).then(r=>r.json()),
+    ]);
+
+    // Build CATS and slug map from API (recursive to support arbitrary nesting)
+    _catSlugMap = {};
+    CATS = [{id:'all',label:'Все'}, ...flatCats(catsData), {id:'uncategorized',label:'Без категории'}];
+
+    // Build MATS (pure mapping, no side-effects)
+    MATS = matsData.map(m => {
       const geo = m.geometry || {};
       const prof = m.procurementProfiles || [];
-      const price = prof[0]?.prices?.[0];
-      const cat = PROFILE_CAT[m.profileType] || 'all';
+      const cat = m.categoryId ? (_catSlugMap[m.categoryId]||'uncategorized') : 'uncategorized';
       const kgm  = geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null;
       const kgm2 = geo.weightPerSquareMeter      ? parseFloat(geo.weightPerSquareMeter)      : null;
       const pm   = geo.paintSurfacePerMeter      ? parseFloat(geo.paintSurfacePerMeter)      : null;
       const stdLen = prof[0]?.standardLength ? [parseFloat(prof[0].standardLength)*1000] : null;
-      if (price) {
-        PRICES.push({
-          mid: m.id,
-          sup: prof[0]?.supplierName || '',
-          price: parseFloat(price.pricePerTon),
-          from: price.validFrom?.slice(0,10) || '2026-01-01',
-          to: price.validTo?.slice(0,10) || null,
-        });
-      }
       return {
         id: m.id, cat, code: m.code, name: m.name,
         kgm, kgm2, pm, sl: stdLen, sf: null,
         gost: m.standard || '',
         steelGrade: m.steelGrade || null,
+        mtype: geo.measurementType || 'LINEAR',
+        unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null,
       };
     });
+
+    // Build PRICES separately so it's explicit and avoids side-effects in map()
+    PRICES = [];
+    for(const m of matsData){
+      const prof=m.procurementProfiles||[];
+      const price=prof[0]?.prices?.[0];
+      if(price) PRICES.push({
+        mid: m.id,
+        sup: prof[0]?.supplierName||'',
+        price: parseFloat(price.pricePerTon),
+        from: price.validFrom?.slice(0,10)||'2026-01-01',
+        to: price.validTo?.slice(0,10)||null,
+      });
+    }
+
     matsLoaded = true;
     showLoader(false);
     refresh();
@@ -468,6 +529,29 @@ function loadDraft(){
 
 function gP(mid){const t=new Date().toISOString().slice(0,10);return PRICES.filter(p=>p.mid===mid&&p.from<=t&&(!p.to||p.to>=t)).sort((a,b)=>b.from.localeCompare(a.from))[0]||null;}
 
+function getPw(){
+  if(curMT!=='piece')return 0;
+  const defEl=document.getElementById('pw-default');
+  const cb=document.getElementById('pw-override');
+  if(defEl.style.display!=='none'&&!cb.checked)return selM?.unitKg??0;
+  return parseFloat(document.getElementById('p-pw').value)||0;
+}
+function updatePwField(){
+  const defEl=document.getElementById('pw-default');
+  const wrap=document.getElementById('pw-override-wrap');
+  const cb=document.getElementById('pw-override');
+  const inp=document.getElementById('p-pw');
+  if(curMT!=='piece'||!selM||selM.unitKg==null){
+    defEl.style.display='none';wrap.style.display='none';inp.style.display='';inp.disabled=false;return;
+  }
+  defEl.style.display='block';
+  defEl.textContent=selM.unitKg+' кг/шт (из справочника)';
+  wrap.style.display='flex';
+  if(cb.checked){inp.style.display='';inp.disabled=false;}
+  else{inp.style.display='none';inp.disabled=true;inp.value='';}
+}
+function onPwOverride(){updatePwField();calcPart();}
+
 function cPW(part,mat){
   if(!mat)return{wpu:0,tot:0,pm2:0,lmm:0,dbg:[]};
   const d=[];
@@ -525,6 +609,44 @@ function calcAsmPaintArea(a){
   return r4(area);
 }
 
+// Render parts grouped by BOM template node; ungrouped parts at the bottom
+function renderBomRows(a) {
+  if (!a.parts.length) return `<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`;
+  const groupMap = new Map();
+  const ungrouped = [];
+  for (const p of a.parts) {
+    if (p.bomGroupKey) {
+      if (!groupMap.has(p.bomGroupKey)) groupMap.set(p.bomGroupKey, {
+        key: p.bomGroupKey, label: p.bomGroupLabel||p.bomGroupKey,
+        sortPath: p.bomSortPath||'999', depth: p.bomDepth||0,
+        tmplCode: p.bomTemplateCode||'', parts: [],
+      });
+      groupMap.get(p.bomGroupKey).parts.push(p);
+    } else {
+      ungrouped.push(p);
+    }
+  }
+  const sorted = [...groupMap.values()].sort((x,y)=>x.sortPath.localeCompare(y.sortPath));
+  let html = '';
+  for (const grp of sorted) {
+    const collapsed = _bomCollapsed.has(`${a.id}:${grp.key}`);
+    const indent = 12 + grp.depth * 14;
+    html += `<tr class="bom-grp-hdr" onclick="toggleBomGroup('${a.id}','${grp.key.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      <td colspan="11" style="padding-left:${indent}px">
+        <span class="mono" style="font-size:11px;color:var(--muted)">${collapsed?'▶':'▼'}</span>
+        <span style="font-weight:700;font-size:12.5px;margin-left:4px">${grp.label}</span>
+        ${grp.tmplCode?`<span class="mono" style="font-size:11px;color:var(--muted);margin-left:6px">${grp.tmplCode}</span>`:''}
+        <span style="float:right;font-size:11px;color:var(--muted)">${grp.parts.length} дет.</span>
+      </td></tr>`;
+    if (!collapsed) for (const p of grp.parts) html += renderPR(p, a);
+  }
+  if (ungrouped.length) {
+    if (sorted.length) html += `<tr class="bom-grp-ungrouped"><td colspan="11">─── без шаблона ───</td></tr>`;
+    for (const p of ungrouped) html += renderPR(p, a);
+  }
+  return html;
+}
+
 function renderAsms(){
   const c=document.getElementById('asms-container');
   if(!asms.length){c.innerHTML=`<div class="card mb-16"><div class="empty"><div class="icon">📦</div>Узлов пока нет — добавьте первый ниже</div></div>`;return;}
@@ -535,9 +657,7 @@ function renderAsms(){
     const tab=_asmTab[a.id]||'parts';
     const lkmLayers=_asmCoatings[a.id]||[];
     const lkmBadge=lkmLayers.length?`<span style="background:#ede9fe;color:#6d28d9;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px">${lkmLayers.length}</span>`:'';
-    const rows=tab==='parts'
-      ?(!a.parts.length?`<tr><td colspan="11"><div class="empty" style="padding:16px">Деталей нет — нажмите «+ Деталь»</div></td></tr>`:a.parts.map(p=>renderPR(p,a)).join(''))
-      :'';
+    const rows=tab==='parts'?renderBomRows(a):'';
     const partsTable=tab==='parts'?`<table><thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>Масса/шт</th><th>Масса×узел</th><th>Покраска</th><th>Цена/т</th><th>Сумма</th><th></th></tr></thead><tbody>${rows}</tbody></table>`:'';
     const lkmSection=tab==='lkm'?renderLKMTab(a):'';
     return`<div class="card mb-16">
@@ -546,7 +666,9 @@ function renderAsms(){
           <input type="number" value="${a.qty}" min="1" style="width:54px;font-size:12px;text-align:center" title="Кол-во" onchange="updAQ('${a.id}',this.value)">
           <span class="text-xs text-muted">шт</span>${tots}
         </div>
-        <div class="gap-8"><button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+        <div class="gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="openMod('${a.id}')">+ Деталь</button>
+          <button class="btn btn-secondary btn-sm" onclick="openTmplPicker('${a.id}')" title="Вставить детали из шаблона">📦 Шаблон</button>
           <button class="btn btn-danger btn-sm" onclick="remA('${a.id}')">Удалить</button></div>
       </div>
       <div class="asm-tabs">
@@ -740,20 +862,37 @@ function remP(aid,pid){const a=asms.find(a=>a.id===aid);if(a){a.parts=a.parts.fi
 function resetQuote(){if(!confirm('Сбросить всё?'))return;asms=[];revs=[];nA=10;nP=100;_currentOrderId=null;localStorage.removeItem(DRAFT_KEY);document.getElementById('rev-count').textContent=0;refresh();}
 
 function openMod(aid){curA=aid;curEP=null;selM=null;curC='all';resetForm();document.getElementById('modal-title').textContent='Добавить деталь';document.getElementById('btn-confirm').textContent='Добавить деталь';document.getElementById('modal-ov').style.display='flex';buildCF();setMType('linear');}
-function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-pw').value=p.pw||'';document.getElementById('p-name').value=p.name||'';document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
+function openEdit(aid,pid){curA=aid;curEP=pid;selM=null;curC='all';resetForm();const a=asms.find(a=>a.id===aid),p=a?.parts.find(p=>p.id===pid);if(!p)return;setMType(p.mtype);selM=MATS.find(m=>m.id===p.mid);if(selM){document.getElementById('mat-search').value=selM.code;showSel();}document.getElementById('p-len').value=p.len||'';document.getElementById('p-qty').value=p.qty||1;document.getElementById('p-w').value=p.w||'';document.getElementById('p-h').value=p.h||'';document.getElementById('p-qty-a').value=p.qty||1;document.getElementById('p-qty-p').value=p.qty||1;document.getElementById('p-name').value=p.name||'';
+  // Restore PIECE pw state
+  if(p.mtype==='piece'&&selM){
+    updatePwField();
+    if(selM.unitKg==null){document.getElementById('p-pw').value=p.pw||'';}
+    else if(p.pw!=null&&Math.abs(Number(p.pw)-selM.unitKg)>0.00001){
+      document.getElementById('pw-override').checked=true;updatePwField();document.getElementById('p-pw').value=p.pw;
+    }
+  }else{document.getElementById('p-pw').value=p.pw||'';}
+  document.getElementById('modal-title').textContent='Редактировать деталь';document.getElementById('btn-confirm').textContent='Сохранить изменения';document.getElementById('modal-ov').style.display='flex';buildCF();calcPart();}
 function closeModal(){document.getElementById('modal-ov').style.display='none';document.getElementById('mat-dd').classList.remove('open');}
-function resetForm(){selM=null;['mat-search','p-len','p-w','p-h','p-name','p-pw'].forEach(id=>document.getElementById(id).value='');['p-qty','p-qty-a','p-qty-p'].forEach(id=>document.getElementById(id).value=1);['mat-sel','rem-hint','stdlen-wrap','sheet-wrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('part-res').style.display='none';document.getElementById('part-dbg').classList.add('hidden');document.getElementById('no-price-w').style.display='none';}
+function resetForm(){selM=null;['mat-search','p-len','p-w','p-h','p-name','p-pw'].forEach(id=>document.getElementById(id).value='');['p-qty','p-qty-a','p-qty-p'].forEach(id=>document.getElementById(id).value=1);['mat-sel','rem-hint','stdlen-wrap','sheet-wrap'].forEach(id=>document.getElementById(id).style.display='none');document.getElementById('part-res').style.display='none';document.getElementById('part-dbg').classList.add('hidden');document.getElementById('no-price-w').style.display='none';document.getElementById('pw-override').checked=false;updatePwField();}
 
-function buildCF(){const rel={linear:['all','tube_sq','tube_rnd','angle','channel','rebar'],area:['all','sheet'],piece:['all','piece']}[curMT]||['all'];document.getElementById('cat-filter').innerHTML=CATS.filter(c=>rel.includes(c.id)).map(c=>`<div class="cat-btn ${c.id===curC?'active':''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');}
+function buildCF(){
+  let mtFilter;
+  if(curMT==='area')mtFilter=m=>m.kgm2!=null;
+  else if(curMT==='piece')mtFilter=m=>m.mtype==='PIECE';
+  else mtFilter=m=>m.kgm!=null;
+  const activeCats=new Set(MATS.filter(mtFilter).map(m=>m.cat));
+  activeCats.add('all');
+  document.getElementById('cat-filter').innerHTML=CATS.filter(c=>activeCats.has(c.id)).map(c=>`<div class="cat-btn ${c.id===curC?'active':''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');
+}
 function setC(id){curC=id;buildCF();searchMat(document.getElementById('mat-search').value);}
-function setMType(t){curMT=t;['linear','area','piece'].forEach(x=>{document.getElementById('dims-'+x).style.display=x===t?'':'none';document.getElementById('mt-'+x).classList.toggle('active',x===t);});if(t==='area')curC='sheet';else if(t==='piece')curC='piece';else curC='all';buildCF();if(document.getElementById('mat-search').value)searchMat(document.getElementById('mat-search').value);calcPart();}
+function setMType(t){curMT=t;['linear','area','piece'].forEach(x=>{document.getElementById('dims-'+x).style.display=x===t?'':'none';document.getElementById('mt-'+x).classList.toggle('active',x===t);});curC='all';document.getElementById('pw-override').checked=false;buildCF();updatePwField();if(document.getElementById('mat-search').value)searchMat(document.getElementById('mat-search').value);calcPart();}
 
 function searchMat(q){
   const dd=document.getElementById('mat-dd');
   let ms=MATS;
   if(curMT==='area')ms=ms.filter(m=>m.kgm2!=null);
   if(curMT==='linear')ms=ms.filter(m=>m.kgm!=null);
-  if(curMT==='piece')ms=ms.filter(m=>m.cat==='piece');
+  if(curMT==='piece')ms=ms.filter(m=>m.mtype==='PIECE');
   if(curC&&curC!=='all')ms=ms.filter(m=>m.cat===curC);
   if(q.trim()){const ql=q.toLowerCase();ms=ms.filter(m=>m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql));}
   if(!ms.length){dd.innerHTML=`<div style="padding:12px;color:var(--muted);font-size:12px">Ничего не найдено</div>`;dd.classList.add('open');return;}
@@ -768,7 +907,7 @@ function searchMat(q){
   dd.innerHTML=html;dd.classList.add('open');
 }
 
-function selMat(id){selM=MATS.find(m=>m.id===id);document.getElementById('mat-search').value=selM.code;document.getElementById('mat-dd').classList.remove('open');showSel();if(selM.kgm2!=null&&selM.kgm==null)setMType('area');
+function selMat(id){selM=MATS.find(m=>m.id===id);document.getElementById('mat-search').value=selM.code;document.getElementById('mat-dd').classList.remove('open');showSel();if(selM.mtype==='PIECE')setMType('piece');else if(selM.kgm2!=null&&selM.kgm==null)setMType('area');else updatePwField();
   const sw=document.getElementById('stdlen-wrap'),sb=document.getElementById('stdlen-btns');
   if(selM.sl?.length){sw.style.display='block';sb.innerHTML=selM.sl.map(l=>`<div class="quick-btn" onclick="apL(${l})">${fm(l)} мм</div>`).join('');document.getElementById('hint-std').textContent=`Стандартные длины: ${selM.sl.map(l=>fm(l)+' мм').join(', ')}`;}else{sw.style.display='none';document.getElementById('hint-std').textContent='';}
   const fw=document.getElementById('sheet-wrap'),fb=document.getElementById('sheet-btns');
@@ -782,7 +921,7 @@ function apL(mm){document.getElementById('p-len').value=mm;calcPart();toast(`${f
 function apS(w,h){document.getElementById('p-w').value=w;document.getElementById('p-h').value=h;calcPart();toast(`Формат ${fm(w)}×${fm(h)} мм`,'success');}
 function useR(r){if(r.length){document.getElementById('p-len').value=r.length;setMType('linear');}else{document.getElementById('p-w').value=r.width;document.getElementById('p-h').value=r.height;setMType('area');}calcPart();toast('Остаток подставлен','success');}
 
-function gFP(){const qm={linear:'p-qty',area:'p-qty-a',piece:'p-qty-p'};return{mtype:curMT,len:parseFloat(document.getElementById('p-len').value)||0,qty:parseInt(document.getElementById(qm[curMT]).value)||1,w:parseFloat(document.getElementById('p-w').value)||0,h:parseFloat(document.getElementById('p-h').value)||0,pw:parseFloat(document.getElementById('p-pw').value)||0};}
+function gFP(){const qm={linear:'p-qty',area:'p-qty-a',piece:'p-qty-p'};return{mtype:curMT,len:parseFloat(document.getElementById('p-len').value)||0,qty:parseInt(document.getElementById(qm[curMT]).value)||1,w:parseFloat(document.getElementById('p-w').value)||0,h:parseFloat(document.getElementById('p-h').value)||0,pw:getPw()};}
 
 function calcPart(){
   if(!selM)return;const p=gFP();const{wpu,tot,pm2,dbg:d}=cPW({...p,mid:selM.id},selM);const pr=gP(selM.id);const{cost,d:cd}=cCost(tot,pr);
@@ -803,7 +942,12 @@ function confirmPart(){
   const f=gFP();
   if(f.mtype==='linear'&&!f.len){toast('Введите длину','error');return;}
   if(f.mtype==='area'&&(!f.w||!f.h)){toast('Введите ширину и высоту','error');return;}
-  if(f.mtype==='piece'&&!f.pw){toast('Введите массу 1 шт','error');return;}
+  if(f.mtype==='piece'){
+    const hasDefault=document.getElementById('pw-default').style.display!=='none';
+    const overriding=document.getElementById('pw-override').checked;
+    if(!hasDefault&&!f.pw){toast('Введите массу 1 шт','error');return;}
+    if(hasDefault&&overriding&&!f.pw){toast('Введите массу или снимите флажок','error');return;}
+  }
   const a=asms.find(a=>a.id===curA);if(!a)return;
   const pd={mid:selM.id,name:document.getElementById('p-name').value||'',mtype:f.mtype,len:f.len,qty:f.qty,w:f.w,h:f.h,pw:f.pw};
   if(curEP){const i=a.parts.findIndex(p=>p.id===curEP);if(i!==-1)a.parts[i]={...a.parts[i],...pd};toast('Деталь обновлена','success');}
@@ -880,7 +1024,7 @@ function runCmp(){
   }).join('')}</tbody></table>`}</div>`;
 }
 
-function renderMats(q=''){const ql=q.toLowerCase();const cl={tube_sq:'Трубы профильные',tube_rnd:'Трубы круглые',angle:'Уголки',channel:'Швеллеры и балки',sheet:'Листовой прокат',rebar:'Арматура и прутки',piece:'Штучные'};const rows=MATS.filter(m=>!ql||m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql)).map(m=>`<tr><td class="mono" style="color:var(--accent);font-weight:700">${m.code}</td><td>${m.name}</td><td><span style="font-size:11px;color:var(--muted)">${cl[m.cat]||m.cat}</span></td><td class="mono">${m.kgm??'—'}</td><td class="mono">${m.kgm2??'—'}</td><td class="mono" style="color:var(--orange)">${m.pm??'по размеру'}</td><td class="mono text-muted">${m.gost}</td></tr>`).join('');document.getElementById('mat-tbody').innerHTML=rows||`<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;}
+function renderMats(q=''){const ql=q.toLowerCase();const rows=MATS.filter(m=>!ql||m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql)).map(m=>`<tr><td class="mono" style="color:var(--accent);font-weight:700">${m.code}</td><td>${m.name}</td><td><span style="font-size:11px;color:var(--muted)">${CATS.find(c=>c.id===m.cat)?.label||m.cat}</span></td><td class="mono">${m.kgm??'—'}</td><td class="mono">${m.kgm2??'—'}</td><td class="mono" style="color:var(--orange)">${m.pm??'по размеру'}</td><td class="mono text-muted">${m.gost}</td></tr>`).join('');document.getElementById('mat-tbody').innerHTML=rows||`<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;}
 function renderPrices(){const today=new Date().toISOString().slice(0,10);document.getElementById('prices-tbody').innerHTML=PRICES.map(p=>{const mat=MATS.find(m=>m.id===p.mid);const act=p.from<=today&&(!p.to||p.to>=today);return`<tr><td><span class="mono" style="color:var(--accent)">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mono" style="font-weight:700;color:${act?'var(--green)':'var(--muted)'}">${fm(p.price)}</td><td class="mono text-muted">${p.from}</td><td class="mono text-muted">${p.to||'—'}</td><td><span class="badge ${act?'s-approved':'s-cancelled'}">${act?'актуальная':'истекла'}</span></td></tr>`;}).join('');}
 
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach(x=>{if(x.getAttribute('onclick')?.includes(`'${p}'`))x.classList.add('active');});if(p==='revisions')renderRevs();if(p==='compare'){updCmpSel();document.getElementById('cmp-result').innerHTML='';}if(p==='materials')renderMats();if(p==='prices')renderPrices();}
@@ -944,6 +1088,14 @@ function _apiAsmsToSim(apiAsms){
       h:p.sheetHeight!=null?Number(p.sheetHeight):null,
       pw:p.directWeightKg!=null?Number(p.directWeightKg):null,
       qty:p.quantity||1,
+      bomTemplateCode:    p.bomTemplateCode||null,
+      bomTemplateId:      p.bomTemplateId||null,
+      bomTemplateVersion: p.bomTemplateVersion!=null?p.bomTemplateVersion:null,
+      bomGroupKey:        p.bomGroupKey||null,
+      bomGroupLabel:      p.bomGroupLabel||null,
+      bomDepth:           p.bomDepth!=null?p.bomDepth:null,
+      bomPath:            p.bomPath||null,
+      bomSortPath:        p.bomSortPath||null,
     }))
   }));
 }
@@ -980,9 +1132,172 @@ function _apiAsmsToSim(apiAsms){
     }
   } catch(e) { console.warn('init error', e); loadDraft(); }
 })();
+// Reload materials when returning from materials.html tab
+window.addEventListener('focus',async()=>{
+  const flag=localStorage.getItem('materials_changed')||'0';
+  if(flag!==_matsChangedAt){_matsChangedAt=flag;await loadMats();}
+});
+
 refresh();
 loadMats();
 (async()=>{try{if(typeof ERPStore!=='undefined'){COATINGS_CATALOG=await ERPStore.listCoatingMaterials();}}catch(e){console.warn('coating catalog load failed',e);}})();
+
+// ─── Template Picker ──────────────────────────────────────────────────────────
+
+let _tmplList = [];
+let _tmplPickerAid = null;
+const _bomCollapsed = new Set(); // "asmId:bomGroupKey"
+
+async function openTmplPicker(aid) {
+  _tmplPickerAid = aid;
+  document.getElementById('tp-preview').innerHTML = '<span style="color:var(--muted)">Выберите шаблон...</span>';
+  document.getElementById('tmpl-picker-bg').style.display = 'flex';
+  if (!_tmplList.length) {
+    try {
+      _tmplList = await ERPStore.listTemplates();
+    } catch(e) {
+      toast('Ошибка загрузки шаблонов: ' + e.message, 'error');
+      closeTmplPicker();
+      return;
+    }
+  }
+  const sel = document.getElementById('tp-sel');
+  if (!_tmplList.length) {
+    sel.innerHTML = '<option value="">Нет шаблонов — создайте в разделе Шаблоны</option>';
+  } else {
+    sel.innerHTML = _tmplList.map(t =>
+      `<option value="${t.id}">${t.code} — ${t.name}</option>`
+    ).join('');
+    previewTmpl(sel.value);
+  }
+  document.getElementById('tp-mult').value = 1;
+}
+
+function closeTmplPicker() {
+  document.getElementById('tmpl-picker-bg').style.display = 'none';
+}
+
+// Recursive flatten with full BOM metadata
+function _flattenNodesWithMeta(nodes, templateId, templateCode, multiplier, out, parentPath, depth, parentSortSeg) {
+  nodes.forEach((node, idx) => {
+    const seg = String(idx + 1).padStart(3, '0');
+    const sortPath = parentSortSeg ? `${parentSortSeg}.${seg}` : seg;
+    const path = [...parentPath, { id: node.id, label: node.name }];
+    const effQty = (node.qty || 1) * multiplier;
+    for (const p of (node.parts || [])) {
+      out.push({
+        ...p,
+        _effQty: effQty,
+        bomTemplateCode: templateCode,
+        bomGroupKey:     `${templateId}:${node.id}`,
+        bomGroupLabel:   node.name,
+        bomDepth:        depth,
+        bomPath:         path,
+        bomSortPath:     sortPath,
+      });
+    }
+    if (node.children && node.children.length) {
+      _flattenNodesWithMeta(node.children, templateId, templateCode, effQty, out, path, depth + 1, sortPath);
+    }
+  });
+  return out;
+}
+
+async function previewTmpl(id) {
+  if (!id) return;
+  const box = document.getElementById('tp-preview');
+  box.innerHTML = '<span style="color:var(--muted)">Загрузка...</span>';
+  try {
+    const t = await ERPStore.getTemplate(id);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, 1, [], [], 0, '');
+    if (!flat.length) {
+      box.innerHTML = '<div style="color:var(--muted)">Шаблон пустой — добавьте детали в разделе Шаблоны</div>';
+      return;
+    }
+    // Group by bomGroupKey for structured preview
+    const groups = new Map();
+    for (const p of flat) {
+      if (!groups.has(p.bomGroupKey)) groups.set(p.bomGroupKey, { label: p.bomGroupLabel, depth: p.bomDepth, sortPath: p.bomSortPath, parts: [] });
+      groups.get(p.bomGroupKey).parts.push(p);
+    }
+    const sorted = [...groups.values()].sort((a, b) => a.sortPath.localeCompare(b.sortPath));
+    const MTYPE = { LINEAR: '📏', AREA: '⬜', PIECE: '🔩' };
+    let html = `<div style="font-weight:700;margin-bottom:8px;font-size:12px">${t.code} — ${t.name}</div>`;
+    for (const grp of sorted) {
+      const indent = grp.depth * 12;
+      html += `<div style="padding:3px 0 1px ${indent}px;font-weight:700;font-size:12px;color:var(--text)">▸ ${grp.label}</div>`;
+      for (const p of grp.parts) {
+        const mat = MATS.find(m => m.id === p.materialDefinitionId);
+        let dims = '';
+        if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
+        else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
+        const totalQty = (p.quantity || 1) * p._effQty;
+        html += `<div style="padding:2px 0 2px ${indent + 14}px;font-size:11.5px;color:var(--muted)">
+          ${MTYPE[p.measurementType] || ''} <span class="mono" style="color:var(--accent)">${mat ? mat.code : '?'}</span>${dims} → <strong style="color:var(--text)">${totalQty} шт</strong>${p.notes ? ` <span style="color:var(--muted)">— ${p.notes}</span>` : ''}
+        </div>`;
+      }
+    }
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<span style="color:var(--red)">Ошибка: ${e.message}</span>`;
+  }
+}
+
+async function applyTmplPicker() {
+  const tmplId = document.getElementById('tp-sel').value;
+  const mult = parseInt(document.getElementById('tp-mult').value) || 1;
+  if (!tmplId || !_tmplPickerAid) return;
+  const a = asms.find(a => a.id === _tmplPickerAid);
+  if (!a) return;
+  const btn = document.getElementById('tp-apply-btn');
+  btn.disabled = true; btn.textContent = 'Вставка...';
+  try {
+    const t = await ERPStore.getTemplate(tmplId);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, mult, [], [], 0, '');
+    if (!flat.length) { toast('Шаблон пустой', 'warning'); return; }
+    const MTYPE_MAP = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
+    let added = 0;
+    for (const p of flat) {
+      const mat = MATS.find(m => m.id === p.materialDefinitionId);
+      if (!mat) { console.warn('Material not found:', p.materialDefinitionId); continue; }
+      a.parts.push({
+        id:   'pt' + nP++,
+        mid:  p.materialDefinitionId,
+        name: p.notes || '',
+        mtype: MTYPE_MAP[p.measurementType] || 'linear',
+        len:  p.length          != null ? Number(p.length)          : null,
+        w:    p.sheetWidth      != null ? Number(p.sheetWidth)      : null,
+        h:    p.sheetHeight     != null ? Number(p.sheetHeight)     : null,
+        pw:   p.directWeightKg  != null ? Number(p.directWeightKg)  : (mat.unitKg || null),
+        qty:  (p.quantity || 1) * p._effQty,
+        // BOM metadata
+        bomTemplateCode:    p.bomTemplateCode,
+        bomTemplateId:      t.id,
+        bomTemplateVersion: t.version,
+        bomGroupKey:        p.bomGroupKey,
+        bomGroupLabel:      p.bomGroupLabel,
+        bomDepth:           p.bomDepth,
+        bomPath:            p.bomPath,
+        bomSortPath:        p.bomSortPath,
+      });
+      added++;
+    }
+    closeTmplPicker();
+    refresh();
+    saveDraft();
+    toast(`Шаблон «${t.code}» вставлен: ${added} деталей в узел «${a.name}»`, 'success');
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '📦 Вставить детали';
+  }
+}
+
+function toggleBomGroup(asmId, groupKey) {
+  const k = `${asmId}:${groupKey}`;
+  if (_bomCollapsed.has(k)) _bomCollapsed.delete(k); else _bomCollapsed.add(k);
+  renderAsms();
+}
 </script>
 
 <!-- LKM Layer Modal -->

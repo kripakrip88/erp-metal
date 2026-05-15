@@ -14,6 +14,14 @@ function validateCreatePart(body) {
     quantity:        parseInt(body.quantity) || 1,
     notes:           body.notes || null,
     position:        body.position || 0,
+    bomTemplateCode:    body.bomTemplateCode    || null,
+    bomTemplateId:      body.bomTemplateId      || null,
+    bomTemplateVersion: body.bomTemplateVersion != null ? parseInt(body.bomTemplateVersion) : null,
+    bomGroupKey:        body.bomGroupKey        || null,
+    bomGroupLabel:      body.bomGroupLabel      || null,
+    bomDepth:           body.bomDepth           != null ? parseInt(body.bomDepth) : null,
+    bomPath:            body.bomPath            || null,
+    bomSortPath:        body.bomSortPath        || null,
   }
 }
 

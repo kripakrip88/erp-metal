@@ -253,8 +253,8 @@ async function createRevision(orderId, notes) {
         wpu    = r.weightPerUnit
         totalW = r.totalWeight
         paint  = calcAreaPaint(Number(part.sheetWidth), Number(part.sheetHeight), part.quantity * asmQty)
-      } else if (part.measurementType === 'PIECE' && part.directWeightKg) {
-        wpu    = Number(part.directWeightKg)
+      } else if (part.measurementType === 'PIECE') {
+        wpu    = Number(part.directWeightKg ?? geo.unitWeightKg ?? 0)
         totalW = Math.round(wpu * part.quantity * asmQty * 10000) / 10000
         paint  = 0
       }
@@ -292,6 +292,14 @@ async function createRevision(orderId, notes) {
         currency:      'RUB',
         materialCost:  cost,
         assemblyName:  asm.name,
+        bomTemplateCode:    part.bomTemplateCode    ?? null,
+        bomTemplateId:      part.bomTemplateId      ?? null,
+        bomTemplateVersion: part.bomTemplateVersion ?? null,
+        bomGroupKey:        part.bomGroupKey        ?? null,
+        bomGroupLabel:      part.bomGroupLabel      ?? null,
+        bomDepth:           part.bomDepth           ?? null,
+        bomPath:            part.bomPath            ?? null,
+        bomSortPath:        part.bomSortPath        ?? null,
       })
     }
 
