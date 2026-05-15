@@ -6,6 +6,19 @@ const { Prisma }    = require('@prisma/client')
 const CALCULATION_FORMULA_VERSION = '1.0'
 const PRICING_FORMULA_VERSION     = '1.0'
 
+// ─── 5.3.8 RF-1 — Decimal normalisation for deterministic revision diffing ────
+
+// Decimal/string normalization required for deterministic ERP revision diffing.
+// Prisma.Decimal serialises with variable precision ("0.1440" vs "0.144" for the
+// same value), producing false-positive MODIFIED entries in compareRevisions.
+// Using .toFixed() collapses all trailing-zero variants to a canonical form.
+function normaliseCompareValue(value) {
+  if (value == null) return ''
+  if (value instanceof Prisma.Decimal) return value.toFixed()
+  if (typeof value === 'object') return new Prisma.Decimal(value).toFixed()
+  return String(value)
+}
+
 // ─── Internal guards ──────────────────────────────────────────────────────────
 
 async function _loadRevision(tx, revisionId) {
@@ -34,10 +47,16 @@ async function createDraftRevision(assemblyId, { createdByUserId = null, notes =
   })
   const revisionNumber = last ? last.revisionNumber + 1 : 1
 
-  return prisma.assemblyRevision.create({
-    data: { assemblyId, revisionNumber, status: 'DRAFT', createdByUserId, notes },
-    include: { coatingSnapshots: { orderBy: { position: 'asc' } } },
-  })
+  // DB partial unique index is the final integrity layer against concurrent DRAFT creation.
+  try {
+    return await prisma.assemblyRevision.create({
+      data: { assemblyId, revisionNumber, status: 'DRAFT', createdByUserId, notes },
+      include: { coatingSnapshots: { orderBy: { position: 'asc' } } },
+    })
+  } catch (err) {
+    if (err.code === 'P2002') throw new Error('Assembly already has active DRAFT revision')
+    throw err
+  }
 }
 
 // ─── 5.3.3 — Freeze pipeline ─────────────────────────────────────────────────
@@ -285,7 +304,7 @@ async function compareRevisions(revisionIdA, revisionIdB) {
 
     if (a && b) {
       const changedFields = COMPARE_FIELDS.filter(
-        field => String(a[field] ?? '') !== String(b[field] ?? '')
+        field => normaliseCompareValue(a[field]) !== normaliseCompareValue(b[field])
       )
       if (changedFields.length > 0) {
         layers.push({ layerNumber: layerNum, position: a.position, changeType: 'MODIFIED', before: a, after: b, changedFields })
