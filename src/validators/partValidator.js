@@ -22,6 +22,7 @@ function validateCreatePart(body) {
     bomDepth:           body.bomDepth           != null ? parseInt(body.bomDepth) : null,
     bomPath:            body.bomPath            || null,
     bomSortPath:        body.bomSortPath        || null,
+    partCategory:       body.partCategory       || null,
   }
 }
 
