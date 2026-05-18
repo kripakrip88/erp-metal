@@ -205,6 +205,7 @@ model Company {
   materialReservations MaterialReservation[]
   inventoryBalances    InventoryBalance[]
   productTemplates     ProductTemplate[]
+  customers            Customer[]
 
   @@map("companies")
 }
@@ -228,6 +229,7 @@ model User {
   orders    Order[]         @relation("CreatedByUser")
   revisions QuoteRevision[] @relation("RevisionCreatedBy")
   auditLogs AuditLog[]
+  interactionsCreated Interaction[] @relation("InteractionCreatedBy")
 
   @@map("users")
 }
@@ -385,6 +387,7 @@ model Order {
   id           String      @id @default(uuid())
   companyId    String
   createdById  String
+  customerId   String?
   orderNumber  String
   customerName String
   title        String
@@ -400,15 +403,18 @@ model Order {
 
   company             Company         @relation(fields: [companyId], references: [id])
   createdBy           User            @relation("CreatedByUser", fields: [createdById], references: [id])
+  customer            Customer?       @relation(fields: [customerId], references: [id])
   phases              Phase[]
   assemblies          Assembly[]
   revisions           QuoteRevision[]  @relation("OrderRevisions")
   activeQuoteRevision QuoteRevision?   @relation("ActiveQuoteRevision", fields: [activeQuoteRevisionId], references: [id], onDelete: SetNull)
   files               OrderFile[]
   materialReservations MaterialReservation[]
+  interactions        Interaction[]
 
   @@unique([companyId, orderNumber])
   @@index([activeQuoteRevisionId])
+  @@index([customerId])
   @@map("orders")
 }
 
@@ -1114,4 +1120,89 @@ model ProductTemplateNodePart {
   materialDefinition MaterialDefinition  @relation(fields: [materialDefinitionId], references: [id])
 
   @@map("product_template_node_parts")
+}
+
+enum CustomerPriority {
+  VIP
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum InteractionType {
+  EMAIL
+  CALL
+  MEETING
+  NOTE
+}
+
+enum InteractionDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Customer {
+  id          String           @id @default(uuid())
+  companyId   String
+  name        String
+  inn         String?
+  phone       String?
+  email       String?
+  website     String?
+  notes       String?
+  priority    CustomerPriority @default(NORMAL)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  contacts     Contact[]
+  orders       Order[]
+  interactions Interaction[]
+
+  @@index([companyId])
+  @@index([email])
+  @@map("crm_customers")
+}
+
+model Contact {
+  id         String   @id @default(uuid())
+  customerId String
+  name       String
+  phone      String?
+  email      String?
+  position   String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  interactions Interaction[]
+
+  @@index([customerId])
+  @@index([email])
+  @@map("crm_contacts")
+}
+
+model Interaction {
+  id             String               @id @default(uuid())
+  customerId     String
+  contactId      String?
+  orderId        String?
+  type           InteractionType
+  direction      InteractionDirection
+  subject        String?
+  body           String?
+  emailMessageId String?              @unique
+  createdAt      DateTime             @default(now())
+  createdById    String
+
+  customer  Customer  @relation(fields: [customerId], references: [id])
+  contact   Contact?  @relation(fields: [contactId], references: [id])
+  order     Order?    @relation(fields: [orderId], references: [id])
+  createdBy User      @relation("InteractionCreatedBy", fields: [createdById], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+  @@map("crm_interactions")
 }
