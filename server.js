@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const http = require('http')
 const { matchRoute }   = require('./src/utils/router')
 const { json }         = require('./src/utils/response')
