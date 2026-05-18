@@ -1,13 +1,8 @@
 const prisma = require('../repositories/prisma')
-
-async function getCompanyId() {
-  const company = await prisma.company.findFirst({ select: { id: true } })
-  return company?.id ?? null
-}
+const { getCompanyId } = require('../utils/company')
 
 async function listCategories() {
   const companyId = await getCompanyId()
-  if (!companyId) return []
 
   const rows = await prisma.materialCategory.findMany({
     where: { companyId, deletedAt: null },
@@ -15,13 +10,11 @@ async function listCategories() {
     orderBy: { position: 'asc' },
   })
 
-  // Return only root categories (parentId === null); children are nested via include
   return rows.filter(r => r.parentId === null)
 }
 
 async function createCategory({ slug, name, parentId, position }) {
   const companyId = await getCompanyId()
-  if (!companyId) throw new Error('Company not found')
 
   return prisma.materialCategory.create({
     data: { companyId, slug, name, parentId: parentId ?? null, position: position ?? 0 },
@@ -29,6 +22,10 @@ async function createCategory({ slug, name, parentId, position }) {
 }
 
 async function updateCategory(id, { slug, name, parentId, position, isActive }) {
+  if (parentId !== undefined && parentId === id) {
+    throw Object.assign(new Error('Category cannot be its own parent'), { status: 400 })
+  }
+
   const data = {}
   if (slug      !== undefined) data.slug     = slug
   if (name      !== undefined) data.name     = name

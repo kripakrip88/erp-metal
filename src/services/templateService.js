@@ -1,11 +1,8 @@
-const templateRepo = require('../repositories/templateRepo')
-const prisma       = require('../repositories/prisma')
+const templateRepo   = require('../repositories/templateRepo')
+const prisma         = require('../repositories/prisma')
+const { getCompany } = require('../utils/company')
 
 const MAX_DEPTH = 3
-
-async function getCompany() {
-  return prisma.company.findFirst()
-}
 
 // ─── Templates ───────────────────────────────────────────────────────────────
 
@@ -173,7 +170,6 @@ async function cloneNodes(tx, nodes, orderId, parentAssemblyId, multiplier, temp
         name:                 node.name,
         qty:                  node.qty * multiplier,
         position:             node.position,
-        // трассировка источника только на корневых узлах шаблона
         ...(isTopLevel ? {
           sourceTemplateId:      templateMeta.sourceTemplateId,
           sourceTemplateVersion: templateMeta.sourceTemplateVersion,
@@ -193,7 +189,7 @@ async function cloneNodes(tx, nodes, orderId, parentAssemblyId, multiplier, temp
           sheetHeight:          p.sheetHeight,
           directWeightKg:       p.directWeightKg,
           surfaceAreaM2:        p.surfaceAreaM2,
-          quantity:             p.quantity, // без умножения — per-assembly норма
+          quantity:             p.quantity,
           notes:                p.notes,
           position:             p.position,
         },

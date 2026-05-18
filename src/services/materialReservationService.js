@@ -1,16 +1,11 @@
 const prisma = require('../repositories/prisma')
 const { getReleasedProcurementSnapshot } = require('./procurementSnapshotService')
 const { AUDIT_EVENTS, safeAudit }        = require('./auditService')
+const { getCompanyId }                   = require('../utils/company')
 
 // Material reservations are derived exclusively from released procurement snapshots.
 // reservedQuantity is ALWAYS finalConsumptionKg — never recalculated after creation.
 // Idempotency enforced by @@unique([companyId, assemblyRevisionId, materialId, coatingSnapshotId]).
-
-async function _companyId() {
-  const c = await prisma.company.findFirst({ select: { id: true } })
-  if (!c) throw new Error('Company not found')
-  return c.id
-}
 
 // ─── MR-1  Create reservations from released revision ────────────────────────
 
@@ -18,7 +13,7 @@ async function _companyId() {
 // Idempotent: skips rows that already have a RESERVED reservation (unique constraint).
 // Throws if any assembly has no released revision (procurement snapshot guard handles this).
 async function createReservationsFromReleasedRevision(orderId) {
-  const companyId = await _companyId()
+  const companyId = await getCompanyId()
 
   // Load procurement snapshot — this enforces order status + PV-1/PV-2/PV-3 guards.
   const snapshot = await getReleasedProcurementSnapshot(orderId)
@@ -56,7 +51,6 @@ async function createReservationsFromReleasedRevision(orderId) {
   }
 
   // MR-4: Idempotency — skip existing RESERVED rows via skipDuplicates.
-  // createMany with skipDuplicates will silently skip rows that violate the unique constraint.
   const result = await prisma.materialReservation.createMany({
     data:           rows,
     skipDuplicates: true,
@@ -81,8 +75,6 @@ async function createReservationsFromReleasedRevision(orderId) {
 
 // ─── MR-2  Aggregated totals per material ────────────────────────────────────
 
-// Returns total reserved quantity per material for a company.
-// Filters to RESERVED status only — RELEASED/CANCELLED rows are excluded.
 async function getReservedMaterialTotals(companyId) {
   const reservations = await prisma.materialReservation.findMany({
     where:  { companyId, status: 'RESERVED' },
