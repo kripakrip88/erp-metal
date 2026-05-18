@@ -1,6 +1,7 @@
 const orderRepo       = require('../repositories/orderRepo')
 const prisma          = require('../repositories/prisma')
 const PART_CATEGORIES = require('../constants/partCategories')
+const { getCompany }  = require('../utils/company')
 const {
   LOCKED_ORDER_STATUSES,
   TOPOLOGY_LOCKED_STATUSES,
@@ -8,10 +9,6 @@ const {
   assertAssemblyStructureMutable,
 } = require('./orderIntegrityService')
 const { AUDIT_EVENTS, safeAudit } = require('./auditService')
-
-async function getCompany() {
-  return prisma.company.findFirst()
-}
 
 async function listOrders() {
   const company = await getCompany()
