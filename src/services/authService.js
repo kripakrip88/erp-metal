@@ -7,7 +7,11 @@ async function login(email, password) {
     throw Object.assign(new Error('email and password required'), { status: 400 })
 
   const user = await prisma.user.findFirst({
-    where: { email: email.toLowerCase().trim(), isActive: true, deletedAt: null },
+    where: {
+      email:     { equals: email.trim(), mode: 'insensitive' },
+      isActive:  true,
+      deletedAt: null,
+    },
     select: {
       id: true, email: true, firstName: true, lastName: true,
       role: true, passwordHash: true, companyId: true,
