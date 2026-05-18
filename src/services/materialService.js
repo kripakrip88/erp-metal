@@ -1,9 +1,5 @@
-const materialRepo = require('../repositories/materialRepo')
-const prisma = require('../repositories/prisma')
-
-async function getCompany() {
-  return prisma.company.findFirst()
-}
+const materialRepo  = require('../repositories/materialRepo')
+const { getCompany } = require('../utils/company')
 
 async function listMaterials({ search, profileType, categoryId }) {
   const company = await getCompany()
