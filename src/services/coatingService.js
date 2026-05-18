@@ -3,19 +3,12 @@ const { calcLinearPaint, calcAreaPaint } = require('../calculations/paintCalc')
 const { calcCoatingConsumption }         = require('../calculations/coatingCalc')
 const { calcCoatingCost }                = require('../calculations/coatingCostCalc')
 const { assertAssemblyMutable }          = require('./assemblyRevisionService')
-
-// ─── Internal helpers ─────────────────────────────────────────────────────────
-
-async function _companyId() {
-  const c = await prisma.company.findFirst()
-  if (!c) throw new Error('Company not found')
-  return c.id
-}
+const { getCompanyId }                   = require('../utils/company')
 
 // ─── Coating Material catalog ─────────────────────────────────────────────
 
 async function listCoatingMaterials() {
-  const companyId = await _companyId()
+  const companyId = await getCompanyId()
   return prisma.coatingMaterial.findMany({
     where: { companyId, isActive: true },
     orderBy: [{ coatingType: 'asc' }, { code: 'asc' }],
@@ -23,7 +16,7 @@ async function listCoatingMaterials() {
 }
 
 async function createCoatingMaterial(data) {
-  const companyId = await _companyId()
+  const companyId = await getCompanyId()
   return prisma.coatingMaterial.create({
     data: { companyId, ...data },
   })
@@ -84,7 +77,6 @@ async function createAssemblyCoating(assemblyId, data) {
   const position = last ? last.position + 1 : 0
   const layerNumber = data.layerNumber ?? (last ? last.layerNumber + 1 : 1)
 
-  // Resolve snapshot fields from material if not provided
   let materialCodeSnapshot = data.materialCodeSnapshot ?? null
   let materialNameSnapshot = data.materialNameSnapshot ?? null
   const mat = await prisma.coatingMaterial.findUnique({
@@ -120,7 +112,6 @@ async function createAssemblyCoating(assemblyId, data) {
   })
 }
 
-// Recomputes consumption and cost for a single AssemblyCoating by id.
 async function recalculateAssemblyCoating(coatingId) {
   const coating = await prisma.assemblyCoating.findUnique({
     where: { id: coatingId },
@@ -138,7 +129,6 @@ async function recalculateAssemblyCoating(coatingId) {
   })
 }
 
-// Recomputes consumption for all coatings of an assembly (e.g. after parts change).
 async function recalculateAssemblyCoatings(assemblyId) {
   await assertAssemblyMutable(assemblyId)
   const coatings = await prisma.assemblyCoating.findMany({
@@ -146,7 +136,6 @@ async function recalculateAssemblyCoatings(assemblyId) {
     include: { coatingMaterial: true },
     orderBy: { position: 'asc' },
   })
-  // autoAreaLink rows share the same area — compute once
   let autoArea = null
   const updates = []
   for (const coating of coatings) {
@@ -172,7 +161,6 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
   const replaceExisting = options.replaceExisting ?? false
   await assertAssemblyMutable(assemblyId)
   return prisma.$transaction(async (tx) => {
-    // Verify assembly exists and capture companyId for cross-tenant guard
     const assembly = await tx.assembly.findUnique({
       where: { id: assemblyId },
       select: { id: true, order: { select: { companyId: true } } },
@@ -192,7 +180,6 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     if (!system.isActive) throw new Error('CoatingSystem is inactive')
     if (system.layers.length === 0) throw new Error('CoatingSystem has no layers')
 
-    // Cross-company guard: system and assembly must belong to the same tenant
     if (system.companyId !== assembly.order.companyId) {
       throw new Error('CoatingSystem does not belong to the same company as the assembly')
     }
@@ -200,9 +187,7 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     if (replaceExisting) {
       await tx.assemblyCoating.deleteMany({ where: { assemblyId } })
     }
-    // replaceExisting=false: new layers are appended, existing ones preserved
 
-    // Single aggregate: get both max position and max layerNumber in one query
     const maxes = replaceExisting ? null : await tx.assemblyCoating.aggregate({
       where: { assemblyId },
       _max: { position: true, layerNumber: true },
@@ -210,15 +195,13 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
     const posOffset   = maxes?._max.position    != null ? maxes._max.position    + 1 : 0
     const layerOffset = maxes?._max.layerNumber != null ? maxes._max.layerNumber      : 0
 
-    // All new layers use autoAreaLink=true — compute area once for the batch
     const autoAreaM2 = await _assemblyPaintAreaM2(tx, assemblyId)
 
-    // Create independent runtime copies — snapshot origin, not live references
     const rows = system.layers.map(layer => {
       const { theoreticalConsumptionKg, finalConsumptionKg } = calcCoatingConsumption(
         autoAreaM2,
         Number(layer.coatingMaterial.consumptionGm2),
-        null  // lossFactorPercent unknown at apply time — user sets after
+        null
       )
       const costSnapshotPerKg = layer.coatingMaterial.pricePerKg ?? null
       const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
@@ -244,8 +227,7 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
 
     // createMany bypasses Prisma middleware/hooks — snapshot and calculation
     // fields must be fully computed before insert (no post-create triggers available).
-    // TODO: if audit/event/revision hooks appear, replace with batched create pipeline
-    //   (individual tx.assemblyCoating.create per row) to trigger middleware per insert.
+    // TODO: if audit/event/revision hooks appear, replace with batched create pipeline.
     await tx.assemblyCoating.createMany({ data: rows })
 
     return tx.assemblyCoating.findMany({
@@ -281,10 +263,6 @@ async function updateAssemblyCoating(coatingId, data) {
     select: { code: true, name: true, consumptionGm2: true, pricePerKg: true },
   })
 
-  // Snapshot precedence:
-  // 1. Caller explicitly supplied costSnapshotPerKg → honour it (manual override)
-  // 2. coatingMaterialId changed → auto-refresh from new material's catalog price
-  // 3. Same material, no override → preserve existing snapshot unchanged
   let costSnapshotPerKg
   if (data.costSnapshotPerKg !== undefined) {
     costSnapshotPerKg = data.costSnapshotPerKg ?? null
@@ -308,8 +286,6 @@ async function updateAssemblyCoating(coatingId, data) {
     costSnapshotPerKg,
   }
 
-  // Dirty-check: skip _resolveConsumption (DB query for assembly parts) when no
-  // calculation-relevant field changed — avoids unnecessary CPU/DB load on bulk updates.
   const n = v => v == null ? null : Number(v)
   const consumptionDirty =
     data.coatingMaterialId !== existing.coatingMaterialId ||
@@ -338,8 +314,6 @@ async function updateAssemblyCoating(coatingId, data) {
   })
 }
 
-// TODO: hard delete — future: soft-delete via deletedAt or capture revision snapshot
-//   before delete to preserve coating history for deterministic ERP revision reproduction.
 async function deleteAssemblyCoating(coatingId) {
   const coating = await prisma.assemblyCoating.findUnique({
     where:  { id: coatingId },
