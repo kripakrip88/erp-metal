@@ -346,7 +346,7 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 </head>
 <body>
 <!-- LOGIN MODAL -->
-<div class="login-modal" id="login-modal">
+<div class="login-modal" id="login-modal" style="display:none">
   <div class="login-box">
     <div class="login-logo">
       <div class="login-logo-i">M</div>
@@ -374,7 +374,7 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
     <div class="logo">
       <div class="logo-i">M</div>
       <div class="logo-t">Metal<span>Pro</span></div>
-      <button class="thm" id="thm-btn" onclick="tglTheme()" title="Сменить тему">вЂ</button>
+      <button class="thm" id="thm-btn" onclick="tglTheme()" title="Сменить тему">☀</button>
     </div>
     <nav class="nav">
       <div class="nl">Продажи</div>
@@ -794,7 +794,7 @@ window.fetch = async function(url, opts) {
 
 function tglTheme() {
   const isLight = document.body.classList.toggle('light');
-  document.getElementById('thm-btn').textContent = isLight ? '🌙' : 'вЂ';
+  document.getElementById('thm-btn').textContent = isLight ? '🌙' : '☀';
   localStorage.setItem('erp-theme', isLight ? 'light' : 'dark');
 }
 (function() {
@@ -1260,7 +1260,7 @@ function renderAsms() {
       </div>
       ${asmCollapsed ? '' : `
       <div class="abody">
-        <!-- РњРђРўР•Р РРђР›Р« -->
+        <!-- РњРђРўР•Р ИРђР›Р« -->
         <div class="sg">
           <div class="sgh" onclick="toggleAsmSection('${a.id}','mat')">
             <span class="sgt">${sec.mat ? '▼' : '▶'}</span>
@@ -1284,7 +1284,7 @@ function renderAsms() {
           </table>` : ''}
         </div>
 
-        <!-- РњР•РўРР—Р« -->
+        <!-- РњР•РўИР—Р« -->
         <div class="sg">
           <div class="sgh" onclick="toggleAsmSection('${a.id}','fas')">
             <span class="sgt">${sec.fas ? '▼' : '▶'}</span>
@@ -1354,7 +1354,7 @@ function renderFastenersTab(a, fasteners) {
     </tr>`;
   }
   html += `</tbody><tfoot><tr style="font-weight:700">
-    <td colspan="4" style="text-align:right;font-size:9.5px;color:var(--txtm)">РС‚РѕРіРѕ метизов:</td>
+    <td colspan="4" style="text-align:right;font-size:9.5px;color:var(--txtm)">ИС‚РѕРіРѕ метизов:</td>
     <td><span class="chip-w">${totW.toFixed(4)} кг</span></td>
     <td></td><td><span class="cv">${totC ? '₽' + fm(Math.round(totC)) : '—'}</span></td>
     <td></td>
@@ -1525,7 +1525,7 @@ function renderRpNodes() {
     ${blocks}
   </div>
   <div class="sr-block">
-    <div class="sr-block-title">РС‚РѕРіРѕ</div>
+    <div class="sr-block-title">ИС‚РѕРіРѕ</div>
     <div class="sr-row"><div class="sr-name">Масса</div><div class="sr-val">${f3(tW / 1000)} т</div></div>
     <div class="sr-row"><div class="sr-name">Стоимость</div><div class="sr-val" style="color:var(--green)">₽${fm(Math.round(tC))}</div></div>
   </div>`;
