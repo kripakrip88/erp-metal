@@ -3,9 +3,10 @@ require('dotenv').config()
 const http = require('http')
 const fs   = require('fs')
 const path = require('path')
-const { matchRoute }   = require('./src/utils/router')
-const { json }         = require('./src/utils/response')
-const { authenticate } = require('./src/middleware/authenticate')
+const { matchRoute }        = require('./src/utils/router')
+const { json }              = require('./src/utils/response')
+const { authenticate }      = require('./src/middleware/authenticate')
+const { startOutboxWorker } = require('./src/workers/outboxWorker')
 
 const PUBLIC_PATHS = new Set(['/api/health', '/api/auth/login'])
 
@@ -95,4 +96,7 @@ const server = http.createServer(async (req, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-server.listen(PORT, () => console.log(`МеталлПро ERP запущен на порту ${PORT}`))
+server.listen(PORT, () => {
+  console.log(`МеталлПро ERP запущен на порту ${PORT}`)
+  startOutboxWorker()
+})

@@ -1,11 +1,6 @@
-// TODO: RBAC — role-based access control per revision route
-// TODO: approval permissions — restrict freeze/restore to authorized roles
-// TODO: revision signing — cryptographic signature on freeze event
-// TODO: engineering approval workflow — multi-stage approval before freeze
-// TODO: digital signature — e-sign frozen revisions for legal compliance
-
-const { json }      = require('../utils/response')
-const { parseBody } = require('../utils/parseBody')
+const { json }         = require('../utils/response')
+const { parseBody }    = require('../utils/parseBody')
+const { requireRole }  = require('../middleware/requireRole')
 const { validateUUID, validateCreateDraft, validateFreeze, validateClone } = require('../validators/revisionValidator')
 const {
   createDraftRevision,
@@ -16,6 +11,9 @@ const {
   getAssemblyRevision,
   compareRevisions,
 } = require('../services/assemblyRevisionService')
+
+const canWrite   = requireRole('ADMIN', 'ENGINEER')
+const canManage  = requireRole('ADMIN', 'ENGINEER', 'MANAGER')
 
 function handleRevisionError(res, err) {
   json(res, { error: err.message }, 400)
@@ -32,6 +30,7 @@ module.exports = [
   }},
 
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/assembly-revisions', handler: async (req, res, params) => {
+    if (!canWrite(req, res)) return
     try {
       validateUUID(params.assemblyId, 'assemblyId')
       const body = await parseBody(req)
@@ -62,6 +61,7 @@ module.exports = [
   }},
 
   { method: 'POST', pathname: '/api/assembly-revisions/:revisionId/freeze', handler: async (req, res, params) => {
+    if (!canWrite(req, res)) return
     try {
       validateUUID(params.revisionId, 'revisionId')
       const body = await parseBody(req)
@@ -71,6 +71,7 @@ module.exports = [
   }},
 
   { method: 'POST', pathname: '/api/assembly-revisions/:revisionId/clone', handler: async (req, res, params) => {
+    if (!canWrite(req, res)) return
     try {
       validateUUID(params.revisionId, 'revisionId')
       const body = await parseBody(req)
@@ -80,6 +81,7 @@ module.exports = [
   }},
 
   { method: 'POST', pathname: '/api/assembly-revisions/:revisionId/restore', handler: async (req, res, params) => {
+    if (!canWrite(req, res)) return
     try {
       validateUUID(params.revisionId, 'revisionId')
       json(res, await restoreAssemblyFromRevision(params.revisionId))

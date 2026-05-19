@@ -10,7 +10,9 @@ const {
 } = require('./orderIntegrityService')
 const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 
-async function listOrders() {
+async function listOrders(context) {
+  const companyId = context?.companyId
+  if (companyId) return orderRepo.findAll(companyId)
   const company = await getCompany()
   if (!company) return []
   return orderRepo.findAll(company.id)
@@ -20,13 +22,19 @@ async function getOrder(id) {
   return orderRepo.findById(id)
 }
 
-async function createOrder(data) {
-  const company = await getCompany()
-  if (!company) throw new Error('Company not found')
-  const user = await prisma.user.findFirst({ where: { companyId: company.id } })
+async function createOrder(data, context) {
+  const companyId = context?.companyId
+  const actorId   = context?.userId || null
+  let resolvedCompanyId = companyId
+  if (!resolvedCompanyId) {
+    const company = await getCompany()
+    if (!company) throw new Error('Company not found')
+    resolvedCompanyId = company.id
+  }
+  const createdById = actorId || (await prisma.user.findFirst({ where: { companyId: resolvedCompanyId }, select: { id: true } }))?.id || resolvedCompanyId
   return orderRepo.create({
-    companyId:    company.id,
-    createdById:  user?.id || company.id,
+    companyId:    resolvedCompanyId,
+    createdById,
     orderNumber:  data.orderNumber,
     customerName: data.customerName,
     title:        data.title,
