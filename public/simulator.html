@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>МеталлПро ERP</title>
+<title>МеталлПро ERP — Расчёт КП</title>
+<script src="nav.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -22,29 +23,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 /* SHELL */
 .shell{display:grid;grid-template-columns:205px 1fr;height:100vh}
 
-/* SIDEBAR */
-.sb{background:var(--panel);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;position:relative;flex-shrink:0}
-.sb::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(to bottom,transparent,var(--blue) 40%,var(--cyan) 60%,transparent);opacity:.18}
-.logo{padding:12px 12px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px}
-.logo-i{width:24px;height:24px;background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;flex-shrink:0}
-.logo-t{font-weight:700;font-size:12.5px;color:var(--txt)}.logo-t span{color:var(--cyan)}
-.thm{margin-left:auto;background:var(--card);border:1px solid var(--brd);color:var(--txts);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
-.thm:hover{color:var(--txt)}
-.nav{flex:1;overflow-y:auto;padding:5px 0}
-.nl{font-size:8.5px;font-weight:600;letter-spacing:1.5px;color:var(--txtm);text-transform:uppercase;padding:10px 8px 4px 14px}
-.ni{display:flex;align-items:center;gap:6px;padding:5px 8px 5px 14px;border-radius:4px;font-size:11px;color:var(--txts);cursor:pointer;transition:.15s;position:relative;margin:0 4px 1px;text-decoration:none}
-.ni:hover{background:var(--hov);color:var(--txt)}
-.ni.on{background:rgba(16,185,129,.1);color:var(--green);font-weight:500}
-.ni.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;border-radius:0 2px 2px 0;background:var(--green)}
-.nb{margin-left:auto;font-size:8.5px;font-weight:600;padding:1px 4px;border-radius:6px;color:#fff;background:var(--blue)}
-.sfooter{padding:9px;border-top:1px solid var(--brd);display:flex;align-items:center;gap:6px}
-.av{width:22px;height:22px;background:linear-gradient(135deg,#334155,#475569);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;color:#fff;flex-shrink:0}
-.un{font-size:10.5px;font-weight:500;color:var(--txt)}.ur{font-size:9.5px;color:var(--txtm)}
-.logout-btn{margin-left:auto;background:none;border:none;color:var(--txtm);cursor:pointer;font-size:11px;padding:2px 5px;border-radius:3px;transition:.15s}
-.logout-btn:hover{color:var(--red)}
 
 /* MAIN */
-.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);margin-left:var(--sbw)}
 .topbar{background:var(--panel);border-bottom:1px solid var(--brd);padding:0 12px;height:40px;display:flex;align-items:center;flex-shrink:0;gap:8px}
 .bc{display:flex;align-items:center;gap:3px;font-size:10.5px;color:var(--txtm)}
 .bc-sep{color:var(--txtm);margin:0 2px}
@@ -369,37 +350,8 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 <!-- APP SHELL -->
 <div class="shell" id="app" style="display:none">
 
-  <!-- SIDEBAR -->
-  <aside class="sb">
-    <div class="logo">
-      <div class="logo-i">M</div>
-      <div class="logo-t">Metal<span>Pro</span></div>
-      <button class="thm" id="thm-btn" onclick="tglTheme()" title="Сменить тему">☀</button>
-    </div>
-    <nav class="nav">
-      <div class="nl">Продажи</div>
-      <a class="ni" href="orders.html" style="text-decoration:none"><span>📋</span> Журнал заказов</a>
-      <div class="ni on" onclick="go('quote')"><span>🧮</span> КП / Расчёт</div>
-      <div class="nl">CRM</div>
-      <a class="ni" href="crm.html" style="text-decoration:none"><span>👥</span> Клиенты</a>
-      <a class="ni" href="email-inbox.html" style="text-decoration:none"><span>📧</span> Входящие письма</a>
-      <div class="nl">Справочники</div>
-      <div class="ni" onclick="go('materials')"><span>🔩</span> Материалы</div>
-      <div class="ni" onclick="go('prices')"><span>💰</span> Цены</div>
-      <a class="ni" href="templates.html" style="text-decoration:none"><span>📦</span> Шаблоны</a>
-      <div class="nl">Аналитика</div>
-      <div class="ni" onclick="go('revisions')"><span>🔁</span> Ревизии <span class="nb" id="rev-count">0</span></div>
-      <div class="ni" onclick="go('compare')"><span>⚖️</span> Сравнение</div>
-    </nav>
-    <div class="sfooter">
-      <div class="av" id="user-av">?</div>
-      <div>
-        <div class="un" id="user-name">—</div>
-        <div class="ur" id="user-role">—</div>
-      </div>
-      <button class="logout-btn" onclick="doLogout()" title="Выйти">⏻</button>
-    </div>
-  </aside>
+  <!-- SIDEBAR — rendered by nav.js -->
+  <aside class="sb" id="erp-nav"></aside>
 
   <!-- MAIN -->
   <div class="main">
@@ -759,13 +711,7 @@ function doLogout() {
   location.replace('login.html');
 }
 
-function _setUserInfo(u) {
-  if (!u) return;
-  const initials = [(u.firstName||'')[0], (u.lastName||'')[0]].filter(Boolean).join('').toUpperCase() || '?';
-  document.getElementById('user-av').textContent = initials;
-  document.getElementById('user-name').textContent = `${u.firstName||''} ${u.lastName||''}`.trim() || u.email;
-  document.getElementById('user-role').textContent = u.role || '';
-}
+function _setUserInfo(u) { /* user display handled by nav.js */ }
 
 // ─── FETCH INTERCEPTOR ────────────────────────────────────────────────────────
 // Inject Bearer token on all API calls; redirect to login on 401
@@ -790,24 +736,12 @@ window.fetch = async function(url, opts) {
   return r;
 };
 
-// ─── THEME ────────────────────────────────────────────────────────────────────
-
-function tglTheme() {
-  const isLight = document.body.classList.toggle('light');
-  document.getElementById('thm-btn').textContent = isLight ? '🌙' : '☀';
-  localStorage.setItem('erp-theme', isLight ? 'light' : 'dark');
-}
-(function() {
-  if (localStorage.getItem('erp-theme') === 'light') {
-    document.body.classList.add('light');
-    const btn = document.getElementById('thm-btn');
-    if (btn) btn.textContent = '🌙';
-  }
-})();
+// ─── THEME — handled by nav.js ────────────────────────────────────────────────
 
 // ─── APP INIT ─────────────────────────────────────────────────────────────────
 
 async function initApp() {
+  if (typeof ERP !== 'undefined') ERP.init('simulator');
   try {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('orderId');
@@ -829,7 +763,7 @@ async function initApp() {
       }
       const apiRevs = await ERPStore.loadRevisions(orderId);
       revs = apiRevs.sort((a, b) => a.revisionNumber - b.revisionNumber).map(r => _apiRevToSim(r, order.orderNumber, order.customerName));
-      document.getElementById('rev-count').textContent = revs.length;
+      const revCountEl = document.getElementById('rev-count'); if (revCountEl) revCountEl.textContent = revs.length;
       if (revs.length) { revTag.style.display = ''; revTag.textContent = `Rev ${revs.length}`; }
     } else {
       loadDraft();
@@ -1584,7 +1518,7 @@ function addAsm() {
 function remA(id) { if (!confirm('Удалить узел со всеми деталями?')) return; asms = asms.filter(a => a.id !== id); refresh(); saveDraft(); }
 function updAQ(id, v) { const a = asms.find(a => a.id === id); if (a) { a.qty = Math.max(1, parseInt(v) || 1); refresh(); saveDraft(); } }
 function remP(aid, pid) { const a = asms.find(a => a.id === aid); if (a) { a.parts = a.parts.filter(p => p.id !== pid); refresh(); saveDraft(); } }
-function resetQuote() { if (!confirm('Сбросить всё?')) return; asms = []; revs = []; nA = 10; nP = 100; _currentOrderId = null; localStorage.removeItem(DRAFT_KEY); document.getElementById('rev-count').textContent = 0; document.getElementById('order-rev-tag').style.display = 'none'; refresh(); }
+function resetQuote() { if (!confirm('Сбросить всё?')) return; asms = []; revs = []; nA = 10; nP = 100; _currentOrderId = null; localStorage.removeItem(DRAFT_KEY); const _rc=document.getElementById('rev-count'); if(_rc)_rc.textContent=0; document.getElementById('order-rev-tag').style.display = 'none'; refresh(); }
 
 // ─── MODAL: ADD/EDIT PART ─────────────────────────────────────────────────────
 
@@ -1763,7 +1697,7 @@ async function commitRevision() {
     const tW = revision.calculation?.totalWeightKg || r.tW;
     const revNum = revision.revisionNumber;
     toast(`Ревизия #${revNum} зафиксирована — ${f3(tW / 1000)} т`, 'success');
-    document.getElementById('rev-count').textContent = revNum;
+    const _rcEl = document.getElementById('rev-count'); if (_rcEl) _rcEl.textContent = revNum;
     const revTag = document.getElementById('order-rev-tag');
     revTag.style.display = ''; revTag.textContent = `Rev ${revNum}`;
     setTimeout(() => { window.location.href = 'orders.html'; }, 1500);
