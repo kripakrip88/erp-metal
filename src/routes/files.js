@@ -90,7 +90,6 @@ module.exports = [
         where: { orderId: params.orderId },
         include: {
           file: {
-            where:   { deletedAt: null },
             include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } },
           },
         },
@@ -98,7 +97,7 @@ module.exports = [
       })
 
       const result = orderFiles
-        .filter(of => of.file)
+        .filter(of => of.file && !of.file.deletedAt)
         .map(of => ({
           id:          of.file.id,
           title:       of.file.title,

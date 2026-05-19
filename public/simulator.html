@@ -2039,10 +2039,16 @@ async function loadFiles() {
   try {
     const token = localStorage.getItem('erp_token');
     const r = await fetch(`/api/orders/${_currentOrderId}/files`, { headers: { Authorization: 'Bearer ' + token } });
-    if (!r.ok) return;
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      toast('Ошибка загрузки списка файлов: ' + (e.error || r.status), 'error');
+      return;
+    }
     const files = await r.json();
     renderFiles(files);
-  } catch(e) { /* ignore */ }
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
 }
 
 function renderFiles(files) {
