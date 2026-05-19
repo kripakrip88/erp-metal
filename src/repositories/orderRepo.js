@@ -15,7 +15,8 @@ async function findById(id) {
       assemblies: { orderBy: { position: 'asc' }, include: {
         parts: { orderBy: { position: 'asc' }, include: {
           materialDefinition: { include: { geometry: true } }
-        }}
+        }},
+        coatings: { orderBy: { position: 'asc' } },
       }},
       revisions: { orderBy: { revisionNumber: 'desc' } }
     }
