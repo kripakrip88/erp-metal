@@ -825,6 +825,22 @@ async function initApp() {
       } catch(_) {}
       if (!draftRestored && order.assemblies?.length) {
         asms = _apiAsmsToSim(order.assemblies);
+        _asmCoatings = {};
+        for (const a of order.assemblies) {
+          if (a.coatings?.length) {
+            _asmCoatings[a.id] = a.coatings.map(c => ({
+              id:               c.id,
+              coatingMaterialId: c.coatingMaterialId,
+              layerNumber:       c.layerNumber,
+              autoAreaLink:      c.autoAreaLink,
+              manualAreaM2:      c.manualAreaM2 != null ? Number(c.manualAreaM2) : null,
+              selectedDftMkm:    c.selectedDftMkm ?? null,
+              dilutionPercent:   c.dilutionPercent != null ? Number(c.dilutionPercent) : null,
+              lossFactorPercent: c.lossFactorPercent != null ? Number(c.lossFactorPercent) : null,
+              notes:             c.notes ?? null,
+            }));
+          }
+        }
       }
       const apiRevs = await ERPStore.loadRevisions(orderId);
       revs = apiRevs.sort((a, b) => a.revisionNumber - b.revisionNumber).map(r => _apiRevToSim(r, order.orderNumber, order.customerName));
@@ -901,7 +917,7 @@ function saveDraft() {
   clearTimeout(_draftTimer);
   _draftTimer = setTimeout(() => {
     try {
-      const d = { orderId: _currentOrderId, asms, num: document.getElementById('order-num').value, customer: document.getElementById('order-customer').value, title: document.getElementById('order-title').value };
+      const d = { orderId: _currentOrderId, asms, coatings: _asmCoatings, num: document.getElementById('order-num').value, customer: document.getElementById('order-customer').value, title: document.getElementById('order-title').value };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch(e) { console.warn('saveDraft', e); }
   }, 1000);
@@ -915,6 +931,7 @@ function loadDraft() {
     const urlOrderId = new URLSearchParams(window.location.search).get('orderId');
     if (d.orderId && d.orderId !== urlOrderId) return;
     if (d.asms?.length) { asms = d.asms; const ids = asms.map(x => parseInt(x.id.replace('a', ''))).filter(Boolean); nA = Math.max(10, ...ids) + 1; const pids = asms.flatMap(x => x.parts.map(p => parseInt(p.id.replace('pt', '')))).filter(Boolean); nP = Math.max(100, ...pids) + 1; }
+    if (d.coatings) { _asmCoatings = d.coatings; }
     if (d.num) document.getElementById('order-num').value = d.num;
     if (d.customer) document.getElementById('order-customer').value = d.customer;
     if (d.title) document.getElementById('order-title').value = d.title;
