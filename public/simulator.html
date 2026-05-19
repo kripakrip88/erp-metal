@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>РњРµС‚Р°Р»Р»РџСЂРѕ ERP</title>
+<title>МеталлПро ERP</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -352,17 +352,17 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
       <div class="login-logo-i">M</div>
       <div class="login-logo-t">Metal<span>Pro</span></div>
     </div>
-    <div class="login-title">Р’РѕР№РґРёС‚Рµ РґР»СЏ РїСЂРѕРґРѕР»Р¶РµРЅРёСЏ СЂР°Р±РѕС‚С‹</div>
+    <div class="login-title">Войдите для продолжения работы</div>
     <div class="login-field">
       <label>Email</label>
       <input type="email" id="login-email" placeholder="admin@company.ru" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
     </div>
     <div class="login-field">
-      <label>РџР°СЂРѕР»СЊ</label>
-      <input type="password" id="login-pw" placeholder="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <label>Пароль</label>
+      <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-err" id="login-err"></div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">Р’РѕР№С‚Рё</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Войти</button>
   </div>
 </div>
 
@@ -374,30 +374,30 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
     <div class="logo">
       <div class="logo-i">M</div>
       <div class="logo-t">Metal<span>Pro</span></div>
-      <button class="thm" id="thm-btn" onclick="tglTheme()" title="РЎРјРµРЅРёС‚СЊ С‚РµРјСѓ">вЂ</button>
+      <button class="thm" id="thm-btn" onclick="tglTheme()" title="Сменить тему">вЂ</button>
     </div>
     <nav class="nav">
-      <div class="nl">РџСЂРѕРґР°Р¶Рё</div>
-      <a class="ni" href="orders.html" style="text-decoration:none"><span>рџ“‹</span> Р–СѓСЂРЅР°Р» Р·Р°РєР°Р·РѕРІ</a>
-      <div class="ni on" onclick="go('quote')"><span>рџ§®</span> РљРџ / Р Р°СЃС‡С‘С‚</div>
+      <div class="nl">Продажи</div>
+      <a class="ni" href="orders.html" style="text-decoration:none"><span>📋</span> Журнал заказов</a>
+      <div class="ni on" onclick="go('quote')"><span>🧮</span> КП / Расчёт</div>
       <div class="nl">CRM</div>
       <a class="ni" href="crm.html" style="text-decoration:none"><span>👥</span> Клиенты</a>
       <a class="ni" href="email-inbox.html" style="text-decoration:none"><span>📧</span> Входящие письма</a>
-      <div class="nl">РЎРїСЂР°РІРѕС‡РЅРёРєРё</div>
-      <div class="ni" onclick="go('materials')"><span>рџ”©</span> РњР°С‚РµСЂРёР°Р»С‹</div>
-      <div class="ni" onclick="go('prices')"><span>рџ’°</span> Р¦РµРЅС‹</div>
-      <a class="ni" href="templates.html" style="text-decoration:none"><span>рџ“¦</span> РЁР°Р±Р»РѕРЅС‹</a>
-      <div class="nl">РђРЅР°Р»РёС‚РёРєР°</div>
-      <div class="ni" onclick="go('revisions')"><span>рџ”Ѓ</span> Р РµРІРёР·РёРё <span class="nb" id="rev-count">0</span></div>
-      <div class="ni" onclick="go('compare')"><span>вљ–пёЏ</span> РЎСЂР°РІРЅРµРЅРёРµ</div>
+      <div class="nl">Справочники</div>
+      <div class="ni" onclick="go('materials')"><span>🔩</span> Материалы</div>
+      <div class="ni" onclick="go('prices')"><span>💰</span> Цены</div>
+      <a class="ni" href="templates.html" style="text-decoration:none"><span>📦</span> Шаблоны</a>
+      <div class="nl">Аналитика</div>
+      <div class="ni" onclick="go('revisions')"><span>🔁</span> Ревизии <span class="nb" id="rev-count">0</span></div>
+      <div class="ni" onclick="go('compare')"><span>⚖️</span> Сравнение</div>
     </nav>
     <div class="sfooter">
       <div class="av" id="user-av">?</div>
       <div>
-        <div class="un" id="user-name">вЂ”</div>
-        <div class="ur" id="user-role">вЂ”</div>
+        <div class="un" id="user-name">—</div>
+        <div class="ur" id="user-role">—</div>
       </div>
-      <button class="logout-btn" onclick="doLogout()" title="Р’С‹Р№С‚Рё">вЏ»</button>
+      <button class="logout-btn" onclick="doLogout()" title="Выйти">⏻</button>
     </div>
   </aside>
 
@@ -408,14 +408,14 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
     <div class="page active" id="page-quote">
       <div class="topbar">
         <div class="bc">
-          <a href="orders.html" style="color:var(--txts);text-decoration:none">Р—Р°РєР°Р·С‹</a>
-          <span class="bc-sep">вЂє</span>
-          <span id="bc-order">РќРѕРІС‹Р№ РљРџ</span>
-          <span class="bc-sep">вЂє</span>
-          <span class="bcc">Р Р°СЃС‡С‘С‚</span>
+          <a href="orders.html" style="color:var(--txts);text-decoration:none">Заказы</a>
+          <span class="bc-sep">›</span>
+          <span id="bc-order">Новый КП</span>
+          <span class="bc-sep">›</span>
+          <span class="bcc">Расчёт</span>
         </div>
         <div class="topbar-right">
-          <button class="abtn" id="dbg-btn" onclick="toggleDebug()" title="Debug mode">рџђ› Debug</button>
+          <button class="abtn" id="dbg-btn" onclick="toggleDebug()" title="Debug mode">🐛 Debug</button>
         </div>
       </div>
       <div class="ws">
@@ -425,58 +425,58 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
           <div class="om">
             <div class="omt">
               <div class="om-num-wrap">
-                <input class="onum-in" id="order-num" placeholder="РљРџ-2026-001" oninput="saveDraft()">
-                <span class="tg bl" id="order-status-tag">Р’ СЂР°Р±РѕС‚Рµ</span>
+                <input class="onum-in" id="order-num" placeholder="КП-2026-001" oninput="saveDraft()">
+                <span class="tg bl" id="order-status-tag">В работе</span>
                 <span class="tg gr" id="order-rev-tag" style="display:none"></span>
               </div>
               <div class="om-fields">
                 <div class="om-field">
-                  <div class="om-flbl">РљР»РёРµРЅС‚ / Р®СЂР»РёС†Рѕ</div>
-                  <input class="om-fin" id="order-customer" placeholder="РћРћРћ РљР»РёРµРЅС‚" oninput="saveDraft()">
+                  <div class="om-flbl">Клиент / Юрлицо</div>
+                  <input class="om-fin" id="order-customer" placeholder="ООО Клиент" oninput="saveDraft()">
                 </div>
                 <div class="om-field">
-                  <div class="om-flbl">РћР±СЉРµРєС‚</div>
-                  <input class="om-fin" id="order-title" placeholder="РћРїРёСЃР°РЅРёРµ РѕР±СЉРµРєС‚Р°" oninput="saveDraft()">
+                  <div class="om-flbl">Объект</div>
+                  <input class="om-fin" id="order-title" placeholder="Описание объекта" oninput="saveDraft()">
                 </div>
               </div>
             </div>
             <!-- TOTALS BAR -->
             <div class="totals-bar">
               <div class="tb2">
-                <div class="tbl">РћР±С‰Р°СЏ РјР°СЃСЃР°</div>
-                <div class="tbv" id="tb-w">0.000 <span style="font-size:11px;color:var(--txtm)">С‚</span></div>
-                <div class="tbs" id="tb-w-sub">0 СѓР·Р»РѕРІ В· 0 РґРµС‚Р°Р»РµР№</div>
+                <div class="tbl">Общая масса</div>
+                <div class="tbv" id="tb-w">0.000 <span style="font-size:11px;color:var(--txtm)">т</span></div>
+                <div class="tbs" id="tb-w-sub">0 узлов · 0 деталей</div>
                 <div class="tbbar"><div class="tbf tfb" id="tb-w-bar" style="width:0%"></div></div>
               </div>
               <div class="tb2">
-                <div class="tbl">РЎС‚РѕРёРјРѕСЃС‚СЊ</div>
-                <div class="tbv" style="color:var(--green)" id="tb-c">0 <span style="font-size:11px;color:var(--txtm)">в‚Ѕ</span></div>
-                <div class="tbs" id="tb-c-sub">вЂ”</div>
+                <div class="tbl">Стоимость</div>
+                <div class="tbv" style="color:var(--green)" id="tb-c">0 <span style="font-size:11px;color:var(--txtm)">₽</span></div>
+                <div class="tbs" id="tb-c-sub">—</div>
                 <div class="tbbar"><div class="tbf tfg" id="tb-c-bar" style="width:0%"></div></div>
               </div>
               <div class="tb2">
-                <div class="tbl">РџР»РѕС‰Р°РґСЊ РїРѕРєСЂР°СЃРєРё</div>
-                <div class="tbv" style="color:var(--amber)" id="tb-p">0.0 <span style="font-size:11px;color:var(--txtm)">РјВІ</span></div>
-                <div class="tbs" id="tb-p-sub">Р›РљРњ РЅРµ РЅР°Р·РЅР°С‡РµРЅ</div>
+                <div class="tbl">Площадь покраски</div>
+                <div class="tbv" style="color:var(--amber)" id="tb-p">0.0 <span style="font-size:11px;color:var(--txtm)">м²</span></div>
+                <div class="tbs" id="tb-p-sub">ЛКМ не назначен</div>
                 <div class="tbbar"><div class="tbf tfa" id="tb-p-bar" style="width:0%"></div></div>
               </div>
               <div class="tb2">
-                <div class="tbl">РњРµС‚РёР·С‹</div>
-                <div class="tbv" style="color:var(--violet)" id="tb-f">0.0 <span style="font-size:11px;color:var(--txtm)">РєРі</span></div>
-                <div class="tbs" id="tb-f-sub">вЂ”</div>
+                <div class="tbl">Метизы</div>
+                <div class="tbv" style="color:var(--violet)" id="tb-f">0.0 <span style="font-size:11px;color:var(--txtm)">кг</span></div>
+                <div class="tbs" id="tb-f-sub">—</div>
                 <div class="tbbar"><div class="tbf tfv" id="tb-f-bar" style="width:0%"></div></div>
               </div>
             </div>
             <!-- ACTION BAR -->
             <div class="ab">
-              <button class="abtn pr" onclick="commitRevision()">вњ“ Р—Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ СЂРµРІРёР·РёСЋ</button>
+              <button class="abtn pr" onclick="commitRevision()">✓ Зафиксировать ревизию</button>
               <div class="absep"></div>
-              <button class="abtn" onclick="resetQuote()">в†є РЎР±СЂРѕСЃРёС‚СЊ</button>
+              <button class="abtn" onclick="resetQuote()">↺ Сбросить</button>
               <div class="absep"></div>
-              <input class="ai" id="new-asm-name" placeholder="РќР°Р·РІР°РЅРёРµ СѓР·Р»Р° (Р¤РµСЂРјР° Р¤-1...)" onkeydown="if(event.key==='Enter')addAsm()">
-              <input class="ai-qty" id="new-asm-qty" type="number" value="1" min="1" title="РљРѕР»-РІРѕ">
-              <span style="font-size:10px;color:var(--txtm)">С€С‚</span>
-              <button class="aadd" onclick="addAsm()">+ РЈР·РµР»</button>
+              <input class="ai" id="new-asm-name" placeholder="Название узла (Ферма Ф-1...)" onkeydown="if(event.key==='Enter')addAsm()">
+              <input class="ai-qty" id="new-asm-qty" type="number" value="1" min="1" title="Кол-во">
+              <span style="font-size:10px;color:var(--txtm)">шт</span>
+              <button class="aadd" onclick="addAsm()">+ Узел</button>
             </div>
           </div>
           <!-- ASSEMBLIES -->
@@ -488,9 +488,9 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
         <!-- RIGHT SIDEBAR -->
         <div class="sr">
           <div class="sr-tabs">
-            <div class="sr-tab on" onclick="setRpTab('nodes')">РџРѕ СѓР·Р»Р°Рј</div>
-            <div class="sr-tab" onclick="setRpTab('profile')">РЎРѕСЂС‚Р°РјРµРЅС‚</div>
-            <div class="sr-tab" onclick="setRpTab('revs')">Р РµРІРёР·РёРё</div>
+            <div class="sr-tab on" onclick="setRpTab('nodes')">По узлам</div>
+            <div class="sr-tab" onclick="setRpTab('profile')">Сортамент</div>
+            <div class="sr-tab" onclick="setRpTab('revs')">Ревизии</div>
           </div>
           <div class="sr-body" id="sr-body"></div>
         </div>
@@ -500,9 +500,9 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
     <!-- === REVISIONS PAGE === -->
     <div class="page" id="page-revisions">
       <div class="topbar">
-        <div class="bc"><span class="bcc">Р РµРІРёР·РёРё РљРџ</span></div>
+        <div class="bc"><span class="bcc">Ревизии КП</span></div>
         <div class="topbar-right">
-          <button class="btn btn-secondary btn-sm" onclick="go('compare')">РЎСЂР°РІРЅРёС‚СЊ в†’</button>
+          <button class="btn btn-secondary btn-sm" onclick="go('compare')">Сравнить →</button>
         </div>
       </div>
       <div class="page-content"><div id="revs-list"></div></div>
@@ -510,16 +510,16 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 
     <!-- === COMPARE PAGE === -->
     <div class="page" id="page-compare">
-      <div class="topbar"><div class="bc"><span class="bcc">РЎСЂР°РІРЅРµРЅРёРµ СЂРµРІРёР·РёР№</span></div></div>
+      <div class="topbar"><div class="bc"><span class="bcc">Сравнение ревизий</span></div></div>
       <div class="page-content">
         <div class="card mb-16">
-          <div class="card-header"><div class="card-title">Р’С‹Р±РµСЂРёС‚Рµ СЂРµРІРёР·РёРё</div></div>
+          <div class="card-header"><div class="card-title">Выберите ревизии</div></div>
           <div class="card-body">
             <div class="grid2">
-              <div class="field"><label>Р РµРІРёР·РёСЏ A (Р±Р°Р·РѕРІР°СЏ)</label><select id="cmp-a"></select></div>
-              <div class="field"><label>Р РµРІРёР·РёСЏ B (РЅРѕРІР°СЏ)</label><select id="cmp-b"></select></div>
+              <div class="field"><label>Ревизия A (базовая)</label><select id="cmp-a"></select></div>
+              <div class="field"><label>Ревизия B (новая)</label><select id="cmp-b"></select></div>
             </div>
-            <button class="btn btn-primary mt-12" onclick="runCmp()">РЎСЂР°РІРЅРёС‚СЊ</button>
+            <button class="btn btn-primary mt-12" onclick="runCmp()">Сравнить</button>
           </div>
         </div>
         <div id="cmp-result"></div>
@@ -528,14 +528,14 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 
     <!-- === MATERIALS PAGE === -->
     <div class="page" id="page-materials">
-      <div class="topbar"><div class="bc"><span class="bcc">РЎРїСЂР°РІРѕС‡РЅРёРє РјР°С‚РµСЂРёР°Р»РѕРІ</span></div></div>
+      <div class="topbar"><div class="bc"><span class="bcc">Справочник материалов</span></div></div>
       <div class="page-content">
         <div class="card">
           <div class="card-header">
-            <input placeholder="рџ”Ќ РџРѕРёСЃРє..." style="width:260px;font-size:12px" oninput="renderMats(this.value)">
+            <input placeholder="🔍 Поиск..." style="width:260px;font-size:12px" oninput="renderMats(this.value)">
           </div>
           <table>
-            <thead><tr><th>РљРѕРґ</th><th>РќР°РёРјРµРЅРѕРІР°РЅРёРµ</th><th>РљР°С‚РµРіРѕСЂРёСЏ</th><th>РєРі/Рј</th><th>РєРі/РјВІ</th><th>РјВІ/Рј РїРѕРєСЂР°СЃРєР°</th><th>Р“РћРЎРў</th></tr></thead>
+            <thead><tr><th>Код</th><th>Наименование</th><th>Категория</th><th>кг/м</th><th>кг/м²</th><th>м²/м покраска</th><th>ГОСТ</th></tr></thead>
             <tbody id="mat-tbody"></tbody>
           </table>
         </div>
@@ -544,12 +544,12 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 
     <!-- === PRICES PAGE === -->
     <div class="page" id="page-prices">
-      <div class="topbar"><div class="bc"><span class="bcc">Р¦РµРЅС‹</span></div></div>
+      <div class="topbar"><div class="bc"><span class="bcc">Цены</span></div></div>
       <div class="page-content">
-        <div class="info-box mb-16">РџСЂРё СЃРѕР·РґР°РЅРёРё СЂРµРІРёР·РёРё Р±РµСЂС‘С‚СЃСЏ РїРѕСЃР»РµРґРЅСЏСЏ Р°РєС‚СѓР°Р»СЊРЅР°СЏ С†РµРЅР° РЅР° РґР°С‚Сѓ.</div>
+        <div class="info-box mb-16">При создании ревизии берётся последняя актуальная цена на дату.</div>
         <div class="card">
           <table>
-            <thead><tr><th>РњР°С‚РµСЂРёР°Р»</th><th>РџРѕСЃС‚Р°РІС‰РёРє</th><th>Р¦РµРЅР°, СЂСѓР±/С‚</th><th>РЎ</th><th>РџРѕ</th><th>РЎС‚Р°С‚СѓСЃ</th></tr></thead>
+            <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена, руб/т</th><th>С</th><th>По</th><th>Статус</th></tr></thead>
             <tbody id="prices-tbody"></tbody>
           </table>
         </div>
@@ -566,26 +566,26 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 <div class="modal-bg" id="modal-ov" onclick="if(event.target===this)closeModal()">
   <div class="modal-box" style="width:560px;max-height:92vh;overflow-y:auto">
     <div class="modal-hdr">
-      <div class="modal-title" id="modal-title">Р”РѕР±Р°РІРёС‚СЊ РґРµС‚Р°Р»СЊ</div>
-      <button class="btn btn-secondary btn-xs" onclick="closeModal()">вњ•</button>
+      <div class="modal-title" id="modal-title">Добавить деталь</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
       <div style="margin-bottom:12px">
-        <label style="display:block;margin-bottom:5px">РўРёРї РёР·РјРµСЂРµРЅРёСЏ</label>
+        <label style="display:block;margin-bottom:5px">Тип измерения</label>
         <div class="mtype-tabs">
-          <div class="mtype-btn active" id="mt-linear" onclick="setMType('linear')">рџ“Џ РџРѕРіРѕРЅР°Р¶</div>
-          <div class="mtype-btn" id="mt-area" onclick="setMType('area')">в¬њ Р›РёСЃС‚РѕРІРѕР№ РїСЂРѕРєР°С‚</div>
-          <div class="mtype-btn" id="mt-piece" onclick="setMType('piece')">рџ”© РЁС‚СѓС‡РЅРѕ (РєСЂРµРїС‘Р¶)</div>
+          <div class="mtype-btn active" id="mt-linear" onclick="setMType('linear')">📏 Погонаж</div>
+          <div class="mtype-btn" id="mt-area" onclick="setMType('area')">⬜ Листовой прокат</div>
+          <div class="mtype-btn" id="mt-piece" onclick="setMType('piece')">🔩 Штучно (крепёж)</div>
         </div>
       </div>
       <div style="margin-bottom:8px">
-        <label style="display:block;margin-bottom:5px">РљР°С‚РµРіРѕСЂРёСЏ</label>
+        <label style="display:block;margin-bottom:5px">Категория</label>
         <div class="cat-filter" id="cat-filter"></div>
       </div>
       <div class="field mb-16">
-        <label>РџСЂРѕС„РёР»СЊ РјР°С‚РµСЂРёР°Р»Р°</label>
+        <label>Профиль материала</label>
         <div class="mat-search-wrap">
-          <input id="mat-search" placeholder="Р’РІРµРґРёС‚Рµ РєРѕРґ РёР»Рё РЅР°Р·РІР°РЅРёРµ..." autocomplete="off" oninput="searchMat(this.value)" onfocus="searchMat(this.value)">
+          <input id="mat-search" placeholder="Введите код или название..." autocomplete="off" oninput="searchMat(this.value)" onfocus="searchMat(this.value)">
           <div class="mat-dropdown" id="mat-dd"></div>
         </div>
         <div id="mat-sel" style="display:none;margin-top:5px;padding:6px 9px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:5px;font-size:11px"></div>
@@ -593,56 +593,56 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
       <div id="rem-hint" style="display:none;margin-bottom:10px"></div>
       <div id="dims-linear">
         <div id="stdlen-wrap" style="display:none;margin-bottom:8px">
-          <label style="display:block;margin-bottom:5px">РЎС‚Р°РЅРґР°СЂС‚РЅС‹Рµ РґР»РёРЅС‹</label>
+          <label style="display:block;margin-bottom:5px">Стандартные длины</label>
           <div class="quick-btns" id="stdlen-btns"></div>
         </div>
         <div class="grid2 mb-16">
-          <div class="field"><label>Р”Р»РёРЅР° РґРµС‚Р°Р»Рё, РјРј</label><input type="number" id="p-len" step="1" placeholder="2340" min="1" oninput="calcPart()"><span class="field-hint" id="hint-std"></span></div>
-          <div class="field"><label>РљРѕР»РёС‡РµСЃС‚РІРѕ, С€С‚</label><input type="number" id="p-qty" value="1" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Длина детали, мм</label><input type="number" id="p-len" step="1" placeholder="2340" min="1" oninput="calcPart()"><span class="field-hint" id="hint-std"></span></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty" value="1" min="1" oninput="calcPart()"></div>
         </div>
       </div>
       <div id="dims-area" style="display:none">
         <div id="sheet-wrap" style="display:none;margin-bottom:8px">
-          <label style="display:block;margin-bottom:5px">Р¤РѕСЂРјР°С‚С‹ Р»РёСЃС‚Р°</label>
+          <label style="display:block;margin-bottom:5px">Форматы листа</label>
           <div class="quick-btns" id="sheet-btns"></div>
         </div>
         <div class="grid3 mb-16">
-          <div class="field"><label>РЁРёСЂРёРЅР°, РјРј</label><input type="number" id="p-w" step="1" placeholder="250" min="1" oninput="calcPart()"></div>
-          <div class="field"><label>Р’С‹СЃРѕС‚Р°, РјРј</label><input type="number" id="p-h" step="1" placeholder="300" min="1" oninput="calcPart()"></div>
-          <div class="field"><label>РљРѕР»РёС‡РµСЃС‚РІРѕ, С€С‚</label><input type="number" id="p-qty-a" value="1" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Ширина, мм</label><input type="number" id="p-w" step="1" placeholder="250" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Высота, мм</label><input type="number" id="p-h" step="1" placeholder="300" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-a" value="1" min="1" oninput="calcPart()"></div>
         </div>
       </div>
       <div id="dims-piece" style="display:none">
         <div class="grid2 mb-16">
-          <div class="field"><label>РљРѕР»РёС‡РµСЃС‚РІРѕ, С€С‚</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
           <div class="field">
-            <label>РњР°СЃСЃР° 1 С€С‚, РєРі</label>
+            <label>Масса 1 шт, кг</label>
             <div id="pw-default" style="display:none;padding:6px 9px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:5px;font-size:12px;color:var(--green);font-family:'DM Mono',monospace"></div>
             <div id="pw-override-wrap" style="display:none;align-items:center;gap:6px;margin-top:4px">
               <input type="checkbox" id="pw-override" onchange="onPwOverride()" style="width:13px;height:13px;padding:0">
-              <span style="font-size:11px;font-weight:500;color:var(--txts);cursor:pointer" onclick="document.getElementById('pw-override').click()">РџРµСЂРµРѕРїСЂРµРґРµР»РёС‚СЊ РІСЂСѓС‡РЅСѓСЋ</span>
+              <span style="font-size:11px;font-weight:500;color:var(--txts);cursor:pointer" onclick="document.getElementById('pw-override').click()">Переопределить вручную</span>
             </div>
             <input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0" oninput="calcPart()" style="margin-top:4px">
           </div>
         </div>
       </div>
-      <div class="field mb-16"><label>РќР°Р·РІР°РЅРёРµ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)</label><input id="p-name" placeholder="РљРѕСЃС‹РЅРєР° Рљ-1"></div>
+      <div class="field mb-16"><label>Название (необязательно)</label><input id="p-name" placeholder="Косынка К-1"></div>
       <div id="part-res" style="display:none">
         <div class="debug-box hidden" id="part-dbg"></div>
         <div style="margin-top:8px;padding:10px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:6px">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
-            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">РњР°СЃСЃР°</div><div class="mono fw7" style="font-size:16px;color:var(--green)" id="res-w">вЂ”</div></div>
-            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">РџРѕРєСЂР°СЃРєР°</div><div class="mono fw7" style="font-size:16px;color:var(--amber)" id="res-p">вЂ”</div></div>
-            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">РЎС‚РѕРёРјРѕСЃС‚СЊ</div><div class="mono fw7" style="font-size:16px;color:var(--blue)" id="res-c">вЂ”</div></div>
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Масса</div><div class="mono fw7" style="font-size:16px;color:var(--green)" id="res-w">—</div></div>
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Покраска</div><div class="mono fw7" style="font-size:16px;color:var(--amber)" id="res-p">—</div></div>
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Стоимость</div><div class="mono fw7" style="font-size:16px;color:var(--blue)" id="res-c">—</div></div>
           </div>
           <div style="margin-top:5px;font-size:10px;color:var(--txtm);text-align:center" id="res-note"></div>
         </div>
-        <div id="no-price-w" class="warning-box mt-12" style="display:none">вљ пёЏ РќРµС‚ Р°РєС‚СѓР°Р»СЊРЅРѕР№ С†РµРЅС‹ вЂ” РґРѕР±Р°РІСЊС‚Рµ РІ СЂР°Р·РґРµР»Рµ В«Р¦РµРЅС‹В».</div>
+        <div id="no-price-w" class="warning-box mt-12" style="display:none">⚠️ Нет актуальной цены — добавьте в разделе «Цены».</div>
       </div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-secondary" onclick="closeModal()">РћС‚РјРµРЅР°</button>
-      <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Р”РѕР±Р°РІРёС‚СЊ РґРµС‚Р°Р»СЊ</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Добавить деталь</button>
     </div>
   </div>
 </div>
@@ -651,33 +651,33 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 <div class="modal-bg" id="lkm-modal-bg" onclick="if(event.target===this)closeLKMModal()">
   <div class="modal-box" style="width:400px;max-height:90vh;overflow-y:auto">
     <div class="modal-hdr">
-      <div class="modal-title" id="lkm-modal-title">Р”РѕР±Р°РІРёС‚СЊ СЃР»РѕР№ Р›РљРњ</div>
-      <button class="btn btn-secondary btn-xs" onclick="closeLKMModal()">вњ•</button>
+      <div class="modal-title" id="lkm-modal-title">Добавить слой ЛКМ</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeLKMModal()">✕</button>
     </div>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:11px">
-      <div class="field"><label>РњР°С‚РµСЂРёР°Р» *</label><select id="lkm-mat-sel" style="width:100%"><option value="">вЂ” РІС‹Р±РµСЂРёС‚Рµ вЂ”</option></select></div>
+      <div class="field"><label>Материал *</label><select id="lkm-mat-sel" style="width:100%"><option value="">— выберите —</option></select></div>
       <div class="grid2">
-        <div class="field"><label>РќРѕРјРµСЂ СЃР»РѕСЏ</label><input id="lkm-layer-num" type="number" min="1" value="1"></div>
+        <div class="field"><label>Номер слоя</label><input id="lkm-layer-num" type="number" min="1" value="1"></div>
         <div class="field" style="justify-content:flex-end">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:11px;font-weight:600;color:var(--txt)">
             <input id="lkm-auto" type="checkbox" checked onchange="toggleLKMManual()" style="width:13px;height:13px;padding:0">
-            РђРІС‚Рѕ-РїР»РѕС‰Р°РґСЊ
+            Авто-площадь
           </label>
-          <span class="field-hint">Р‘СЂР°С‚СЊ РёР· РґРµС‚Р°Р»РµР№ СѓР·Р»Р°</span>
+          <span class="field-hint">Брать из деталей узла</span>
         </div>
       </div>
       <div id="lkm-manual-wrap" style="display:none">
-        <div class="field"><label>РџР»РѕС‰Р°РґСЊ (РјВІ)</label><input id="lkm-manual-area" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Площадь (м²)</label><input id="lkm-manual-area" type="number" step="0.01" placeholder="0.00"></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Р”РџРџ РјРєРј (override)</label><input id="lkm-dft" type="number" min="1" placeholder="РёР· РєР°С‚Р°Р»РѕРіР°"><span class="field-hint">РџСѓСЃС‚Рѕ = СЌС‚Р°Р»РѕРЅ</span></div>
-        <div class="field"><label>Р Р°Р·Р±Р°РІР»РµРЅРёРµ % (override)</label><input id="lkm-dilution" type="number" step="0.1" min="0" placeholder="РёР· РєР°С‚Р°Р»РѕРіР°"></div>
+        <div class="field"><label>ДПП мкм (override)</label><input id="lkm-dft" type="number" min="1" placeholder="из каталога"><span class="field-hint">Пусто = эталон</span></div>
+        <div class="field"><label>Разбавление % (override)</label><input id="lkm-dilution" type="number" step="0.1" min="0" placeholder="из каталога"></div>
       </div>
-      <div class="field"><label>РџСЂРёРјРµС‡Р°РЅРёРµ</label><input id="lkm-notes" type="text" placeholder="РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ"></div>
+      <div class="field"><label>Примечание</label><input id="lkm-notes" type="text" placeholder="необязательно"></div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-secondary" onclick="closeLKMModal()">РћС‚РјРµРЅР°</button>
-      <button class="btn btn-primary" onclick="saveLKMLayer()">РЎРѕС…СЂР°РЅРёС‚СЊ СЃР»РѕР№</button>
+      <button class="btn btn-secondary" onclick="closeLKMModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveLKMLayer()">Сохранить слой</button>
     </div>
   </div>
 </div>
@@ -686,24 +686,24 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 <div class="modal-bg" id="tmpl-picker-bg">
   <div class="modal-box" style="width:520px;max-height:88vh;overflow-y:auto">
     <div class="modal-hdr">
-      <div class="modal-title">рџ“¦ Р’СЃС‚Р°РІРёС‚СЊ С€Р°Р±Р»РѕРЅ</div>
-      <button class="btn btn-secondary btn-xs" onclick="closeTmplPicker()">вњ•</button>
+      <div class="modal-title">📦 Вставить шаблон</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeTmplPicker()">✕</button>
     </div>
     <div class="modal-body">
       <div class="field mb-16">
-        <label>РЁР°Р±Р»РѕРЅ РёР·РґРµР»РёСЏ</label>
-        <select id="tp-sel" onchange="previewTmpl(this.value)" style="width:100%"><option value="">вЂ” Р·Р°РіСЂСѓР·РєР°... вЂ”</option></select>
+        <label>Шаблон изделия</label>
+        <select id="tp-sel" onchange="previewTmpl(this.value)" style="width:100%"><option value="">— загрузка... —</option></select>
       </div>
       <div class="field mb-16">
-        <label>РњРЅРѕР¶РёС‚РµР»СЊ (РєРѕР»-РІРѕ РёР·РґРµР»РёР№)</label>
+        <label>Множитель (кол-во изделий)</label>
         <input type="number" id="tp-mult" value="1" min="1" style="width:110px">
-        <span class="field-hint">qty РґРµС‚Р°Р»Рё = norm Г— node.qty Г— multiplier</span>
+        <span class="field-hint">qty детали = norm × node.qty × multiplier</span>
       </div>
       <div id="tp-preview" style="background:var(--card);border:1px solid var(--brd);border-radius:5px;padding:10px;font-size:11px;min-height:60px;max-height:200px;overflow-y:auto"></div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-secondary" onclick="closeTmplPicker()">РћС‚РјРµРЅР°</button>
-      <button class="btn btn-primary" id="tp-apply-btn" onclick="applyTmplPicker()">рџ“¦ Р’СЃС‚Р°РІРёС‚СЊ РґРµС‚Р°Р»Рё</button>
+      <button class="btn btn-secondary" onclick="closeTmplPicker()">Отмена</button>
+      <button class="btn btn-primary" id="tp-apply-btn" onclick="applyTmplPicker()">📦 Вставить детали</button>
     </div>
   </div>
 </div>
@@ -711,7 +711,7 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 <script>
 const API = 'http://5.35.92.112';
 
-// в”Ђв”Ђв”Ђ AUTH в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 let _loggedUser = null;
 
@@ -731,8 +731,8 @@ async function doLogin() {
   const errEl = document.getElementById('login-err');
   const btn = document.getElementById('login-btn');
   errEl.textContent = '';
-  if (!email || !password) { errEl.textContent = 'Р’РІРµРґРёС‚Рµ email Рё РїР°СЂРѕР»СЊ'; return; }
-  btn.disabled = true; btn.textContent = 'Р’С…РѕРґ...';
+  if (!email || !password) { errEl.textContent = 'Введите email и пароль'; return; }
+  btn.disabled = true; btn.textContent = 'Вход...';
   try {
     const r = await _origFetch(`${API}/api/auth/login`, {
       method: 'POST',
@@ -749,7 +749,7 @@ async function doLogin() {
   } catch(e) {
     errEl.textContent = e.message;
   } finally {
-    btn.disabled = false; btn.textContent = 'Р’РѕР№С‚Рё';
+    btn.disabled = false; btn.textContent = 'Войти';
   }
 }
 
@@ -767,7 +767,7 @@ function _setUserInfo(u) {
   document.getElementById('user-role').textContent = u.role || '';
 }
 
-// в”Ђв”Ђв”Ђ FETCH INTERCEPTOR в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── FETCH INTERCEPTOR ────────────────────────────────────────────────────────
 // Inject Bearer token on all API calls; redirect to login on 401
 
 const _origFetch = window.fetch.bind(window);
@@ -784,27 +784,27 @@ window.fetch = async function(url, opts) {
   if (r.status === 401 && surl.startsWith(API)) {
     localStorage.removeItem('erp_token');
     showLoginModal();
-    throw new Error('РўСЂРµР±СѓРµС‚СЃСЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ вЂ” РІРѕР№РґРёС‚Рµ СЃРЅРѕРІР°');
+    throw new Error('Требуется авторизация — войдите снова');
   }
   return r;
 };
 
-// в”Ђв”Ђв”Ђ THEME в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── THEME ────────────────────────────────────────────────────────────────────
 
 function tglTheme() {
   const isLight = document.body.classList.toggle('light');
-  document.getElementById('thm-btn').textContent = isLight ? 'рџЊ™' : 'вЂ';
+  document.getElementById('thm-btn').textContent = isLight ? '🌙' : 'вЂ';
   localStorage.setItem('erp-theme', isLight ? 'light' : 'dark');
 }
 (function() {
   if (localStorage.getItem('erp-theme') === 'light') {
     document.body.classList.add('light');
     const btn = document.getElementById('thm-btn');
-    if (btn) btn.textContent = 'рџЊ™';
+    if (btn) btn.textContent = '🌙';
   }
 })();
 
-// в”Ђв”Ђв”Ђ APP INIT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── APP INIT ─────────────────────────────────────────────────────────────────
 
 async function initApp() {
   try {
@@ -821,7 +821,7 @@ async function initApp() {
       let draftRestored = false;
       try {
         const raw = localStorage.getItem(DRAFT_KEY);
-        if (raw) { const d = JSON.parse(raw); if (d.orderId === orderId && d.asms?.length) { asms = d.asms; draftRestored = true; toast('Р§РµСЂРЅРѕРІРёРє РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅ', 'success'); } }
+        if (raw) { const d = JSON.parse(raw); if (d.orderId === orderId && d.asms?.length) { asms = d.asms; draftRestored = true; toast('Черновик восстановлен', 'success'); } }
       } catch(_) {}
       if (!draftRestored && order.assemblies?.length) {
         asms = _apiAsmsToSim(order.assemblies);
@@ -863,7 +863,7 @@ async function initApp() {
   }
 })();
 </script>
-// в”Ђв”Ђв”Ђ STATE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── STATE ────────────────────────────────────────────────────────────────────
 
 let CATS = [], _catSlugMap = {};
 let MATS = [], PRICES = [], matsLoaded = false;
@@ -873,15 +873,15 @@ let dbg = false, asms = [], revs = [], nA = 10, nP = 100;
 let curA = null, curEP = null, curMT = 'linear', curC = 'all', selM = null;
 let _currentOrderId = null;
 let COATINGS_CATALOG = [];
-let _asmCoatings = {};       // localAsmId в†’ [{id,coatingMaterialId,...}]
-let _asmSections = {};       // localAsmId в†’ {mat:bool, fas:bool, lkm:bool}
+let _asmCoatings = {};       // localAsmId → [{id,coatingMaterialId,...}]
+let _asmSections = {};       // localAsmId → {mat:bool, fas:bool, lkm:bool}
 let _curPartCategory = 'MATERIAL';
 let _lkmCurAsm = null, _lkmCurId = null;
 let _rpTab = 'nodes';        // 'nodes' | 'profile' | 'revs'
 const DRAFT_KEY = 'erp_draft';
 let _draftTimer = null;
 
-// в”Ђв”Ђв”Ђ UTILS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── UTILS ────────────────────────────────────────────────────────────────────
 
 function r4(v) { return Math.round(v * 10000) / 10000; }
 function fm(n) { return Number(n).toLocaleString('ru-RU'); }
@@ -890,13 +890,13 @@ function f3(n) { return Number(n).toFixed(3); }
 let _tt;
 function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.textContent = (type === 'success' ? 'вњ“ ' : type === 'error' ? 'вњ— ' : 'вљ  ') + msg;
+  el.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : '⚠ ') + msg;
   el.className = `toast ${type} show`;
   clearTimeout(_tt);
   _tt = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// в”Ђв”Ђв”Ђ DRAFT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── DRAFT ────────────────────────────────────────────────────────────────────
 
 function saveDraft() {
   clearTimeout(_draftTimer);
@@ -922,7 +922,7 @@ function loadDraft() {
   } catch(e) { console.warn('loadDraft', e); }
 }
 
-// в”Ђв”Ђв”Ђ MATERIALS LOAD в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── MATERIALS LOAD ───────────────────────────────────────────────────────────
 
 function flatCats(cats, depth = 0) {
   const result = [];
@@ -942,7 +942,7 @@ async function loadMats() {
       fetch(`${API}/api/materials`).then(r => r.json()),
     ]);
     _catSlugMap = {};
-    CATS = [{ id: 'all', label: 'Р’СЃРµ' }, ...flatCats(catsData), { id: 'uncategorized', label: 'Р‘РµР· РєР°С‚РµРіРѕСЂРёРё' }];
+    CATS = [{ id: 'all', label: 'Все' }, ...flatCats(catsData), { id: 'uncategorized', label: 'Без категории' }];
     MATS = matsData.map(m => {
       const geo = m.geometry || {};
       const prof = m.procurementProfiles || [];
@@ -962,10 +962,10 @@ async function loadMats() {
     matsLoaded = true;
     showLoader(false);
     refresh();
-    toast(`Р—Р°РіСЂСѓР¶РµРЅРѕ ${MATS.length} РјР°С‚РµСЂРёР°Р»РѕРІ`, 'success');
+    toast(`Загружено ${MATS.length} материалов`, 'success');
   } catch(e) {
     showLoader(false);
-    toast('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РјР°С‚РµСЂРёР°Р»РѕРІ: ' + e.message, 'error');
+    toast('Ошибка загрузки материалов: ' + e.message, 'error');
   }
 }
 
@@ -975,20 +975,20 @@ function showLoader(show) {
     el = document.createElement('div');
     el.id = 'loader-overlay';
     el.style.cssText = 'position:fixed;inset:0;background:rgba(13,15,18,.85);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Inter,sans-serif';
-    el.innerHTML = '<div style="width:36px;height:36px;border:2px solid #252d3a;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#8b9ab0;font-size:12px">Р—Р°РіСЂСѓР·РєР° РјР°С‚РµСЂРёР°Р»РѕРІ...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    el.innerHTML = '<div style="width:36px;height:36px;border:2px solid #252d3a;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#8b9ab0;font-size:12px">Загрузка материалов...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
     document.body.appendChild(el);
   }
   el.style.display = show ? 'flex' : 'none';
 }
 
-// в”Ђв”Ђв”Ђ PRICE LOOKUP в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── PRICE LOOKUP ─────────────────────────────────────────────────────────────
 
 function gP(mid) {
   const t = new Date().toISOString().slice(0, 10);
   return PRICES.filter(p => p.mid === mid && p.from <= t && (!p.to || p.to >= t)).sort((a, b) => b.from.localeCompare(a.from))[0] || null;
 }
 
-// в”Ђв”Ђв”Ђ CALC CORE (PRESERVED) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── CALC CORE (PRESERVED) ────────────────────────────────────────────────────
 
 function getPw() {
   if (curMT !== 'piece') return 0;
@@ -1003,7 +1003,7 @@ function updatePwField() {
   const cb = document.getElementById('pw-override');
   const inp = document.getElementById('p-pw');
   if (curMT !== 'piece' || !selM || selM.unitKg == null) { defEl.style.display = 'none'; wrap.style.display = 'none'; inp.style.display = ''; inp.disabled = false; return; }
-  defEl.style.display = 'block'; defEl.textContent = selM.unitKg + ' РєРі/С€С‚ (РёР· СЃРїСЂР°РІРѕС‡РЅРёРєР°)';
+  defEl.style.display = 'block'; defEl.textContent = selM.unitKg + ' кг/шт (из справочника)';
   wrap.style.display = 'flex';
   if (cb.checked) { inp.style.display = ''; inp.disabled = false; } else { inp.style.display = 'none'; inp.disabled = true; inp.value = ''; }
 }
@@ -1016,32 +1016,32 @@ function cPW(part, mat) {
     const mm = part.len || 0, m = mm / 1000, kgm = mat.kgm || 0, q = part.qty || 1;
     const wpu = r4(m * kgm), tot = r4(wpu * q), lmm = mm * q;
     const pm2 = mat.pm ? r4(m * mat.pm * q) : 0;
-    d.push(`${fm(mm)} РјРј Г· 1000 = ${m.toFixed(4)} Рј`);
-    d.push(`${m.toFixed(4)} Рј Г— ${kgm} РєРі/Рј = ${wpu} РєРі/С€С‚`);
-    d.push(`${wpu} Г— ${q} С€С‚ = ${tot} РєРі`);
-    if (mat.pm) d.push(`РџРѕРєСЂР°СЃРєР°: ${m.toFixed(4)} Рј Г— ${mat.pm} РјВІ/Рј Г— ${q} = ${pm2} РјВІ`);
+    d.push(`${fm(mm)} мм ÷ 1000 = ${m.toFixed(4)} м`);
+    d.push(`${m.toFixed(4)} м × ${kgm} кг/м = ${wpu} кг/шт`);
+    d.push(`${wpu} × ${q} шт = ${tot} кг`);
+    if (mat.pm) d.push(`Покраска: ${m.toFixed(4)} м × ${mat.pm} м²/м × ${q} = ${pm2} м²`);
     return { wpu, tot, pm2, lmm, dbg: d };
   }
   if (part.mtype === 'area') {
     const wm = part.w || 0, hm = part.h || 0, wM = wm / 1000, hM = hm / 1000, q = part.qty || 1;
     const kgm2 = mat.kgm2 || 0, a2 = r4(wM * hM), wpu = r4(a2 * kgm2), tot = r4(wpu * q), pm2 = r4(a2 * 2 * q);
-    d.push(`${fm(wm)} Г— ${fm(hm)} РјРј в†’ ${a2.toFixed(6)} РјВІ`);
-    d.push(`${a2.toFixed(6)} РјВІ Г— ${kgm2} РєРі/РјВІ = ${wpu} РєРі/С€С‚`);
-    d.push(`РџРѕРєСЂР°СЃРєР°: ${a2.toFixed(4)} РјВІ Г— 2 СЃС‚РѕСЂ. Г— ${q} = ${pm2} РјВІ`);
+    d.push(`${fm(wm)} × ${fm(hm)} мм → ${a2.toFixed(6)} м²`);
+    d.push(`${a2.toFixed(6)} м² × ${kgm2} кг/м² = ${wpu} кг/шт`);
+    d.push(`Покраска: ${a2.toFixed(4)} м² × 2 стор. × ${q} = ${pm2} м²`);
     return { wpu, tot, pm2, lmm: 0, dbg: d };
   }
   if (part.mtype === 'piece') {
     const wpu = part.pw || 0, q = part.qty || 1, tot = r4(wpu * q);
-    d.push(`${wpu} РєРі/С€С‚ Г— ${q} С€С‚ = ${tot} РєРі`);
+    d.push(`${wpu} кг/шт × ${q} шт = ${tot} кг`);
     return { wpu, tot, pm2: 0, lmm: 0, dbg: d };
   }
   return { wpu: 0, tot: 0, pm2: 0, lmm: 0, dbg: [] };
 }
 
 function cCost(wKg, price) {
-  if (!price || !wKg) return { cost: 0, d: 'вЂ”' };
+  if (!price || !wKg) return { cost: 0, d: '—' };
   const cost = r4(wKg / 1000 * price.price);
-  return { cost, d: `${wKg.toFixed(2)} РєРі Г· 1000 Г— в‚Ѕ${fm(price.price)}/С‚ = в‚Ѕ${fm(cost)}` };
+  return { cost, d: `${wKg.toFixed(2)} кг ÷ 1000 × ₽${fm(price.price)}/т = ₽${fm(cost)}` };
 }
 
 function cAll() {
@@ -1053,7 +1053,7 @@ function cAll() {
     const { cost } = cCost(wT, pr);
     if (p.partCategory === 'FASTENER') { tFw += wT; tFc += cost; } else { tW += wT; tP += pT; }
     tC += cost; tPts++;
-    if (!pr) ws.push(`РќРµС‚ С†РµРЅС‹: ${mat.code}`);
+    if (!pr) ws.push(`Нет цены: ${mat.code}`);
     if (!bM[mat.id]) bM[mat.id] = { mat, w: 0, c: 0, p: 0 };
     bM[mat.id].w += wT; bM[mat.id].c += cost; bM[mat.id].p += pT;
   }}
@@ -1084,7 +1084,7 @@ function calcByProfileType() {
   return Object.values(result).sort((a, b) => b.w - a.w);
 }
 
-// в”Ђв”Ђв”Ђ SECTIONS STATE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── SECTIONS STATE ───────────────────────────────────────────────────────────
 
 function getAsmSections(asmId) {
   if (!_asmSections[asmId]) _asmSections[asmId] = { mat: true, fas: false, lkm: false };
@@ -1096,7 +1096,7 @@ function toggleAsmSection(asmId, sec) {
   renderAsms();
 }
 
-// в”Ђв”Ђв”Ђ INLINE SEARCH в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── INLINE SEARCH ────────────────────────────────────────────────────────────
 
 function doAsmSearch(inp, asmId, category) {
   const q = inp.value.trim().toLowerCase();
@@ -1108,13 +1108,13 @@ function doAsmSearch(inp, asmId, category) {
   else ms = ms.filter(m => m.kgm != null || m.kgm2 != null);
   if (q) ms = ms.filter(m => m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q));
   if (!ms.length) {
-    dd.innerHTML = `<div class="sd-empty">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</div>`;
+    dd.innerHTML = `<div class="sd-empty">Ничего не найдено</div>`;
     dd.classList.add('open');
     return;
   }
   const items = ms.slice(0, 30).map(m => {
     const pr = gP(m.id);
-    const priceStr = pr ? `<span class="sd-price">в‚Ѕ${fm(pr.price)}/С‚</span>` : `<span style="color:var(--red);font-size:9px">вљ  РЅРµС‚ С†РµРЅС‹</span>`;
+    const priceStr = pr ? `<span class="sd-price">₽${fm(pr.price)}/т</span>` : `<span style="color:var(--red);font-size:9px">⚠ нет цены</span>`;
     return `<div class="sd-item" onmousedown="addPartInline('${asmId}','${m.id}','${category}');document.getElementById('${inp.id}').value='';closeAsmSearch('${asmId}','${category.toLowerCase()}')">
       <span class="sd-code">${m.code}</span>
       <span class="sd-name">${m.name}</span>
@@ -1148,15 +1148,15 @@ function addPartInline(asmId, matId, category) {
   const s = getAsmSections(asmId);
   if (category === 'FASTENER') s.fas = true; else s.mat = true;
   refresh(); saveDraft();
-  toast(`${mat.code} РґРѕР±Р°РІР»РµРЅ вЂ” РЅР°Р¶РјРёС‚Рµ вњЏ РґР»СЏ Р·Р°РґР°РЅРёСЏ СЂР°Р·РјРµСЂРѕРІ`, 'success');
+  toast(`${mat.code} добавлен — нажмите ✏ для задания размеров`, 'success');
 }
 
-// в”Ђв”Ђв”Ђ BOM ROWS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── BOM ROWS ─────────────────────────────────────────────────────────────────
 
 const _bomCollapsed = new Set();
 
 function renderBomRows(a) {
-  if (!a.parts.length) return `<tr><td colspan="11"><div class="pt-empty">Р”РµС‚Р°Р»РµР№ РЅРµС‚</div></td></tr>`;
+  if (!a.parts.length) return `<tr><td colspan="11"><div class="pt-empty">Деталей нет</div></td></tr>`;
   const groupMap = new Map();
   const ungrouped = [];
   for (const p of a.parts) {
@@ -1172,15 +1172,15 @@ function renderBomRows(a) {
     const indent = 8 + grp.depth * 12;
     html += `<tr class="bom-grp-hdr" onclick="toggleBomGroup('${a.id}','${grp.key.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
       <td colspan="9" style="padding-left:${indent}px">
-        <span style="font-size:9px;color:var(--txtm)">${collapsed ? 'в–¶' : 'в–ј'}</span>
+        <span style="font-size:9px;color:var(--txtm)">${collapsed ? '▶' : '▼'}</span>
         <span style="font-weight:600;font-size:11px;margin-left:4px;color:var(--txts)">${grp.label}</span>
         ${grp.tmplCode ? `<span style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--txtm);margin-left:6px">${grp.tmplCode}</span>` : ''}
-        <span style="float:right;font-size:9px;color:var(--txtm)">${grp.parts.length} РґРµС‚.</span>
+        <span style="float:right;font-size:9px;color:var(--txtm)">${grp.parts.length} дет.</span>
       </td></tr>`;
     if (!collapsed) for (const p of grp.parts) html += renderPR(p, a);
   }
   if (ungrouped.length) {
-    if (sorted.length) html += `<tr class="bom-grp-ungrouped"><td colspan="9">вЂ” Р±РµР· С€Р°Р±Р»РѕРЅР° вЂ”</td></tr>`;
+    if (sorted.length) html += `<tr class="bom-grp-ungrouped"><td colspan="9">— без шаблона —</td></tr>`;
     for (const p of ungrouped) html += renderPR(p, a);
   }
   return html;
@@ -1191,39 +1191,39 @@ function renderPR(p, a) {
   const { wpu, tot, pm2, lmm, dbg: d } = cPW(p, mat); const mu = a.qty;
   const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
   const { cost, d: cd } = cCost(wT, pr);
-  const tl = { linear: 'рџ“Џ', area: 'в¬њ', piece: 'рџ”©' }[p.mtype] || '';
+  const tl = { linear: '📏', area: '⬜', piece: '🔩' }[p.mtype] || '';
   const dims = fmtD(p);
   let dbgH = '';
   if (dbg) dbgH = `<tr style="background:rgba(245,158,11,.05)"><td colspan="9" style="padding:3px 8px"><div class="debug-box" style="margin:0">${[...d, cd].join('<br>')}</div></td></tr>`;
   return `<tr>
     <td><span class="mc">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
-    <td class="text-xs text-muted">${p.name || 'вЂ”'}</td>
+    <td class="text-xs text-muted">${p.name || '—'}</td>
     <td class="text-xs">${tl}</td>
     <td class="mv">${dims}</td>
-    <td class="mv">${p.qty} С€С‚</td>
-    <td class="mv">${wpu.toFixed(2)} РєРі</td>
-    <td><span class="chip-w">${wT.toFixed(2)} РєРі</span></td>
-    <td>${pr ? `<span class="mv">в‚Ѕ${fm(pr.price)}</span>` : '<span style="color:var(--red);font-size:10px">вљ </span>'}</td>
+    <td class="mv">${p.qty} шт</td>
+    <td class="mv">${wpu.toFixed(2)} кг</td>
+    <td><span class="chip-w">${wT.toFixed(2)} кг</span></td>
+    <td>${pr ? `<span class="mv">₽${fm(pr.price)}</span>` : '<span style="color:var(--red);font-size:10px">⚠</span>'}</td>
     <td><div class="pt-acts">
-      <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">вњЏ</button>
-      <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">вњ•</button>
-    </div>${pr ? `<span class="cv">в‚Ѕ${fm(Math.round(cost))}</span>` : ''}</td>
+      <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">✏</button>
+      <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
+    </div>${pr ? `<span class="cv">₽${fm(Math.round(cost))}</span>` : ''}</td>
   </tr>${dbgH}`;
 }
 
 function fmtD(p) {
-  if (p.mtype === 'linear') return `${fm(p.len || 0)} РјРј`;
-  if (p.mtype === 'area') return `${fm(p.w || 0)} Г— ${fm(p.h || 0)} РјРј`;
-  if (p.mtype === 'piece') return `${p.qty} Г— ${p.pw || '?'} РєРі`;
-  return 'вЂ”';
+  if (p.mtype === 'linear') return `${fm(p.len || 0)} мм`;
+  if (p.mtype === 'area') return `${fm(p.w || 0)} × ${fm(p.h || 0)} мм`;
+  if (p.mtype === 'piece') return `${p.qty} × ${p.pw || '?'} кг`;
+  return '—';
 }
 
-// в”Ђв”Ђв”Ђ RENDER ASSEMBLIES в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── RENDER ASSEMBLIES ────────────────────────────────────────────────────────
 
 function renderAsms() {
   const c = document.getElementById('asms-container');
   if (!asms.length) {
-    c.innerHTML = `<div class="ac" style="border-style:dashed"><div style="padding:24px;text-align:center;color:var(--txtm)"><div style="font-size:24px;margin-bottom:8px">рџ“¦</div>РЈР·Р»РѕРІ РїРѕРєР° РЅРµС‚ вЂ” РІРІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РІС‹С€Рµ Рё РЅР°Р¶РјРёС‚Рµ В«+ РЈР·РµР»В»</div></div>`;
+    c.innerHTML = `<div class="ac" style="border-style:dashed"><div style="padding:24px;text-align:center;color:var(--txtm)"><div style="font-size:24px;margin-bottom:8px">📦</div>Узлов пока нет — введите название выше и нажмите «+ Узел»</div></div>`;
     return;
   }
   c.innerHTML = asms.map(a => {
@@ -1234,7 +1234,7 @@ function renderAsms() {
       const wT = r4(tot * mu); aW += wT; aP += r4((pm2 || 0) * mu);
       const { cost } = cCost(wT, gP(p.mid)); aC += cost;
     }
-    const tots = aW > 0 ? `<span class="ch chw">${f3(aW / 1000)} С‚</span><span class="ch chp">${aP.toFixed(2)} РјВІ</span><span class="ch chc">в‚Ѕ ${fm(Math.round(aC))}</span>` : '';
+    const tots = aW > 0 ? `<span class="ch chw">${f3(aW / 1000)} т</span><span class="ch chp">${aP.toFixed(2)} м²</span><span class="ch chc">₽ ${fm(Math.round(aC))}</span>` : '';
     const sec = getAsmSections(a.id);
     const materialParts = a.parts.filter(p => p.partCategory !== 'FASTENER');
     const fasteners = a.parts.filter(p => p.partCategory === 'FASTENER');
@@ -1247,15 +1247,15 @@ function renderAsms() {
 
     return `<div class="ac">
       <div class="ah">
-        <span class="atog" onclick="toggleAsmBody('${a.id}')">${asmCollapsed ? 'в–¶' : 'в–ј'}</span>
+        <span class="atog" onclick="toggleAsmBody('${a.id}')">${asmCollapsed ? '▶' : '▼'}</span>
         <span class="aname">${a.name}</span>
-        <input class="aqty" type="number" value="${a.qty}" min="1" title="РљРѕР»-РІРѕ СѓР·Р»РѕРІ" onchange="updAQ('${a.id}',this.value)">
+        <input class="aqty" type="number" value="${a.qty}" min="1" title="Кол-во узлов" onchange="updAQ('${a.id}',this.value)">
         <div class="atots">${tots}</div>
         <div class="aacts">
-          <button class="xb xm" onclick="openMod('${a.id}','MATERIAL')">+ Р”РµС‚Р°Р»СЊ</button>
-          <button class="xb xf" onclick="openMod('${a.id}','FASTENER')">+ РњРµС‚РёР·</button>
-          <button class="xb xt" onclick="openTmplPicker('${a.id}')">рџ“¦</button>
-          <button class="xb xd" onclick="remA('${a.id}')">вњ•</button>
+          <button class="xb xm" onclick="openMod('${a.id}','MATERIAL')">+ Деталь</button>
+          <button class="xb xf" onclick="openMod('${a.id}','FASTENER')">+ Метиз</button>
+          <button class="xb xt" onclick="openTmplPicker('${a.id}')">📦</button>
+          <button class="xb xd" onclick="remA('${a.id}')">✕</button>
         </div>
       </div>
       ${asmCollapsed ? '' : `
@@ -1263,23 +1263,23 @@ function renderAsms() {
         <!-- РњРђРўР•Р РРђР›Р« -->
         <div class="sg">
           <div class="sgh" onclick="toggleAsmSection('${a.id}','mat')">
-            <span class="sgt">${sec.mat ? 'в–ј' : 'в–¶'}</span>
-            <span class="sgl m">РњР°С‚РµСЂРёР°Р»С‹</span>
+            <span class="sgt">${sec.mat ? '▼' : '▶'}</span>
+            <span class="sgl m">Материалы</span>
             <span class="sgc">${materialParts.length}</span>
-            <span class="sgs">${matW > 0 ? f3(matW / 1000) + ' С‚ В· в‚Ѕ' + fm(Math.round(matC)) : 'вЂ”'}</span>
+            <span class="sgs">${matW > 0 ? f3(matW / 1000) + ' т · ₽' + fm(Math.round(matC)) : '—'}</span>
           </div>
           ${sec.mat ? `
           <div class="search-bar">
             <div class="search-wrap">
-              <span class="search-ico">рџ”Ќ</span>
-              <input class="search-in" id="srch-mat-${a.id}" placeholder="РџРѕРёСЃРє РјР°С‚РµСЂРёР°Р»Р° (РєРѕРґ, РЅР°Р·РІР°РЅРёРµ)..."
+              <span class="search-ico">🔍</span>
+              <input class="search-in" id="srch-mat-${a.id}" placeholder="Поиск материала (код, название)..."
                 autocomplete="off" oninput="doAsmSearch(this,'${a.id}','MATERIAL')"
                 onblur="setTimeout(()=>closeAsmSearch('${a.id}','material'),150)">
               <div class="search-dropdown" id="sd-material-${a.id}"></div>
             </div>
           </div>
           <table class="pt">
-            <thead><tr><th>РњР°С‚РµСЂРёР°Р»</th><th>Р”РµС‚Р°Р»СЊ</th><th>РўРёРї</th><th>Р Р°Р·РјРµСЂС‹</th><th>РљРѕР».</th><th>РєРі/С€С‚</th><th>РєРіГ—СѓР·РµР»</th><th>в‚Ѕ/С‚</th><th>РЎСѓРјРјР°</th></tr></thead>
+            <thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>кг/шт</th><th>кг×узел</th><th>₽/т</th><th>Сумма</th></tr></thead>
             <tbody>${renderBomRows({ ...a, parts: materialParts })}</tbody>
           </table>` : ''}
         </div>
@@ -1287,15 +1287,15 @@ function renderAsms() {
         <!-- РњР•РўРР—Р« -->
         <div class="sg">
           <div class="sgh" onclick="toggleAsmSection('${a.id}','fas')">
-            <span class="sgt">${sec.fas ? 'в–ј' : 'в–¶'}</span>
-            <span class="sgl f">РњРµС‚РёР·С‹</span>
+            <span class="sgt">${sec.fas ? '▼' : '▶'}</span>
+            <span class="sgl f">Метизы</span>
             <span class="sgc">${fasteners.length}</span>
           </div>
           ${sec.fas ? `
           <div class="search-bar">
             <div class="search-wrap">
-              <span class="search-ico">рџ”Ќ</span>
-              <input class="search-in" id="srch-fas-${a.id}" placeholder="РџРѕРёСЃРє РјРµС‚РёР·Р°..."
+              <span class="search-ico">🔍</span>
+              <input class="search-in" id="srch-fas-${a.id}" placeholder="Поиск метиза..."
                 autocomplete="off" oninput="doAsmSearch(this,'${a.id}','FASTENER')"
                 onblur="setTimeout(()=>closeAsmSearch('${a.id}','fastener'),150)">
               <div class="search-dropdown" id="sd-fastener-${a.id}"></div>
@@ -1304,11 +1304,11 @@ function renderAsms() {
           ${renderFastenersTab(a, fasteners)}` : ''}
         </div>
 
-        <!-- Р›РљРњ -->
+        <!-- ЛКМ -->
         <div class="sg">
           <div class="sgh" onclick="toggleAsmSection('${a.id}','lkm')">
-            <span class="sgt">${sec.lkm ? 'в–ј' : 'в–¶'}</span>
-            <span class="sgl l">Р›РљРњ</span>
+            <span class="sgt">${sec.lkm ? '▼' : '▶'}</span>
+            <span class="sgl l">ЛКМ</span>
             <span class="sgc">${lkmLayers.length}</span>
           </div>
           ${sec.lkm ? renderLKMTab(a) : ''}
@@ -1324,12 +1324,12 @@ function toggleAsmBody(asmId) {
   renderAsms();
 }
 
-// в”Ђв”Ђв”Ђ FASTENERS TAB в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── FASTENERS TAB ────────────────────────────────────────────────────────────
 
 function renderFastenersTab(a, fasteners) {
-  if (!fasteners.length) return `<div style="padding:14px;text-align:center;color:var(--txtm);font-size:11px">РњРµС‚РёР·РѕРІ РЅРµС‚ вЂ” РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РїРѕРёСЃРє РІС‹С€Рµ</div>`;
+  if (!fasteners.length) return `<div style="padding:14px;text-align:center;color:var(--txtm);font-size:11px">Метизов нет — используйте поиск выше</div>`;
   const mu = a.qty || 1;
-  let html = `<table class="pt"><thead><tr><th>РљРѕРґ</th><th>РќР°РёРјРµРЅРѕРІР°РЅРёРµ</th><th>РєРі/С€С‚</th><th>РљРѕР».</th><th>РєРіГ—СѓР·РµР»</th><th>в‚Ѕ/С€С‚</th><th>РЎСѓРјРјР°</th><th></th></tr></thead><tbody>`;
+  let html = `<table class="pt"><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
   let totW = 0, totC = 0;
   for (const p of fasteners) {
     const mat = MATS.find(m => m.id === p.mid);
@@ -1342,66 +1342,66 @@ function renderFastenersTab(a, fasteners) {
     html += `<tr>
       <td class="mc">${mat ? mat.code : '?'}</td>
       <td class="text-sm">${p.name || mat?.name || ''}</td>
-      <td class="mv">${pw ? pw.toFixed(4) + ' РєРі' : 'вЂ”'}</td>
+      <td class="mv">${pw ? pw.toFixed(4) + ' кг' : '—'}</td>
       <td class="mv">${p.qty || 1}</td>
-      <td><span class="chip-w">${wT ? wT.toFixed(4) + ' РєРі' : 'вЂ”'}</span></td>
-      <td class="mv">${ppp != null ? 'в‚Ѕ' + fm(ppp) : 'вЂ”'}</td>
-      <td><span class="cv">${cost ? 'в‚Ѕ' + fm(Math.round(cost)) : 'вЂ”'}</span></td>
+      <td><span class="chip-w">${wT ? wT.toFixed(4) + ' кг' : '—'}</span></td>
+      <td class="mv">${ppp != null ? '₽' + fm(ppp) : '—'}</td>
+      <td><span class="cv">${cost ? '₽' + fm(Math.round(cost)) : '—'}</span></td>
       <td><div class="pt-acts" style="opacity:1">
-        <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">вњЏ</button>
-        <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">вњ•</button>
+        <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">✏</button>
+        <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
       </div></td>
     </tr>`;
   }
   html += `</tbody><tfoot><tr style="font-weight:700">
-    <td colspan="4" style="text-align:right;font-size:9.5px;color:var(--txtm)">РС‚РѕРіРѕ РјРµС‚РёР·РѕРІ:</td>
-    <td><span class="chip-w">${totW.toFixed(4)} РєРі</span></td>
-    <td></td><td><span class="cv">${totC ? 'в‚Ѕ' + fm(Math.round(totC)) : 'вЂ”'}</span></td>
+    <td colspan="4" style="text-align:right;font-size:9.5px;color:var(--txtm)">РС‚РѕРіРѕ метизов:</td>
+    <td><span class="chip-w">${totW.toFixed(4)} кг</span></td>
+    <td></td><td><span class="cv">${totC ? '₽' + fm(Math.round(totC)) : '—'}</span></td>
     <td></td>
   </tr></tfoot></table>`;
   return html;
 }
 
-// в”Ђв”Ђв”Ђ LKM TAB в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── LKM TAB ──────────────────────────────────────────────────────────────────
 
 function renderLKMTab(a) {
   const layers = _asmCoatings[a.id] || [];
   const autoArea = calcAsmPaintArea(a);
   const hasCatalog = COATINGS_CATALOG.length > 0;
-  if (!hasCatalog) return `<div class="lkm-empty">РљР°С‚Р°Р»РѕРі Р›РљРњ РЅРµ Р·Р°РіСЂСѓР¶РµРЅ вЂ” РїСЂРѕРІРµСЂСЊС‚Рµ СЃРѕРµРґРёРЅРµРЅРёРµ</div>`;
+  if (!hasCatalog) return `<div class="lkm-empty">Каталог ЛКМ не загружен — проверьте соединение</div>`;
   let rows = '';
   for (const layer of layers) {
     const mat = COATINGS_CATALOG.find(m => m.id === layer.coatingMaterialId);
-    if (!mat) { rows += `<tr><td colspan="8"><span class="text-muted text-xs">РњР°С‚РµСЂРёР°Р» РЅРµ РЅР°Р№РґРµРЅ</span></td></tr>`; continue; }
+    if (!mat) { rows += `<tr><td colspan="8"><span class="text-muted text-xs">Материал не найден</span></td></tr>`; continue; }
     const areaM2 = layer.autoAreaLink ? autoArea : (layer.manualAreaM2 || 0);
     const { cKg, cL, tKg, tCost } = calcLKMRow(layer, mat, areaM2);
     const typeCls = { PRIMER: 'lkm-primer', BASE_COAT: 'lkm-base', TOPCOAT: 'lkm-top', CLEAR: 'lkm-clear', OTHER: 'lkm-other' }[mat.coatingType] || 'lkm-other';
-    const typeLabel = { PRIMER: 'Р“СЂСѓРЅС‚', BASE_COAT: 'РџСЂРѕРј.', TOPCOAT: 'Р¤РёРЅРёС€', CLEAR: 'Р›Р°Рє', OTHER: 'РџСЂРѕС‡РµРµ' }[mat.coatingType] || mat.coatingType;
+    const typeLabel = { PRIMER: 'Грунт', BASE_COAT: 'Пром.', TOPCOAT: 'Финиш', CLEAR: 'Лак', OTHER: 'Прочее' }[mat.coatingType] || mat.coatingType;
     rows += `<tr>
       <td><span class="lkm-type-badge ${typeCls}">${typeLabel}</span></td>
       <td><span class="mc">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
-      <td>${layer.autoAreaLink ? `<span class="chip-p">${autoArea.toFixed(2)} РјВІ <span class="text-xs" style="opacity:.6">Р°РІС‚Рѕ</span></span>` : `<span class="chip-p">${Number(layer.manualAreaM2 || 0).toFixed(2)} РјВІ <span class="text-xs" style="opacity:.6">СЂСѓС‡РЅ</span></span>`}</td>
-      <td class="mv">${layer.selectedDftMkm ?? mat.referenceDftMkm} РјРєРј</td>
+      <td>${layer.autoAreaLink ? `<span class="chip-p">${autoArea.toFixed(2)} м² <span class="text-xs" style="opacity:.6">авто</span></span>` : `<span class="chip-p">${Number(layer.manualAreaM2 || 0).toFixed(2)} м² <span class="text-xs" style="opacity:.6">ручн</span></span>`}</td>
+      <td class="mv">${layer.selectedDftMkm ?? mat.referenceDftMkm} мкм</td>
       <td class="mv">${layer.dilutionPercent != null ? layer.dilutionPercent : mat.recommendedDilutionPercent ?? 0}%</td>
-      <td><span class="chip-w">${cKg.toFixed(3)} РєРі</span></td>
-      <td>${tCost != null ? `<span class="chip-c">в‚Ѕ${fm(Math.round(tCost))}</span>` : '<span class="text-muted text-xs">РЅРµС‚ С†РµРЅС‹</span>'}</td>
+      <td><span class="chip-w">${cKg.toFixed(3)} кг</span></td>
+      <td>${tCost != null ? `<span class="chip-c">₽${fm(Math.round(tCost))}</span>` : '<span class="text-muted text-xs">нет цены</span>'}</td>
       <td style="white-space:nowrap">
-        <button class="ib ibe" style="margin-right:3px" onclick="openLKMEdit('${a.id}','${layer.id}')">вњЏ</button>
-        <button class="ib ibd" onclick="deleteLKMLayer('${a.id}','${layer.id}')">вњ•</button>
+        <button class="ib ibe" style="margin-right:3px" onclick="openLKMEdit('${a.id}','${layer.id}')">✏</button>
+        <button class="ib ibd" onclick="deleteLKMLayer('${a.id}','${layer.id}')">✕</button>
       </td>
     </tr>`;
   }
-  if (!layers.length) rows = `<tr><td colspan="8"><div class="lkm-empty">РЎР»РѕС‘РІ РЅРµС‚ вЂ” РґРѕР±Р°РІСЊС‚Рµ РїРµСЂРІС‹Р№</div></td></tr>`;
-  const shortcuts = [{ t: 'Р“', type: 'PRIMER' }, { t: 'Рџ', type: 'BASE_COAT' }, { t: 'Р¤', type: 'TOPCOAT' }].map(s => {
+  if (!layers.length) rows = `<tr><td colspan="8"><div class="lkm-empty">Слоёв нет — добавьте первый</div></td></tr>`;
+  const shortcuts = [{ t: 'Г', type: 'PRIMER' }, { t: 'П', type: 'BASE_COAT' }, { t: 'Ф', type: 'TOPCOAT' }].map(s => {
     const m = COATINGS_CATALOG.find(x => x.coatingType === s.type);
     return m ? `<button class="abtn" style="padding:2px 7px;font-size:10px" onclick="quickLKM('${a.id}','${m.id}')" title="${m.name}">${s.t}</button>` : '';
   }).join('');
-  return `<table class="lkm-table"><thead><tr><th>РўРёРї</th><th>РњР°С‚РµСЂРёР°Р»</th><th>РџР»РѕС‰Р°РґСЊ</th><th>Р”РџРџ</th><th>Р Р°Р·Р±.</th><th>Р Р°СЃС…РѕРґ</th><th>РЎС‚РѕРёРјРѕСЃС‚СЊ</th><th></th></tr></thead>
+  return `<table class="lkm-table"><thead><tr><th>Тип</th><th>Материал</th><th>Площадь</th><th>ДПП</th><th>Разб.</th><th>Расход</th><th>Стоимость</th><th></th></tr></thead>
   <tbody>${rows}</tbody></table>
   <div class="lkm-footer">
-    <button class="abtn" style="padding:3px 9px;font-size:10.5px" onclick="openLKMEdit('${a.id}',null)">+ РЎР»РѕР№</button>
+    <button class="abtn" style="padding:3px 9px;font-size:10.5px" onclick="openLKMEdit('${a.id}',null)">+ Слой</button>
     ${shortcuts}
-    <span class="text-xs text-muted" style="margin-left:auto">Р°РІС‚Рѕ-РїР»РѕС‰Р°РґСЊ: <strong>${autoArea.toFixed(2)} РјВІ</strong></span>
+    <span class="text-xs text-muted" style="margin-left:auto">авто-площадь: <strong>${autoArea.toFixed(2)} м²</strong></span>
   </div>`;
 }
 
@@ -1420,7 +1420,7 @@ function quickLKM(asmId, materialId) {
   const layers = _asmCoatings[asmId];
   const mat = COATINGS_CATALOG.find(m => m.id === materialId);
   layers.push({ id: 'lkm' + Date.now(), coatingMaterialId: materialId, layerNumber: layers.length + 1, autoAreaLink: true, manualAreaM2: null, selectedDftMkm: null, dilutionPercent: null, notes: null });
-  toast(`РЎР»РѕР№ ${mat?.name || ''} РґРѕР±Р°РІР»РµРЅ`, 'success');
+  toast(`Слой ${mat?.name || ''} добавлен`, 'success');
   renderAsms();
 }
 
@@ -1428,10 +1428,10 @@ function openLKMEdit(asmId, layerId) {
   _lkmCurAsm = asmId; _lkmCurId = layerId;
   const layer = layerId ? (_asmCoatings[asmId] || []).find(l => l.id === layerId) : null;
   const sel = document.getElementById('lkm-mat-sel');
-  const typeLabel = { PRIMER: 'Р“СЂСѓРЅС‚', BASE_COAT: 'РџСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Р№', TOPCOAT: 'Р¤РёРЅРёС€РЅС‹Р№', CLEAR: 'Р›Р°Рє', OTHER: 'РџСЂРѕС‡РµРµ' };
+  const typeLabel = { PRIMER: 'Грунт', BASE_COAT: 'Промежуточный', TOPCOAT: 'Финишный', CLEAR: 'Лак', OTHER: 'Прочее' };
   const grouped = {};
   for (const m of COATINGS_CATALOG) { if (!grouped[m.coatingType]) grouped[m.coatingType] = []; grouped[m.coatingType].push(m); }
-  sel.innerHTML = '<option value="">вЂ” РІС‹Р±РµСЂРёС‚Рµ вЂ”</option>' + Object.entries(grouped).map(([type, mats]) => `<optgroup label="${typeLabel[type] || type}">${mats.map(m => `<option value="${m.id}">${m.code} вЂ” ${m.name}</option>`).join('')}</optgroup>`).join('');
+  sel.innerHTML = '<option value="">— выберите —</option>' + Object.entries(grouped).map(([type, mats]) => `<optgroup label="${typeLabel[type] || type}">${mats.map(m => `<option value="${m.id}">${m.code} — ${m.name}</option>`).join('')}</optgroup>`).join('');
   sel.value = layer?.coatingMaterialId || '';
   document.getElementById('lkm-auto').checked = layer ? layer.autoAreaLink : true;
   document.getElementById('lkm-manual-area').value = layer?.manualAreaM2 || '';
@@ -1439,7 +1439,7 @@ function openLKMEdit(asmId, layerId) {
   document.getElementById('lkm-dilution').value = layer?.dilutionPercent != null ? layer.dilutionPercent : '';
   document.getElementById('lkm-notes').value = layer?.notes || '';
   document.getElementById('lkm-layer-num').value = layer?.layerNumber || ((_asmCoatings[asmId] || []).length + 1);
-  document.getElementById('lkm-modal-title').textContent = layerId ? 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ СЃР»РѕР№' : 'Р”РѕР±Р°РІРёС‚СЊ СЃР»РѕР№ Р›РљРњ';
+  document.getElementById('lkm-modal-title').textContent = layerId ? 'Редактировать слой' : 'Добавить слой ЛКМ';
   toggleLKMManual();
   document.getElementById('lkm-modal-bg').classList.add('open');
 }
@@ -1448,13 +1448,13 @@ function toggleLKMManual() { document.getElementById('lkm-manual-wrap').style.di
 
 function saveLKMLayer() {
   const matId = document.getElementById('lkm-mat-sel').value;
-  if (!matId) { toast('Р’С‹Р±РµСЂРёС‚Рµ РјР°С‚РµСЂРёР°Р»', 'error'); return; }
+  if (!matId) { toast('Выберите материал', 'error'); return; }
   const auto = document.getElementById('lkm-auto').checked;
   const layer = { id: _lkmCurId || ('lkm' + Date.now()), coatingMaterialId: matId, layerNumber: parseInt(document.getElementById('lkm-layer-num').value) || 1, autoAreaLink: auto, manualAreaM2: !auto && document.getElementById('lkm-manual-area').value ? Number(document.getElementById('lkm-manual-area').value) : null, selectedDftMkm: document.getElementById('lkm-dft').value ? parseInt(document.getElementById('lkm-dft').value) : null, dilutionPercent: document.getElementById('lkm-dilution').value !== '' ? Number(document.getElementById('lkm-dilution').value) : null, notes: document.getElementById('lkm-notes').value || null };
   if (!_asmCoatings[_lkmCurAsm]) _asmCoatings[_lkmCurAsm] = [];
   const layers = _asmCoatings[_lkmCurAsm];
   if (_lkmCurId) { const idx = layers.findIndex(l => l.id === _lkmCurId); if (idx >= 0) layers[idx] = layer; } else layers.push(layer);
-  closeLKMModal(); renderAsms(); toast('РЎР»РѕР№ СЃРѕС…СЂР°РЅС‘РЅ', 'success');
+  closeLKMModal(); renderAsms(); toast('Слой сохранён', 'success');
 }
 function deleteLKMLayer(asmId, layerId) {
   if (!_asmCoatings[asmId]) return;
@@ -1462,33 +1462,33 @@ function deleteLKMLayer(asmId, layerId) {
   renderAsms();
 }
 
-// в”Ђв”Ђв”Ђ TOTALS BAR в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── TOTALS BAR ───────────────────────────────────────────────────────────────
 
 function updSum() {
   const { tW, tC, tP, tPts, tFw, tFc, bM, ws } = cAll();
   const tWt = tW / 1000;
-  document.getElementById('tb-w').innerHTML = `${f3(tWt)} <span style="font-size:11px;color:var(--txtm)">С‚</span>`;
-  document.getElementById('tb-w-sub').textContent = `${asms.length} СѓР·Р». В· ${tPts} РґРµС‚.`;
+  document.getElementById('tb-w').innerHTML = `${f3(tWt)} <span style="font-size:11px;color:var(--txtm)">т</span>`;
+  document.getElementById('tb-w-sub').textContent = `${asms.length} узл. · ${tPts} дет.`;
   document.getElementById('tb-w-bar').style.width = Math.min(100, tWt * 10) + '%';
-  document.getElementById('tb-c').innerHTML = `${fm(Math.round(tC))} <span style="font-size:11px;color:var(--txtm)">в‚Ѕ</span>`;
-  document.getElementById('tb-c-sub').textContent = ws.length ? `${ws.length} РїРѕР·. Р±РµР· С†РµРЅС‹ вљ ` : 'РІСЃРµ С†РµРЅС‹ Р°РєС‚СѓР°Р»СЊРЅС‹';
-  document.getElementById('tb-p').innerHTML = `${tP.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">РјВІ</span>`;
+  document.getElementById('tb-c').innerHTML = `${fm(Math.round(tC))} <span style="font-size:11px;color:var(--txtm)">₽</span>`;
+  document.getElementById('tb-c-sub').textContent = ws.length ? `${ws.length} поз. без цены ⚠` : 'все цены актуальны';
+  document.getElementById('tb-p').innerHTML = `${tP.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">м²</span>`;
   const lkmCount = Object.values(_asmCoatings).flat().length;
-  document.getElementById('tb-p-sub').textContent = lkmCount ? `${lkmCount} СЃР»РѕС‘РІ Р›РљРњ` : 'Р›РљРњ РЅРµ РЅР°Р·РЅР°С‡РµРЅ';
-  document.getElementById('tb-f').innerHTML = `${tFw.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">РєРі</span>`;
+  document.getElementById('tb-p-sub').textContent = lkmCount ? `${lkmCount} слоёв ЛКМ` : 'ЛКМ не назначен';
+  document.getElementById('tb-f').innerHTML = `${tFw.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">кг</span>`;
   const fastCnt = asms.flatMap(a => a.parts.filter(p => p.partCategory === 'FASTENER')).length;
-  document.getElementById('tb-f-sub').textContent = fastCnt ? `${fastCnt} РїРѕР·РёС†РёР№ В· в‚Ѕ${fm(Math.round(tFc))}` : 'вЂ”';
+  document.getElementById('tb-f-sub').textContent = fastCnt ? `${fastCnt} позиций · ₽${fm(Math.round(tFc))}` : '—';
   // Debug
   const de = document.getElementById('dbg-sum');
   const es = Object.values(bM);
-  if (dbg) { de.classList.remove('hidden'); document.getElementById('dbg-sum-lines').innerHTML = es.map(e => `${e.mat.code}: ${f3(e.w / 1000)} С‚ Г— в‚Ѕ${fm(gP(e.mat.id)?.price || 0)}/С‚ = в‚Ѕ${fm(Math.round(e.c))}`).join('<br>'); }
+  if (dbg) { de.classList.remove('hidden'); document.getElementById('dbg-sum-lines').innerHTML = es.map(e => `${e.mat.code}: ${f3(e.w / 1000)} т × ₽${fm(gP(e.mat.id)?.price || 0)}/т = ₽${fm(Math.round(e.c))}`).join('<br>'); }
   else de.classList.add('hidden');
   renderRightPanel();
 }
 
 function refresh() { renderAsms(); updSum(); }
 
-// в”Ђв”Ђв”Ђ RIGHT PANEL в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── RIGHT PANEL ──────────────────────────────────────────────────────────────
 
 function setRpTab(tab) {
   _rpTab = tab;
@@ -1507,7 +1507,7 @@ function renderRightPanel() {
 }
 
 function renderRpNodes() {
-  if (!asms.length) return `<div class="sr-empty">РЈР·Р»РѕРІ РїРѕРєР° РЅРµС‚</div>`;
+  if (!asms.length) return `<div class="sr-empty">Узлов пока нет</div>`;
   const COLORS = ['var(--blue)', 'var(--green)', 'var(--amber)', 'var(--violet)', 'var(--cyan)', 'var(--red)'];
   const blocks = asms.map((a, i) => {
     let aW = 0, aC = 0;
@@ -1515,86 +1515,86 @@ function renderRpNodes() {
     const color = COLORS[i % COLORS.length];
     return `<div class="sr-row">
       <div class="sr-dot" style="background:${color}"></div>
-      <div class="sr-name" title="${a.name}">${a.name} <span style="font-size:9px;color:var(--txtm)">Г—${a.qty}</span></div>
-      <div class="sr-val">${f3(aW / 1000)} С‚</div>
+      <div class="sr-name" title="${a.name}">${a.name} <span style="font-size:9px;color:var(--txtm)">×${a.qty}</span></div>
+      <div class="sr-val">${f3(aW / 1000)} т</div>
     </div>`;
   }).join('');
   const { tW, tC } = cAll();
   return `<div class="sr-block">
-    <div class="sr-block-title">РџРѕ СѓР·Р»Р°Рј</div>
+    <div class="sr-block-title">По узлам</div>
     ${blocks}
   </div>
   <div class="sr-block">
     <div class="sr-block-title">РС‚РѕРіРѕ</div>
-    <div class="sr-row"><div class="sr-name">РњР°СЃСЃР°</div><div class="sr-val">${f3(tW / 1000)} С‚</div></div>
-    <div class="sr-row"><div class="sr-name">РЎС‚РѕРёРјРѕСЃС‚СЊ</div><div class="sr-val" style="color:var(--green)">в‚Ѕ${fm(Math.round(tC))}</div></div>
+    <div class="sr-row"><div class="sr-name">Масса</div><div class="sr-val">${f3(tW / 1000)} т</div></div>
+    <div class="sr-row"><div class="sr-name">Стоимость</div><div class="sr-val" style="color:var(--green)">₽${fm(Math.round(tC))}</div></div>
   </div>`;
 }
 
 function renderRpProfile() {
   const items = calcByProfileType();
-  if (!items.length) return `<div class="sr-empty">РќРµС‚ РґР°РЅРЅС‹С…</div>`;
+  if (!items.length) return `<div class="sr-empty">Нет данных</div>`;
   const maxW = items[0].w;
   const rows = items.slice(0, 15).map((item, i) => {
     const pct = maxW > 0 ? Math.round(item.w / maxW * 100) : 0;
     return `<div class="sr-row" style="flex-direction:column;align-items:stretch;gap:2px;padding:4px 0">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="sr-name" title="${item.mat.code}">${item.mat.code}</span>
-        <span class="sr-val">${f3(item.w / 1000)} С‚</span>
+        <span class="sr-val">${f3(item.w / 1000)} т</span>
       </div>
       <div style="height:2px;background:var(--brd);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px"></div></div>
     </div>`;
   }).join('');
-  return `<div class="sr-block"><div class="sr-block-title">РџРѕ СЃРѕСЂС‚Р°РјРµРЅС‚Сѓ</div>${rows}</div>`;
+  return `<div class="sr-block"><div class="sr-block-title">По сортаменту</div>${rows}</div>`;
 }
 
 function renderRpRevs() {
-  if (!revs.length) return `<div class="sr-empty">Р РµРІРёР·РёР№ РЅРµС‚ вЂ” Р·Р°С„РёРєСЃРёСЂСѓР№С‚Рµ РїРµСЂРІСѓСЋ</div>`;
+  if (!revs.length) return `<div class="sr-empty">Ревизий нет — зафиксируйте первую</div>`;
   const recent = revs.slice().reverse().slice(0, 5);
   const rows = recent.map((rev, i) => {
     const isLast = i === 0;
     return `<div class="sr-rev" onclick="go('revisions')">
       <div class="rrt" style="display:flex;align-items:center;gap:5px">
         <span class="sr-rev-num">Rev ${rev.num}</span>
-        <span class="sr-rev-badge ${isLast ? 'sr-rev-act' : 'sr-rev-old'}">${isLast ? 'Р°РєС‚СѓР°Р»СЊРЅР°СЏ' : 'РІС‹С‚РµСЃРЅРµРЅР°'}</span>
+        <span class="sr-rev-badge ${isLast ? 'sr-rev-act' : 'sr-rev-old'}">${isLast ? 'актуальная' : 'вытеснена'}</span>
       </div>
-      <div style="font-size:9.5px;color:var(--txtm);margin-top:2px">${new Date(rev.at).toLocaleDateString('ru')} В· ${f3(rev.tW / 1000)} С‚ В· в‚Ѕ${fm(Math.round(rev.tC))}</div>
+      <div style="font-size:9.5px;color:var(--txtm);margin-top:2px">${new Date(rev.at).toLocaleDateString('ru')} · ${f3(rev.tW / 1000)} т · ₽${fm(Math.round(rev.tC))}</div>
     </div>`;
   }).join('');
   return `<div class="sr-block" style="padding:0">
     <div style="padding:6px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
-      <div class="sr-block-title" style="margin:0">РџРѕСЃР»РµРґРЅРёРµ СЂРµРІРёР·РёРё</div>
-      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('revisions')">Р’СЃРµ в†’</span>
+      <div class="sr-block-title" style="margin:0">Последние ревизии</div>
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('revisions')">Все →</span>
     </div>
     ${rows}
   </div>`;
 }
 
-// в”Ђв”Ђв”Ђ ASM CRUD в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── ASM CRUD ─────────────────────────────────────────────────────────────────
 
 function addAsm() {
   const n = document.getElementById('new-asm-name').value.trim();
   const q = parseInt(document.getElementById('new-asm-qty').value) || 1;
-  if (!n) { toast('Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ', 'error'); return; }
+  if (!n) { toast('Введите название', 'error'); return; }
   asms.push({ id: 'a' + nA++, name: n, qty: q, parts: [] });
   document.getElementById('new-asm-name').value = '';
   document.getElementById('new-asm-qty').value = 1;
-  refresh(); saveDraft(); toast(`РЈР·РµР» В«${n}В» РґРѕР±Р°РІР»РµРЅ`, 'success');
+  refresh(); saveDraft(); toast(`Узел «${n}» добавлен`, 'success');
 }
-function remA(id) { if (!confirm('РЈРґР°Р»РёС‚СЊ СѓР·РµР» СЃРѕ РІСЃРµРјРё РґРµС‚Р°Р»СЏРјРё?')) return; asms = asms.filter(a => a.id !== id); refresh(); saveDraft(); }
+function remA(id) { if (!confirm('Удалить узел со всеми деталями?')) return; asms = asms.filter(a => a.id !== id); refresh(); saveDraft(); }
 function updAQ(id, v) { const a = asms.find(a => a.id === id); if (a) { a.qty = Math.max(1, parseInt(v) || 1); refresh(); saveDraft(); } }
 function remP(aid, pid) { const a = asms.find(a => a.id === aid); if (a) { a.parts = a.parts.filter(p => p.id !== pid); refresh(); saveDraft(); } }
-function resetQuote() { if (!confirm('РЎР±СЂРѕСЃРёС‚СЊ РІСЃС‘?')) return; asms = []; revs = []; nA = 10; nP = 100; _currentOrderId = null; localStorage.removeItem(DRAFT_KEY); document.getElementById('rev-count').textContent = 0; document.getElementById('order-rev-tag').style.display = 'none'; refresh(); }
+function resetQuote() { if (!confirm('Сбросить всё?')) return; asms = []; revs = []; nA = 10; nP = 100; _currentOrderId = null; localStorage.removeItem(DRAFT_KEY); document.getElementById('rev-count').textContent = 0; document.getElementById('order-rev-tag').style.display = 'none'; refresh(); }
 
-// в”Ђв”Ђв”Ђ MODAL: ADD/EDIT PART в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── MODAL: ADD/EDIT PART ─────────────────────────────────────────────────────
 
 function openMod(aid, category = 'MATERIAL') {
   curA = aid; _curPartCategory = category; curEP = null; selM = null;
   curC = category === 'FASTENER' ? 'piece' : 'all';
   resetForm();
   const isFast = category === 'FASTENER';
-  document.getElementById('modal-title').textContent = isFast ? 'Р”РѕР±Р°РІРёС‚СЊ РјРµС‚РёР·' : 'Р”РѕР±Р°РІРёС‚СЊ РґРµС‚Р°Р»СЊ';
-  document.getElementById('btn-confirm').textContent = isFast ? 'Р”РѕР±Р°РІРёС‚СЊ РјРµС‚РёР·' : 'Р”РѕР±Р°РІРёС‚СЊ РґРµС‚Р°Р»СЊ';
+  document.getElementById('modal-title').textContent = isFast ? 'Добавить метиз' : 'Добавить деталь';
+  document.getElementById('btn-confirm').textContent = isFast ? 'Добавить метиз' : 'Добавить деталь';
   document.getElementById('modal-ov').classList.add('open');
   buildCF(); setMType(isFast ? 'piece' : 'linear');
 }
@@ -1617,8 +1617,8 @@ function openEdit(aid, pid) {
     if (selM.unitKg == null) { document.getElementById('p-pw').value = p.pw || ''; }
     else if (p.pw != null && Math.abs(Number(p.pw) - selM.unitKg) > 0.00001) { document.getElementById('pw-override').checked = true; updatePwField(); document.getElementById('p-pw').value = p.pw; }
   } else { document.getElementById('p-pw').value = p.pw || ''; }
-  document.getElementById('modal-title').textContent = 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РґРµС‚Р°Р»СЊ';
-  document.getElementById('btn-confirm').textContent = 'РЎРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ';
+  document.getElementById('modal-title').textContent = 'Редактировать деталь';
+  document.getElementById('btn-confirm').textContent = 'Сохранить изменения';
   document.getElementById('modal-ov').classList.add('open');
   buildCF(); calcPart();
 }
@@ -1664,13 +1664,13 @@ function searchMat(q) {
   if (curMT === 'piece') ms = ms.filter(m => m.mtype === 'PIECE');
   if (curC && curC !== 'all') ms = ms.filter(m => m.cat === curC);
   if (q.trim()) { const ql = q.toLowerCase(); ms = ms.filter(m => m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)); }
-  if (!ms.length) { dd.innerHTML = `<div style="padding:10px;color:var(--txtm);font-size:11px">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</div>`; dd.classList.add('open'); return; }
+  if (!ms.length) { dd.innerHTML = `<div style="padding:10px;color:var(--txtm);font-size:11px">Ничего не найдено</div>`; dd.classList.add('open'); return; }
   const grp = {}; for (const m of ms) { if (!grp[m.cat]) grp[m.cat] = []; grp[m.cat].push(m); }
   const multi = Object.keys(grp).length > 1;
   let html = '';
   for (const [cid, items] of Object.entries(grp)) {
     if (multi) html += `<div class="mat-cat-hdr">${CATS.find(c => c.id === cid)?.label || cid}</div>`;
-    html += items.map(m => { const pr = gP(m.id); const ks = m.kgm != null ? `${m.kgm} РєРі/Рј` : m.kgm2 != null ? `${m.kgm2} РєРі/РјВІ` : 'С€С‚СѓС‡РЅРѕ'; return `<div class="mat-opt" onclick="selMat('${m.id}')"><div class="mat-opt-code">${m.code}</div><div class="mat-opt-name">${m.name}</div><div class="mat-opt-meta"><span>${ks}</span>${pr ? `<span style="color:var(--green)">в‚Ѕ${fm(pr.price)}/С‚</span>` : `<span style="color:var(--red)">вљ  РЅРµС‚ С†РµРЅС‹</span>`}</div></div>`; }).join('');
+    html += items.map(m => { const pr = gP(m.id); const ks = m.kgm != null ? `${m.kgm} кг/м` : m.kgm2 != null ? `${m.kgm2} кг/м²` : 'штучно'; return `<div class="mat-opt" onclick="selMat('${m.id}')"><div class="mat-opt-code">${m.code}</div><div class="mat-opt-name">${m.name}</div><div class="mat-opt-meta"><span>${ks}</span>${pr ? `<span style="color:var(--green)">₽${fm(pr.price)}/т</span>` : `<span style="color:var(--red)">⚠ нет цены</span>`}</div></div>`; }).join('');
   }
   dd.innerHTML = html; dd.classList.add('open');
 }
@@ -1684,19 +1684,19 @@ function selMat(id) {
   else if (selM.kgm2 != null && selM.kgm == null) setMType('area');
   else updatePwField();
   const sw = document.getElementById('stdlen-wrap'), sb = document.getElementById('stdlen-btns');
-  if (selM.sl?.length) { sw.style.display = 'block'; sb.innerHTML = selM.sl.map(l => `<div class="quick-btn" onclick="apL(${l})">${fm(l)} РјРј</div>`).join(''); document.getElementById('hint-std').textContent = `РЎС‚Р°РЅРґР°СЂС‚РЅС‹Рµ: ${selM.sl.map(l => fm(l) + ' РјРј').join(', ')}`; } else { sw.style.display = 'none'; document.getElementById('hint-std').textContent = ''; }
+  if (selM.sl?.length) { sw.style.display = 'block'; sb.innerHTML = selM.sl.map(l => `<div class="quick-btn" onclick="apL(${l})">${fm(l)} мм</div>`).join(''); document.getElementById('hint-std').textContent = `Стандартные: ${selM.sl.map(l => fm(l) + ' мм').join(', ')}`; } else { sw.style.display = 'none'; document.getElementById('hint-std').textContent = ''; }
   const fw = document.getElementById('sheet-wrap'), fb = document.getElementById('sheet-btns');
-  if (selM.sf?.length) { fw.style.display = 'block'; fb.innerHTML = selM.sf.map(([w, h]) => `<div class="quick-btn" onclick="apS(${w},${h})">${fm(w)}Г—${fm(h)}</div>`).join(''); } else fw.style.display = 'none';
+  if (selM.sf?.length) { fw.style.display = 'block'; fb.innerHTML = selM.sf.map(([w, h]) => `<div class="quick-btn" onclick="apS(${w},${h})">${fm(w)}×${fm(h)}</div>`).join(''); } else fw.style.display = 'none';
   const rems = REMS.filter(r => r.mid === id), re = document.getElementById('rem-hint');
-  if (rems.length) { re.style.display = 'block'; re.innerHTML = rems.map(r => { const desc = r.length ? `РћСЃС‚Р°С‚РѕРє ${fm(r.length)} РјРј` : `РћР±СЂРµР·СЊ ${fm(r.width)}Г—${fm(r.height)} РјРј`; return `<div class="remnant-option" onclick='useR(${JSON.stringify(r)})'><div class="remnant-title">в™»пёЏ ${desc}</div><div class="text-xs text-muted">${r.note}</div></div>`; }).join(''); } else re.style.display = 'none';
+  if (rems.length) { re.style.display = 'block'; re.innerHTML = rems.map(r => { const desc = r.length ? `Остаток ${fm(r.length)} мм` : `Обрезь ${fm(r.width)}×${fm(r.height)} мм`; return `<div class="remnant-option" onclick='useR(${JSON.stringify(r)})'><div class="remnant-title">♻️ ${desc}</div><div class="text-xs text-muted">${r.note}</div></div>`; }).join(''); } else re.style.display = 'none';
   calcPart();
 }
 function showSel() {
   const pr = gP(selM.id);
-  const ks = selM.kgm != null ? `${selM.kgm} РєРі/Рј` : selM.kgm2 != null ? `${selM.kgm2} РєРі/РјВІ` : 'С€С‚СѓС‡РЅРѕ';
+  const ks = selM.kgm != null ? `${selM.kgm} кг/м` : selM.kgm2 != null ? `${selM.kgm2} кг/м²` : 'штучно';
   const el = document.getElementById('mat-sel');
   el.style.display = 'block';
-  el.innerHTML = `<strong style="color:var(--txt)">${selM.name}</strong> <span style="color:var(--txts)">В· ${ks}</span>` + (pr ? ` В· <span style="color:var(--green)">в‚Ѕ${fm(pr.price)}/С‚ (${pr.sup})</span>` : ` В· <span style="color:var(--red)">вљ  РЅРµС‚ С†РµРЅС‹</span>`);
+  el.innerHTML = `<strong style="color:var(--txt)">${selM.name}</strong> <span style="color:var(--txts)">· ${ks}</span>` + (pr ? ` · <span style="color:var(--green)">₽${fm(pr.price)}/т (${pr.sup})</span>` : ` · <span style="color:var(--red)">⚠ нет цены</span>`);
 }
 function apL(mm) { document.getElementById('p-len').value = mm; calcPart(); }
 function apS(w, h) { document.getElementById('p-w').value = w; document.getElementById('p-h').value = h; calcPart(); }
@@ -1713,45 +1713,45 @@ function calcPart() {
   const re = document.getElementById('part-res');
   if (!tot && p.mtype !== 'piece') { re.style.display = 'none'; return; }
   re.style.display = 'block';
-  document.getElementById('res-w').textContent = `${tot.toFixed(2)} РєРі`;
-  document.getElementById('res-p').textContent = pm2 > 0 ? `${pm2.toFixed(3)} РјВІ` : 'вЂ”';
-  document.getElementById('res-c').textContent = pr ? `в‚Ѕ${fm(Math.round(cost))}` : 'вЂ”';
-  document.getElementById('res-note').textContent = pr ? `${pr.sup}: в‚Ѕ${fm(pr.price)}/С‚` : '';
+  document.getElementById('res-w').textContent = `${tot.toFixed(2)} кг`;
+  document.getElementById('res-p').textContent = pm2 > 0 ? `${pm2.toFixed(3)} м²` : '—';
+  document.getElementById('res-c').textContent = pr ? `₽${fm(Math.round(cost))}` : '—';
+  document.getElementById('res-note').textContent = pr ? `${pr.sup}: ₽${fm(pr.price)}/т` : '';
   document.getElementById('no-price-w').style.display = pr ? 'none' : 'block';
   const de = document.getElementById('part-dbg');
   if (dbg) { de.classList.remove('hidden'); de.innerHTML = [...d, cd].join('<br>'); } else de.classList.add('hidden');
 }
 
 function confirmPart() {
-  if (!selM) { toast('Р’С‹Р±РµСЂРёС‚Рµ РјР°С‚РµСЂРёР°Р»', 'error'); return; }
+  if (!selM) { toast('Выберите материал', 'error'); return; }
   const f = gFP();
-  if (f.mtype === 'linear' && !f.len) { toast('Р’РІРµРґРёС‚Рµ РґР»РёРЅСѓ', 'error'); return; }
-  if (f.mtype === 'area' && (!f.w || !f.h)) { toast('Р’РІРµРґРёС‚Рµ С€РёСЂРёРЅСѓ Рё РІС‹СЃРѕС‚Сѓ', 'error'); return; }
+  if (f.mtype === 'linear' && !f.len) { toast('Введите длину', 'error'); return; }
+  if (f.mtype === 'area' && (!f.w || !f.h)) { toast('Введите ширину и высоту', 'error'); return; }
   if (f.mtype === 'piece') {
     const hasDefault = document.getElementById('pw-default').style.display !== 'none';
     const overriding = document.getElementById('pw-override').checked;
-    if (!hasDefault && !f.pw) { toast('Р’РІРµРґРёС‚Рµ РјР°СЃСЃСѓ 1 С€С‚', 'error'); return; }
-    if (hasDefault && overriding && !f.pw) { toast('Р’РІРµРґРёС‚Рµ РјР°СЃСЃСѓ РёР»Рё СЃРЅРёРјРёС‚Рµ С„Р»Р°Р¶РѕРє', 'error'); return; }
+    if (!hasDefault && !f.pw) { toast('Введите массу 1 шт', 'error'); return; }
+    if (hasDefault && overriding && !f.pw) { toast('Введите массу или снимите флажок', 'error'); return; }
   }
   const a = asms.find(a => a.id === curA); if (!a) return;
   const pd = { mid: selM.id, name: document.getElementById('p-name').value || '', mtype: f.mtype, len: f.len, qty: f.qty, w: f.w, h: f.h, pw: f.pw, partCategory: curEP ? undefined : _curPartCategory };
-  if (curEP) { const i = a.parts.findIndex(p => p.id === curEP); if (i !== -1) a.parts[i] = { ...a.parts[i], ...pd }; toast('Р”РµС‚Р°Р»СЊ РѕР±РЅРѕРІР»РµРЅР°', 'success'); }
-  else { a.parts.push({ id: 'pt' + nP++, ...pd, partCategory: _curPartCategory }); toast(_curPartCategory === 'FASTENER' ? 'РњРµС‚РёР· РґРѕР±Р°РІР»РµРЅ' : 'Р”РµС‚Р°Р»СЊ РґРѕР±Р°РІР»РµРЅР°', 'success'); }
+  if (curEP) { const i = a.parts.findIndex(p => p.id === curEP); if (i !== -1) a.parts[i] = { ...a.parts[i], ...pd }; toast('Деталь обновлена', 'success'); }
+  else { a.parts.push({ id: 'pt' + nP++, ...pd, partCategory: _curPartCategory }); toast(_curPartCategory === 'FASTENER' ? 'Метиз добавлен' : 'Деталь добавлена', 'success'); }
   closeModal(); refresh(); saveDraft();
 }
 
-// в”Ђв”Ђв”Ђ COMMIT REVISION в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── COMMIT REVISION ──────────────────────────────────────────────────────────
 
 async function commitRevision() {
   const r = cAll();
-  if (asms.every(a => !a.parts.length)) { toast('Р”РѕР±Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРЅСѓ РґРµС‚Р°Р»СЊ', 'error'); return; }
-  if (r.ws.length && !confirm(`РџСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ:\n${r.ws.join('\n')}\n\nР’СЃС‘ СЂР°РІРЅРѕ СЃРѕР·РґР°С‚СЊ?`)) return;
+  if (asms.every(a => !a.parts.length)) { toast('Добавьте хотя бы одну деталь', 'error'); return; }
+  if (r.ws.length && !confirm(`Предупреждения:\n${r.ws.join('\n')}\n\nВсё равно создать?`)) return;
   try {
     if (!_currentOrderId) {
       const num = document.getElementById('order-num').value.trim();
       const customer = document.getElementById('order-customer').value.trim();
       const title = document.getElementById('order-title').value.trim();
-      if (!num || !customer) { toast('Р—Р°РїРѕР»РЅРёС‚Рµ в„– Р·Р°РєР°Р·Р° Рё РєР»РёРµРЅС‚Р°', 'error'); return; }
+      if (!num || !customer) { toast('Заполните № заказа и клиента', 'error'); return; }
       const order = await ERPStore.createOrder({ orderNumber: num, customerName: customer, title, description: null });
       _currentOrderId = order.id;
       history.replaceState(null, '', 'simulator.html?orderId=' + encodeURIComponent(order.id));
@@ -1762,45 +1762,45 @@ async function commitRevision() {
     showLoader(false);
     const tW = revision.calculation?.totalWeightKg || r.tW;
     const revNum = revision.revisionNumber;
-    toast(`Р РµРІРёР·РёСЏ #${revNum} Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅР° вЂ” ${f3(tW / 1000)} С‚`, 'success');
+    toast(`Ревизия #${revNum} зафиксирована — ${f3(tW / 1000)} т`, 'success');
     document.getElementById('rev-count').textContent = revNum;
     const revTag = document.getElementById('order-rev-tag');
     revTag.style.display = ''; revTag.textContent = `Rev ${revNum}`;
     setTimeout(() => { window.location.href = 'orders.html'; }, 1500);
   } catch(e) {
     showLoader(false);
-    toast('РћС€РёР±РєР°: ' + e.message, 'error');
+    toast('Ошибка: ' + e.message, 'error');
     console.error('[ERP] commitRevision', e);
   }
 }
 
-// в”Ђв”Ђв”Ђ REVISIONS / COMPARE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── REVISIONS / COMPARE ──────────────────────────────────────────────────────
 
 function renderRevs() {
   const el = document.getElementById('revs-list');
-  if (!revs.length) { el.innerHTML = `<div class="card"><div class="empty"><div class="icon">рџ“‹</div>Р РµРІРёР·РёР№ РїРѕРєР° РЅРµС‚</div></div>`; return; }
+  if (!revs.length) { el.innerHTML = `<div class="card"><div class="empty"><div class="icon">📋</div>Ревизий пока нет</div></div>`; return; }
   el.innerHTML = revs.slice().reverse().map(rev => {
     const isL = rev.num === revs.length;
     const ap = rev.asms.flatMap(a => a.parts);
     return `<div class="card mb-16"><div class="card-header"><div class="gap-12"><div style="font-weight:700;font-size:14px">Rev ${rev.num}</div>
-      <span class="badge ${isL ? 's-approved' : 's-superseded'}">${isL ? 'Р°РєС‚СѓР°Р»СЊРЅР°СЏ' : 'РІС‹С‚РµСЃРЅРµРЅР°'}</span>
-      <span class="text-muted text-xs">${rev.on} В· ${new Date(rev.at).toLocaleString('ru')}</span></div>
-      <div class="gap-8"><span class="chip-w">${f3(rev.tW / 1000)} С‚</span><span class="chip-p">${rev.tP.toFixed(1)} РјВІ</span><span class="chip-c">в‚Ѕ${fm(Math.round(rev.tC))}</span>
-      ${revs.length > 1 ? `<button class="btn btn-secondary btn-sm" onclick="cmpWith(${rev.num})">РЎСЂР°РІРЅРёС‚СЊ</button>` : ''}</div></div>
-    <div style="padding:10px 14px"><table><thead><tr><th>РњР°С‚РµСЂРёР°Р»</th><th>Р”РµС‚Р°Р»СЊ</th><th>Р Р°Р·РјРµСЂС‹</th><th>РљРѕР».</th><th>РєРі/С€С‚</th><th>РєРіГ—СѓР·РµР»</th><th>РџРѕРєСЂР°СЃРєР°</th><th>в‚Ѕ/С‚</th><th>РЎСѓРјРјР°</th></tr></thead>
-    <tbody>${ap.map(p => `<tr><td><span class="mc">${p.sn.mc}</span></td><td class="text-sm">${p.name || 'вЂ”'}</td><td class="mv">${fmtD(p)}</td><td class="mv">${p.qty} С€С‚</td><td class="mv">${p.sn.wpu.toFixed(2)} РєРі</td><td><span class="chip-w">${p.sn.aT.toFixed(2)} РєРі</span></td><td>${p.sn.pT > 0 ? `<span class="chip-p">${p.sn.pT.toFixed(2)} РјВІ</span>` : 'вЂ”'}</td><td class="mv">${p.sn.pp ? 'в‚Ѕ' + fm(p.sn.pp) : 'вЂ”'}</td><td>${p.sn.cost ? `<span class="chip-c">в‚Ѕ${fm(Math.round(p.sn.cost))}</span>` : 'вЂ”'}</td></tr>`).join('')}
+      <span class="badge ${isL ? 's-approved' : 's-superseded'}">${isL ? 'актуальная' : 'вытеснена'}</span>
+      <span class="text-muted text-xs">${rev.on} · ${new Date(rev.at).toLocaleString('ru')}</span></div>
+      <div class="gap-8"><span class="chip-w">${f3(rev.tW / 1000)} т</span><span class="chip-p">${rev.tP.toFixed(1)} м²</span><span class="chip-c">₽${fm(Math.round(rev.tC))}</span>
+      ${revs.length > 1 ? `<button class="btn btn-secondary btn-sm" onclick="cmpWith(${rev.num})">Сравнить</button>` : ''}</div></div>
+    <div style="padding:10px 14px"><table><thead><tr><th>Материал</th><th>Деталь</th><th>Размеры</th><th>Кол.</th><th>кг/шт</th><th>кг×узел</th><th>Покраска</th><th>₽/т</th><th>Сумма</th></tr></thead>
+    <tbody>${ap.map(p => `<tr><td><span class="mc">${p.sn.mc}</span></td><td class="text-sm">${p.name || '—'}</td><td class="mv">${fmtD(p)}</td><td class="mv">${p.qty} шт</td><td class="mv">${p.sn.wpu.toFixed(2)} кг</td><td><span class="chip-w">${p.sn.aT.toFixed(2)} кг</span></td><td>${p.sn.pT > 0 ? `<span class="chip-p">${p.sn.pT.toFixed(2)} м²</span>` : '—'}</td><td class="mv">${p.sn.pp ? '₽' + fm(p.sn.pp) : '—'}</td><td>${p.sn.cost ? `<span class="chip-c">₽${fm(Math.round(p.sn.cost))}</span>` : '—'}</td></tr>`).join('')}
     </tbody></table></div></div>`;
   }).join('');
 }
 
-function updCmpSel() { const opts = revs.map(r => `<option value="${r.num}">Rev ${r.num} вЂ” ${f3(r.tW / 1000)} С‚</option>`).join(''); document.getElementById('cmp-a').innerHTML = opts; document.getElementById('cmp-b').innerHTML = opts; if (revs.length >= 2) { document.getElementById('cmp-a').value = revs[revs.length - 2].num; document.getElementById('cmp-b').value = revs[revs.length - 1].num; } }
+function updCmpSel() { const opts = revs.map(r => `<option value="${r.num}">Rev ${r.num} — ${f3(r.tW / 1000)} т</option>`).join(''); document.getElementById('cmp-a').innerHTML = opts; document.getElementById('cmp-b').innerHTML = opts; if (revs.length >= 2) { document.getElementById('cmp-a').value = revs[revs.length - 2].num; document.getElementById('cmp-b').value = revs[revs.length - 1].num; } }
 function cmpWith(num) { updCmpSel(); const o = revs.find(r => r.num !== num); if (o) document.getElementById('cmp-a').value = o.num; document.getElementById('cmp-b').value = num; go('compare'); runCmp(); }
 function runCmp() {
   const aN = parseInt(document.getElementById('cmp-a').value), bN = parseInt(document.getElementById('cmp-b').value);
   const rA = revs.find(r => r.num === aN), rB = revs.find(r => r.num === bN);
-  if (!rA || !rB || rA === rB) { document.getElementById('cmp-result').innerHTML = `<div style="color:var(--red)">Р’С‹Р±РµСЂРёС‚Рµ РґРІРµ СЂР°Р·РЅС‹Рµ СЂРµРІРёР·РёРё</div>`; return; }
+  if (!rA || !rB || rA === rB) { document.getElementById('cmp-result').innerHTML = `<div style="color:var(--red)">Выберите две разные ревизии</div>`; return; }
   const dW = r4(rB.tW - rA.tW), dC = r4(rB.tC - rA.tC), dP = r4(rB.tP - rA.tP);
-  const sg = (v, u = '') => v === 0 ? 'вЂ”' : `<span class="${v > 0 ? 'diff-pos' : 'diff-neg'}">${v > 0 ? '+' : ''}${Math.abs(v) > 100 ? fm(Math.round(v)) : v.toFixed(3)}${u}</span>`;
+  const sg = (v, u = '') => v === 0 ? '—' : `<span class="${v > 0 ? 'diff-pos' : 'diff-neg'}">${v > 0 ? '+' : ''}${Math.abs(v) > 100 ? fm(Math.round(v)) : v.toFixed(3)}${u}</span>`;
   const bA = {}, bB = {};
   for (const p of rA.asms.flatMap(a => a.parts)) bA[p.sn.mc + '|' + (p.name || '')] = p;
   for (const p of rB.asms.flatMap(a => a.parts)) bB[p.sn.mc + '|' + (p.name || '')] = p;
@@ -1808,28 +1808,28 @@ function runCmp() {
   const rows = [...ks].map(k => { const a = bA[k], b = bB[k]; if (!a) return { st: 'added', k, b }; if (!b) return { st: 'removed', k, a }; const dw = r4((b.sn.aT || 0) - (a.sn.aT || 0)), dc = r4((b.sn.cost || 0) - (a.sn.cost || 0)), dp = r4((b.sn.pT || 0) - (a.sn.pT || 0)); if (!dw && !dc && !dp) return null; return { st: 'changed', k, a, b, dw, dc, dp }; }).filter(Boolean);
   document.getElementById('cmp-result').innerHTML = `
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">О” Р’РµСЃ</div><div style="font-size:20px;font-weight:800" class="${dW > 0 ? 'diff-pos' : dW < 0 ? 'diff-neg' : ''}">${dW > 0 ? '+' : ''}${f3(dW / 1000)} С‚</div></div></div>
-    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">О” РџРѕРєСЂР°СЃРєР°</div><div style="font-size:20px;font-weight:800" class="${dP > 0 ? 'diff-pos' : dP < 0 ? 'diff-neg' : ''}">${dP > 0 ? '+' : ''}${dP.toFixed(2)} РјВІ</div></div></div>
-    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">О” РЎС‚РѕРёРјРѕСЃС‚СЊ</div><div style="font-size:20px;font-weight:800" class="${dC > 0 ? 'diff-pos' : dC < 0 ? 'diff-neg' : ''}">${dC > 0 ? '+' : ''}в‚Ѕ${fm(Math.round(Math.abs(dC)))}</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Вес</div><div style="font-size:20px;font-weight:800" class="${dW > 0 ? 'diff-pos' : dW < 0 ? 'diff-neg' : ''}">${dW > 0 ? '+' : ''}${f3(dW / 1000)} т</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Покраска</div><div style="font-size:20px;font-weight:800" class="${dP > 0 ? 'diff-pos' : dP < 0 ? 'diff-neg' : ''}">${dP > 0 ? '+' : ''}${dP.toFixed(2)} м²</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Стоимость</div><div style="font-size:20px;font-weight:800" class="${dC > 0 ? 'diff-pos' : dC < 0 ? 'diff-neg' : ''}">${dC > 0 ? '+' : ''}₽${fm(Math.round(Math.abs(dC)))}</div></div></div>
   </div>
-  <div class="card"><div class="card-header"><div class="card-title">Diff (${rows.length} РёР·РјРµРЅРµРЅРёР№)</div></div>
-  ${!rows.length ? '<div class="empty">РџРѕР·РёС†РёРё РЅРµ РёР·РјРµРЅРёР»РёСЃСЊ</div>' : `<table><thead><tr><th>РџРѕР·РёС†РёСЏ</th><th>РЎС‚Р°С‚СѓСЃ</th><th>РњР°СЃСЃР° A</th><th>РњР°СЃСЃР° B</th><th>О” РјР°СЃСЃР°</th><th>О” РїРѕРєСЂР°СЃРєР°</th><th>О” СЃС‚РѕРёРјРѕСЃС‚СЊ</th></tr></thead><tbody>
-  ${rows.map(r => { const l = r.k.replace('|', ' В· '); if (r.st === 'added') return `<tr class="diff-row added"><td class="mv">${l}</td><td><span class="badge s-approved">РґРѕР±Р°РІР»РµРЅР°</span></td><td>вЂ”</td><td class="mv">${r.b.sn.aT.toFixed(2)} РєРі</td><td>вЂ”</td><td>вЂ”</td><td class="diff-neg">+в‚Ѕ${fm(Math.round(r.b.sn.cost || 0))}</td></tr>`; if (r.st === 'removed') return `<tr class="diff-row removed"><td class="mv">${l}</td><td><span class="badge s-cancelled">СѓРґР°Р»РµРЅР°</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} РєРі</td><td>вЂ”</td><td>вЂ”</td><td>вЂ”</td><td class="diff-pos">в€’в‚Ѕ${fm(Math.round(r.a.sn.cost || 0))}</td></tr>`; return `<tr class="diff-row changed"><td class="mv">${l}</td><td><span class="badge s-awaiting">РёР·РјРµРЅРµРЅР°</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} РєРі</td><td class="mv">${r.b.sn.aT.toFixed(2)} РєРі</td><td>${sg(r4(r.dw / 1000), 'С‚')}</td><td>${sg(r.dp, 'РјВІ')}</td><td>${sg(Math.round(r.dc), 'в‚Ѕ')}</td></tr>`; }).join('')}</tbody></table>`}</div>`;
+  <div class="card"><div class="card-header"><div class="card-title">Diff (${rows.length} изменений)</div></div>
+  ${!rows.length ? '<div class="empty">Позиции не изменились</div>' : `<table><thead><tr><th>Позиция</th><th>Статус</th><th>Масса A</th><th>Масса B</th><th>Δ масса</th><th>Δ покраска</th><th>Δ стоимость</th></tr></thead><tbody>
+  ${rows.map(r => { const l = r.k.replace('|', ' · '); if (r.st === 'added') return `<tr class="diff-row added"><td class="mv">${l}</td><td><span class="badge s-approved">добавлена</span></td><td>—</td><td class="mv">${r.b.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td class="diff-neg">+₽${fm(Math.round(r.b.sn.cost || 0))}</td></tr>`; if (r.st === 'removed') return `<tr class="diff-row removed"><td class="mv">${l}</td><td><span class="badge s-cancelled">удалена</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td>—</td><td class="diff-pos">−₽${fm(Math.round(r.a.sn.cost || 0))}</td></tr>`; return `<tr class="diff-row changed"><td class="mv">${l}</td><td><span class="badge s-awaiting">изменена</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} кг</td><td class="mv">${r.b.sn.aT.toFixed(2)} кг</td><td>${sg(r4(r.dw / 1000), 'т')}</td><td>${sg(r.dp, 'м²')}</td><td>${sg(Math.round(r.dc), '₽')}</td></tr>`; }).join('')}</tbody></table>`}</div>`;
 }
 
-// в”Ђв”Ђв”Ђ MATERIALS & PRICES PAGES в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── MATERIALS & PRICES PAGES ─────────────────────────────────────────────────
 
 function renderMats(q = '') {
   const ql = q.toLowerCase();
-  const rows = MATS.filter(m => !ql || m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)).map(m => `<tr><td class="mc">${m.code}</td><td>${m.name}</td><td><span class="text-xs text-muted">${CATS.find(c => c.id === m.cat)?.label || m.cat}</span></td><td class="mv">${m.kgm ?? 'вЂ”'}</td><td class="mv">${m.kgm2 ?? 'вЂ”'}</td><td class="mv" style="color:var(--amber)">${m.pm ?? 'РїРѕ СЂР°Р·РјРµСЂСѓ'}</td><td class="mv text-muted">${m.gost}</td></tr>`).join('');
-  document.getElementById('mat-tbody').innerHTML = rows || `<tr><td colspan="7"><div class="empty">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ</div></td></tr>`;
+  const rows = MATS.filter(m => !ql || m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)).map(m => `<tr><td class="mc">${m.code}</td><td>${m.name}</td><td><span class="text-xs text-muted">${CATS.find(c => c.id === m.cat)?.label || m.cat}</span></td><td class="mv">${m.kgm ?? '—'}</td><td class="mv">${m.kgm2 ?? '—'}</td><td class="mv" style="color:var(--amber)">${m.pm ?? 'по размеру'}</td><td class="mv text-muted">${m.gost}</td></tr>`).join('');
+  document.getElementById('mat-tbody').innerHTML = rows || `<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;
 }
 function renderPrices() {
   const today = new Date().toISOString().slice(0, 10);
-  document.getElementById('prices-tbody').innerHTML = PRICES.map(p => { const mat = MATS.find(m => m.id === p.mid); const act = p.from <= today && (!p.to || p.to >= today); return `<tr><td><span class="mc">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mv" style="font-weight:700;color:${act ? 'var(--green)' : 'var(--txtm)'}">${fm(p.price)}</td><td class="mv text-muted">${p.from}</td><td class="mv text-muted">${p.to || 'вЂ”'}</td><td><span class="badge ${act ? 's-approved' : 's-cancelled'}">${act ? 'Р°РєС‚СѓР°Р»СЊРЅР°СЏ' : 'РёСЃС‚РµРєР»Р°'}</span></td></tr>`; }).join('');
+  document.getElementById('prices-tbody').innerHTML = PRICES.map(p => { const mat = MATS.find(m => m.id === p.mid); const act = p.from <= today && (!p.to || p.to >= today); return `<tr><td><span class="mc">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mv" style="font-weight:700;color:${act ? 'var(--green)' : 'var(--txtm)'}">${fm(p.price)}</td><td class="mv text-muted">${p.from}</td><td class="mv text-muted">${p.to || '—'}</td><td><span class="badge ${act ? 's-approved' : 's-cancelled'}">${act ? 'актуальная' : 'истекла'}</span></td></tr>`; }).join('');
 }
 
-// в”Ђв”Ђв”Ђ NAVIGATION в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
 
 function go(p) {
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
@@ -1851,20 +1851,20 @@ function toggleDebug() {
   if (document.getElementById('part-res').style.display !== 'none') calcPart();
 }
 
-// в”Ђв”Ђв”Ђ TEMPLATE PICKER в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── TEMPLATE PICKER ──────────────────────────────────────────────────────────
 
 let _tmplList = [], _tmplPickerAid = null;
 
 async function openTmplPicker(aid) {
   _tmplPickerAid = aid;
-  document.getElementById('tp-preview').innerHTML = '<span style="color:var(--txts)">Р’С‹Р±РµСЂРёС‚Рµ С€Р°Р±Р»РѕРЅ...</span>';
+  document.getElementById('tp-preview').innerHTML = '<span style="color:var(--txts)">Выберите шаблон...</span>';
   document.getElementById('tmpl-picker-bg').classList.add('open');
   if (!_tmplList.length) {
-    try { _tmplList = await ERPStore.listTemplates(); } catch(e) { toast('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С€Р°Р±Р»РѕРЅРѕРІ: ' + e.message, 'error'); closeTmplPicker(); return; }
+    try { _tmplList = await ERPStore.listTemplates(); } catch(e) { toast('Ошибка загрузки шаблонов: ' + e.message, 'error'); closeTmplPicker(); return; }
   }
   const sel = document.getElementById('tp-sel');
-  if (!_tmplList.length) { sel.innerHTML = '<option value="">РќРµС‚ С€Р°Р±Р»РѕРЅРѕРІ</option>'; }
-  else { sel.innerHTML = _tmplList.map(t => `<option value="${t.id}">${t.code} вЂ” ${t.name}</option>`).join(''); previewTmpl(sel.value); }
+  if (!_tmplList.length) { sel.innerHTML = '<option value="">Нет шаблонов</option>'; }
+  else { sel.innerHTML = _tmplList.map(t => `<option value="${t.id}">${t.code} — ${t.name}</option>`).join(''); previewTmpl(sel.value); }
   document.getElementById('tp-mult').value = 1;
 }
 function closeTmplPicker() { document.getElementById('tmpl-picker-bg').classList.remove('open'); }
@@ -1886,30 +1886,30 @@ function _flattenNodesWithMeta(nodes, templateId, templateCode, multiplier, out,
 async function previewTmpl(id) {
   if (!id) return;
   const box = document.getElementById('tp-preview');
-  box.innerHTML = '<span style="color:var(--txts)">Р—Р°РіСЂСѓР·РєР°...</span>';
+  box.innerHTML = '<span style="color:var(--txts)">Загрузка...</span>';
   try {
     const t = await ERPStore.getTemplate(id);
     const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, 1, [], [], 0, '');
-    if (!flat.length) { box.innerHTML = '<div style="color:var(--txts)">РЁР°Р±Р»РѕРЅ РїСѓСЃС‚РѕР№</div>'; return; }
+    if (!flat.length) { box.innerHTML = '<div style="color:var(--txts)">Шаблон пустой</div>'; return; }
     const groups = new Map();
     for (const p of flat) { if (!groups.has(p.bomGroupKey)) groups.set(p.bomGroupKey, { label: p.bomGroupLabel, depth: p.bomDepth, sortPath: p.bomSortPath, parts: [] }); groups.get(p.bomGroupKey).parts.push(p); }
     const sorted = [...groups.values()].sort((a, b) => a.sortPath.localeCompare(b.sortPath));
-    const MTYPE = { LINEAR: 'рџ“Џ', AREA: 'в¬њ', PIECE: 'рџ”©' };
-    let html = `<div style="font-weight:700;margin-bottom:6px;font-size:11.5px;color:var(--txt)">${t.code} вЂ” ${t.name}</div>`;
+    const MTYPE = { LINEAR: '📏', AREA: '⬜', PIECE: '🔩' };
+    let html = `<div style="font-weight:700;margin-bottom:6px;font-size:11.5px;color:var(--txt)">${t.code} — ${t.name}</div>`;
     for (const grp of sorted) {
       const indent = grp.depth * 10;
-      html += `<div style="padding:2px 0 1px ${indent}px;font-weight:600;font-size:11px;color:var(--txts)">в–ё ${grp.label}</div>`;
+      html += `<div style="padding:2px 0 1px ${indent}px;font-weight:600;font-size:11px;color:var(--txts)">▸ ${grp.label}</div>`;
       for (const p of grp.parts) {
         const mat = MATS.find(m => m.id === p.materialDefinitionId);
         let dims = '';
-        if (p.measurementType === 'LINEAR' && p.length) dims = ` В· ${fm(p.length)} РјРј`;
-        else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` В· ${fm(p.sheetWidth)}Г—${fm(p.sheetHeight)} РјРј`;
+        if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
+        else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
         const totalQty = (p.quantity || 1) * p._effQty;
-        html += `<div style="padding:2px 0 2px ${indent + 12}px;font-size:10.5px;color:var(--txtm)">${MTYPE[p.measurementType] || ''} <span style="font-family:'DM Mono',monospace;color:var(--cyan)">${mat ? mat.code : '?'}</span>${dims} в†’ <strong style="color:var(--txt)">${totalQty} С€С‚</strong></div>`;
+        html += `<div style="padding:2px 0 2px ${indent + 12}px;font-size:10.5px;color:var(--txtm)">${MTYPE[p.measurementType] || ''} <span style="font-family:'DM Mono',monospace;color:var(--cyan)">${mat ? mat.code : '?'}</span>${dims} → <strong style="color:var(--txt)">${totalQty} шт</strong></div>`;
       }
     }
     box.innerHTML = html;
-  } catch(e) { box.innerHTML = `<span style="color:var(--red)">РћС€РёР±РєР°: ${e.message}</span>`; }
+  } catch(e) { box.innerHTML = `<span style="color:var(--red)">Ошибка: ${e.message}</span>`; }
 }
 
 async function applyTmplPicker() {
@@ -1919,11 +1919,11 @@ async function applyTmplPicker() {
   const a = asms.find(a => a.id === _tmplPickerAid);
   if (!a) return;
   const btn = document.getElementById('tp-apply-btn');
-  btn.disabled = true; btn.textContent = 'Р’СЃС‚Р°РІРєР°...';
+  btn.disabled = true; btn.textContent = 'Вставка...';
   try {
     const t = await ERPStore.getTemplate(tmplId);
     const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, mult, [], [], 0, '');
-    if (!flat.length) { toast('РЁР°Р±Р»РѕРЅ РїСѓСЃС‚РѕР№', 'warning'); return; }
+    if (!flat.length) { toast('Шаблон пустой', 'warning'); return; }
     const MTYPE_MAP = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
     let added = 0;
     for (const p of flat) {
@@ -1933,9 +1933,9 @@ async function applyTmplPicker() {
       added++;
     }
     closeTmplPicker(); refresh(); saveDraft();
-    toast(`РЁР°Р±Р»РѕРЅ В«${t.code}В» РІСЃС‚Р°РІР»РµРЅ: ${added} РґРµС‚Р°Р»РµР№`, 'success');
-  } catch(e) { toast('РћС€РёР±РєР°: ' + e.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = 'рџ“¦ Р’СЃС‚Р°РІРёС‚СЊ РґРµС‚Р°Р»Рё'; }
+    toast(`Шаблон «${t.code}» вставлен: ${added} деталей`, 'success');
+  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '📦 Вставить детали'; }
 }
 
 function toggleBomGroup(asmId, groupKey) {
@@ -1944,14 +1944,14 @@ function toggleBomGroup(asmId, groupKey) {
   renderAsms();
 }
 
-// в”Ђв”Ђв”Ђ API в†’ SIM MAPPERS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── API → SIM MAPPERS ────────────────────────────────────────────────────────
 
 function _apiRevToSim(rev, orderNum, customerName) {
   const calc = rev.calculation || {};
   const MTYPE = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
   const asmMap = new Map();
   for (const p of (rev.parts || [])) {
-    const k = p.assemblyName || 'вЂ”';
+    const k = p.assemblyName || '—';
     if (!asmMap.has(k)) asmMap.set(k, { id: k, name: k, qty: 1, parts: [] });
     asmMap.get(k).parts.push({ id: p.id || '', name: p.name || '', qty: p.quantity || 1, mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, sn: { mc: p.materialCode, mn: p.materialName, wpu: Number(p.calculatedWeightPerUnit || 0), tot: Number(p.totalWeight || 0), aT: Number(p.totalWeight || 0), pT: Number(p.paintAreaM2 || 0), pp: p.pricePerTon != null ? Number(p.pricePerTon) : null, cost: Number(p.materialCost || 0), sup: p.supplierName || null } });
   }
@@ -1963,12 +1963,12 @@ function _apiAsmsToSim(apiAsms) {
   return (apiAsms || []).map(a => ({ id: a.id, name: a.name, qty: a.qty || 1, parts: (a.parts || []).map(p => ({ id: p.id, mid: p.materialDefinitionId, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL' })) }));
 }
 
-// в”Ђв”Ђв”Ђ CLOSE DROPDOWNS ON CLICK OUTSIDE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── CLOSE DROPDOWNS ON CLICK OUTSIDE ────────────────────────────────────────
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.mat-search-wrap')) document.getElementById('mat-dd').classList.remove('open');
 });
 
-// в”Ђв”Ђв”Ђ KEYBOARD: login on Enter в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// ─── KEYBOARD: login on Enter ─────────────────────────────────────────────────
 
 refresh();
