@@ -323,6 +323,12 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 .login-btn{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter';transition:.15s}
 .login-btn:hover{background:#2563eb}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
+.ii{width:58px;border:1px solid var(--brd);border-radius:3px;background:var(--card);color:var(--txt);font-family:'DM Mono',monospace;font-size:11px;padding:2px 4px;text-align:right;outline:none;transition:border-color .12s}
+.ii:focus{border-color:var(--blue);background:var(--panel)}
+.ii:hover{border-color:var(--brdl)}
+.ii-sm{width:38px}
+.ii-sep{font-size:10px;color:var(--txts);margin:0 2px}
+.ii-unit{font-size:10px;color:var(--txts);margin-left:2px}
 </style>
 </head>
 <body>
@@ -1126,20 +1132,25 @@ function renderPR(p, a) {
   const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
   const { cost, d: cd } = cCost(wT, pr);
   const tl = { linear: '📏', area: '⬜', piece: '🔩' }[p.mtype] || '';
-  const dims = fmtD(p);
   let dbgH = '';
   if (dbg) dbgH = `<tr style="background:rgba(245,158,11,.05)"><td colspan="9" style="padding:3px 8px"><div class="debug-box" style="margin:0">${[...d, cd].join('<br>')}</div></td></tr>`;
+  const dimsCell = p.mtype === 'linear'
+    ? `<input class="ii" type="number" value="${p.len||0}" min="1" title="Длина, мм" onchange="inlineEdit('${a.id}','${p.id}','len',+this.value)"><span class="ii-unit">мм</span>`
+    : p.mtype === 'area'
+    ? `<input class="ii" type="number" value="${p.w||0}" min="1" title="Ширина, мм" onchange="inlineEdit('${a.id}','${p.id}','w',+this.value)"><span class="ii-sep">×</span><input class="ii" type="number" value="${p.h||0}" min="1" title="Высота, мм" onchange="inlineEdit('${a.id}','${p.id}','h',+this.value)"><span class="ii-unit">мм</span>`
+    : fmtD(p);
+  const qtyCell = `<input class="ii ii-sm" type="number" value="${p.qty}" min="1" title="Количество" onchange="inlineEdit('${a.id}','${p.id}','qty',+this.value)"><span class="ii-unit">шт</span>`;
   return `<tr>
     <td><span class="mc">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
     <td class="text-xs text-muted">${p.name || '—'}</td>
     <td class="text-xs">${tl}</td>
-    <td class="mv">${dims}</td>
-    <td class="mv">${p.qty} шт</td>
+    <td class="mv" style="white-space:nowrap">${dimsCell}</td>
+    <td class="mv" style="white-space:nowrap">${qtyCell}</td>
     <td class="mv">${wpu.toFixed(2)} кг</td>
     <td><span class="chip-w">${wT.toFixed(2)} кг</span></td>
     <td>${pr ? `<span class="mv">₽${fm(pr.price)}</span>` : '<span style="color:var(--red);font-size:10px">⚠</span>'}</td>
     <td><div class="pt-acts">
-      <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">✏</button>
+      <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')" title="Изменить материал">✏</button>
       <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
     </div>${pr ? `<span class="cv">₽${fm(Math.round(cost))}</span>` : ''}</td>
   </tr>${dbgH}`;
@@ -1531,6 +1542,19 @@ function openMod(aid, category = 'MATERIAL') {
   document.getElementById('btn-confirm').textContent = isFast ? 'Добавить метиз' : 'Добавить деталь';
   document.getElementById('modal-ov').classList.add('open');
   buildCF(); setMType(isFast ? 'piece' : 'linear');
+}
+
+function inlineEdit(aid, pid, field, value) {
+  const v = Number(value);
+  if (!isFinite(v) || v < 1) return;
+  const a = asms.find(a => a.id === aid);
+  if (!a) return;
+  const p = a.parts.find(p => p.id === pid);
+  if (!p) return;
+  p[field] = v;
+  renderAsms();
+  renderRpNodes();
+  saveDraft();
 }
 
 function openEdit(aid, pid) {
