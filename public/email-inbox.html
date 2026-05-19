@@ -149,7 +149,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1
 <div id="toast" class="toast"></div>
 
 <script>
-const AI_API = (window.AI_API_URL || 'http://localhost:4000')
+const AI_API = (window.AI_API_URL || (window.location.protocol + '//' + window.location.hostname + ':4000'))
 const TOKEN = localStorage.getItem('erp_token') || ''
 
 let currentFilter = { status: 'pending', intent: '' }
