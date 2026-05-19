@@ -4,161 +4,72 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>МеталлПро ERP — Карточка клиента</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="nav.js"></script>
 <style>
-:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--purple:#7c3aed;--orange:#c2410c;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
-.shell{display:flex;min-height:100vh;}
-.sidebar{width:204px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
-.logo{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;color:var(--accent);}
-.logo span{display:block;font-size:10px;font-weight:500;color:var(--muted);margin-top:2px;}
-nav{padding:8px;flex:1;}
-.nav-group{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 8px 4px;}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;font-size:12.5px;transition:all .1s;margin-bottom:1px;text-decoration:none;}
-.nav-item:hover{background:var(--bg);color:var(--text);}
-.nav-item.active{background:#eff6ff;color:var(--accent);font-weight:600;}
-.sidebar-bottom{padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
-.main{margin-left:204px;flex:1;}
-.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20;}
-.topbar-title{font-weight:700;font-size:14px;}
-.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
-.content{padding:20px;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Manrope';font-size:12.5px;font-weight:600;transition:all .12s;white-space:nowrap;}
-.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
-.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-.btn-sm{padding:4px 10px;font-size:12px;}
-.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca;}.btn-danger:hover{background:#fee2e2;}
-.btn:disabled{opacity:.5;cursor:not-allowed;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-.layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start;}
+.layout{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;}
 .info-card{padding:16px;}
 .info-title{font-weight:700;font-size:15px;margin-bottom:12px;}
 .info-row{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
-.info-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+.info-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);}
 .info-value{font-size:13px;}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
-.b-vip{background:#f5f3ff;color:var(--purple);}
-.b-high{background:#eff6ff;color:#1d4ed8;}
-.b-normal{background:#f0fdf4;color:#15803d;}
-.b-low{background:#f9fafb;color:var(--muted);}
-.b-draft{background:#f9fafb;color:var(--muted);}
-.b-quotation{background:#fffbeb;color:var(--yellow);}
-.b-production{background:#eff6ff;color:#1d4ed8;}
-.b-completed{background:#f0fdf4;color:var(--green);}
-.b-cancelled{background:#fef2f2;color:var(--red);}
-.section-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:12px;}
-.section-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.section-card{background:var(--panel);border:1px solid var(--brd);border-radius:8px;margin-top:12px;}
+.section-head{padding:10px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;}
 .section-head-title{font-weight:700;font-size:12.5px;}
-.contact-item{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
+.contact-item{padding:10px 14px;border-bottom:1px solid var(--brd);}
 .contact-item:last-child{border-bottom:none;}
 .contact-name{font-weight:600;}
-.contact-meta{font-size:11.5px;color:var(--muted);}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);border-radius:8px 8px 0 0;overflow:hidden;}
-.tab{padding:10px 18px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.tab-body{padding:0;}
-.tab-pane{display:none;padding:0;}
-.tab-pane.active{display:block;}
-table{width:100%;border-collapse:collapse;}
-thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
-tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
-tbody tr:last-child{border-bottom:none;}
-tbody tr:hover{background:#f8faff;}
-td{padding:9px 12px;vertical-align:middle;}
-.interaction-item{padding:12px 14px;border-bottom:1px solid var(--border);}
+.contact-meta{font-size:11.5px;color:var(--txts);}
+.tabs{display:flex;border-bottom:1px solid var(--brd);}
+.tab{padding:10px 18px;font-size:12.5px;font-weight:600;color:var(--txts);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;}
+.tab.on{color:var(--green);border-bottom-color:var(--green);}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+.interaction-item{padding:12px 14px;border-bottom:1px solid var(--brd);}
 .interaction-item:last-child{border-bottom:none;}
 .interaction-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
 .interaction-subject{font-weight:600;font-size:13px;}
-.interaction-body{font-size:12.5px;color:var(--muted);white-space:pre-wrap;}
-.interaction-meta{font-size:11px;color:var(--muted);margin-top:4px;}
-.b-inbound{background:#f0fdf4;color:var(--green);}
-.b-outbound{background:#eff6ff;color:#1d4ed8;}
-.b-email{background:#fef3c7;color:#92400e;}
-.b-call{background:#f0fdf4;color:var(--green);}
-.b-meeting{background:#f5f3ff;color:var(--purple);}
-.b-note{background:#f9fafb;color:var(--muted);}
-.empty{text-align:center;padding:32px 20px;color:var(--muted);}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:var(--surface);border-radius:10px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
-.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;}
-.modal-title{font-weight:700;font-size:15px;}
-.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px;line-height:1;border-radius:4px;}
-.modal-close:hover{color:var(--text);}
-.modal-body{padding:20px;}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
-.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
-.field:last-child{margin-bottom:0;}
-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
-input[type=text],input[type=email],input[type=tel],textarea{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s,box-shadow .12s;width:100%;}
-input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
-textarea{resize:vertical;min-height:72px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
-.toast.show{transform:translateY(0);opacity:1;}
-.toast.success{background:#15803d;}.toast.error{background:var(--red);}
+.interaction-body{font-size:12.5px;color:var(--txts);white-space:pre-wrap;}
+.interaction-meta{font-size:11px;color:var(--txts);margin-top:4px;}
 </style>
 </head>
 <body>
 <div class="shell">
-<aside class="sidebar">
-  <div class="logo">МеталлПро ERP <span>Рабочий стенд v1.0</span></div>
-  <nav>
-    <div class="nav-group">Workflow</div>
-    <a class="nav-item" href="orders.html"><span>📋</span> Журнал заказов</a>
-    <a class="nav-item" href="simulator.html"><span>🧮</span> Расчёт КП</a>
-    <div class="nav-group">CRM</div>
-    <a class="nav-item active" href="crm.html"><span>👥</span> Клиенты</a>
-    <a class="nav-item" href="email-inbox.html"><span>📧</span> Входящие письма</a>
-    <div class="nav-group">Справочники</div>
-    <a class="nav-item" href="materials.html"><span>🔩</span> Материалы</a>
-    <a class="nav-item" href="templates.html"><span>📦</span> Шаблоны</a>
-  </nav>
-  <div class="sidebar-bottom">МеталлПро ERP · v1.0</div>
-</aside>
-
-<div class="main">
-  <div class="topbar">
-    <button class="btn btn-secondary btn-sm" onclick="window.location.href='crm.html'">← Назад</button>
-    <div class="topbar-title" id="page-title">Клиент</div>
-    <div class="topbar-right">
-      <button class="btn btn-secondary btn-sm" onclick="openContactModal()">+ Контакт</button>
-      <button class="btn btn-primary btn-sm" onclick="openRfqModal()">+ Заявка на КП</button>
-    </div>
-  </div>
-
-  <div class="content">
-    <div id="loading" style="text-align:center;padding:40px;color:var(--muted)">Загрузка...</div>
-    <div id="customer-layout" class="layout" style="display:none">
-
-      <!-- Left column -->
-      <div>
-        <div class="card info-card">
-          <div class="info-title" id="c-name"></div>
-          <div class="info-row"><div class="info-label">ИНН</div><div class="info-value" id="c-inn"></div></div>
-          <div class="info-row"><div class="info-label">Email</div><div class="info-value" id="c-email"></div></div>
-          <div class="info-row"><div class="info-label">Телефон</div><div class="info-value" id="c-phone"></div></div>
-          <div class="info-row"><div class="info-label">Сайт</div><div class="info-value" id="c-website"></div></div>
-          <div class="info-row"><div class="info-label">Приоритет</div><div class="info-value" id="c-priority"></div></div>
-        </div>
-
-        <div class="section-card">
-          <div class="section-head">
-            <div class="section-head-title">Контакты</div>
-            <button class="btn btn-secondary btn-sm" onclick="openContactModal()">+ Контакт</button>
-          </div>
-          <div id="contacts-list"></div>
-        </div>
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='crm.html'">← Клиенты</button>
+      <div class="topbar-title" id="page-title">Клиент</div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary btn-sm" onclick="openContactModal()">+ Контакт</button>
+        <button class="btn btn-primary btn-sm" onclick="openRfqModal()">+ Заявка на КП</button>
       </div>
-
-      <!-- Right column -->
-      <div class="card" style="overflow:hidden">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('orders')">Заказы</div>
-          <div class="tab" onclick="switchTab('interactions')">История взаимодействий</div>
+    </div>
+    <div class="content">
+      <div id="loading" style="text-align:center;padding:40px;color:var(--txts)">Загрузка...</div>
+      <div id="customer-layout" class="layout" style="display:none">
+        <div>
+          <div class="card info-card">
+            <div class="info-title" id="c-name"></div>
+            <div class="info-row"><div class="info-label">ИНН</div><div class="info-value" id="c-inn"></div></div>
+            <div class="info-row"><div class="info-label">Email</div><div class="info-value" id="c-email"></div></div>
+            <div class="info-row"><div class="info-label">Телефон</div><div class="info-value" id="c-phone"></div></div>
+            <div class="info-row"><div class="info-label">Сайт</div><div class="info-value" id="c-website"></div></div>
+            <div class="info-row"><div class="info-label">Приоритет</div><div class="info-value" id="c-priority"></div></div>
+          </div>
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-head-title">Контакты</div>
+              <button class="btn btn-secondary btn-xs" onclick="openContactModal()">+ Контакт</button>
+            </div>
+            <div id="contacts-list"></div>
+          </div>
         </div>
-        <div class="tab-body">
-          <div class="tab-pane active" id="tab-orders">
+        <div class="card" style="overflow:hidden">
+          <div class="tabs">
+            <div class="tab on" onclick="switchTab('orders',this)">Заказы</div>
+            <div class="tab" onclick="switchTab('interactions',this)">История</div>
+          </div>
+          <div class="tab-pane on" id="tab-orders">
             <table>
               <thead><tr><th>Номер</th><th>Объект</th><th>Статус</th><th>Дата</th></tr></thead>
               <tbody id="orders-tbody"></tbody>
@@ -169,37 +80,19 @@ textarea{resize:vertical;min-height:72px;}
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
-</div>
 
-<!-- Modal: Add Contact -->
 <div id="contact-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeContactModal()">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Добавить контакт</div>
-      <button class="modal-close" onclick="closeContactModal()">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Добавить контакт</div><button class="modal-close" onclick="closeContactModal()">✕</button></div>
     <div class="modal-body">
-      <div class="field">
-        <label>Имя *</label>
-        <input type="text" id="ct-name" placeholder="Иван Иванов">
-      </div>
-      <div class="field">
-        <label>Должность</label>
-        <input type="text" id="ct-position" placeholder="Менеджер по закупкам">
-      </div>
+      <div class="field"><label>Имя *</label><input type="text" id="ct-name" placeholder="Иван Иванов"></div>
+      <div class="field"><label>Должность</label><input type="text" id="ct-position" placeholder="Менеджер по закупкам"></div>
       <div class="grid2">
-        <div class="field">
-          <label>Email</label>
-          <input type="email" id="ct-email" placeholder="ivan@company.ru">
-        </div>
-        <div class="field">
-          <label>Телефон</label>
-          <input type="tel" id="ct-phone" placeholder="+7 (999) 000-00-00">
-        </div>
+        <div class="field"><label>Email</label><input type="email" id="ct-email" placeholder="ivan@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="ct-phone" placeholder="+7 (999) 000-00-00"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -209,22 +102,12 @@ textarea{resize:vertical;min-height:72px;}
   </div>
 </div>
 
-<!-- Modal: Create RFQ -->
 <div id="rfq-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeRfqModal()">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Заявка на КП</div>
-      <button class="modal-close" onclick="closeRfqModal()">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Заявка на КП</div><button class="modal-close" onclick="closeRfqModal()">✕</button></div>
     <div class="modal-body">
-      <div class="field">
-        <label>Название объекта *</label>
-        <input type="text" id="rfq-title" placeholder="Металлоконструкции склада №3">
-      </div>
-      <div class="field">
-        <label>Примечание</label>
-        <textarea id="rfq-desc" placeholder="Дополнительная информация..."></textarea>
-      </div>
+      <div class="field"><label>Название объекта *</label><input type="text" id="rfq-title" placeholder="Металлоконструкции склада №3"></div>
+      <div class="field"><label>Примечание</label><textarea id="rfq-desc" placeholder="Дополнительная информация..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeRfqModal()">Отмена</button>
@@ -233,228 +116,176 @@ textarea{resize:vertical;min-height:72px;}
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
-
 <script>
-const TOKEN = localStorage.getItem('erp_token') || ''
-const API = ''
-const params = new URLSearchParams(location.search)
-const customerId = params.get('id')
-let customer = null
+ERP.init('crm');
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }
-}
-
-function showToast(msg, type = '') {
-  const t = document.getElementById('toast')
-  t.textContent = msg
-  t.className = 'toast show' + (type ? ' ' + type : '')
-  setTimeout(() => { t.className = 'toast' }, 3000)
-}
-
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-}
+var params = new URLSearchParams(location.search);
+var customerId = params.get('id');
+var customer = null;
 
 function priorityBadge(p) {
-  const map = { VIP: 'b-vip', HIGH: 'b-high', NORMAL: 'b-normal', LOW: 'b-low' }
-  return `<span class="badge ${map[p] || 'b-normal'}">${p}</span>`
+  var map = { VIP:'b-vip', HIGH:'b-high', NORMAL:'b-normal', LOW:'b-low' };
+  return '<span class="badge '+(map[p]||'b-normal')+'">'+p+'</span>';
 }
-
 function statusBadge(s) {
-  const map = {
-    DRAFT: 'b-draft', QUOTATION: 'b-quotation', AWAITING_APPROVAL: 'b-quotation',
-    APPROVED: 'b-production', PRODUCTION: 'b-production',
-    COMPLETED: 'b-completed', DELIVERED: 'b-completed', CANCELLED: 'b-cancelled',
-  }
-  return `<span class="badge ${map[s] || 'b-draft'}">${s}</span>`
+  var map = { DRAFT:'b-draft', QUOTATION:'b-quotation', AWAITING_APPROVAL:'b-awaiting', APPROVED:'b-approved', PRODUCTION:'b-production', COMPLETED:'b-completed', DELIVERED:'b-delivered', CANCELLED:'b-cancelled' };
+  return '<span class="badge '+(map[s]||'b-draft')+'">'+s+'</span>';
 }
-
-function typeBadge(type) {
-  const map = { EMAIL: 'b-email', CALL: 'b-call', MEETING: 'b-meeting', NOTE: 'b-note' }
-  return `<span class="badge ${map[type] || 'b-note'}">${type}</span>`
+function typeBadge(t) {
+  var map = { EMAIL:'b-email', CALL:'b-call', MEETING:'b-meeting', NOTE:'b-note' };
+  return '<span class="badge '+(map[t]||'b-note')+'">'+t+'</span>';
 }
-
-function dirBadge(dir) {
-  return dir === 'INBOUND'
-    ? '<span class="badge b-inbound">входящее</span>'
-    : '<span class="badge b-outbound">исходящее</span>'
+function dirBadge(d) {
+  return d==='INBOUND' ? '<span class="badge b-inbound">входящее</span>' : '<span class="badge b-outbound">исходящее</span>';
 }
-
 function fmtDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
 
 async function loadCustomer() {
-  if (!customerId) { document.getElementById('loading').textContent = 'Не указан ID клиента'; return }
+  if (!customerId) { document.getElementById('loading').textContent = 'Не указан ID клиента'; return; }
   try {
-    const r = await fetch(API + '/api/customers/' + customerId, { headers: authHeaders() })
-    if (r.status === 404) { document.getElementById('loading').textContent = 'Клиент не найден'; return }
-    customer = await r.json()
-    renderCustomer()
-  } catch (e) {
-    document.getElementById('loading').textContent = 'Ошибка загрузки'
+    var r = await ERP.authFetch('/api/customers/' + customerId);
+    if (r.status === 404) { document.getElementById('loading').textContent = 'Клиент не найден'; return; }
+    customer = await r.json();
+    renderCustomer();
+  } catch(e) {
+    document.getElementById('loading').textContent = 'Ошибка загрузки';
   }
 }
 
 function renderCustomer() {
-  document.getElementById('loading').style.display = 'none'
-  document.getElementById('customer-layout').style.display = 'grid'
-  document.getElementById('page-title').textContent = customer.name
-  document.title = 'МеталлПро ERP — ' + customer.name
-
-  document.getElementById('c-name').textContent = customer.name
-  document.getElementById('c-inn').textContent = customer.inn || '—'
-  document.getElementById('c-email').textContent = customer.email || '—'
-  document.getElementById('c-phone').textContent = customer.phone || '—'
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('customer-layout').style.display = 'grid';
+  document.getElementById('page-title').textContent = customer.name;
+  document.title = 'МеталлПро ERP — ' + customer.name;
+  document.getElementById('c-name').textContent = customer.name;
+  document.getElementById('c-inn').textContent = customer.inn || '—';
+  document.getElementById('c-email').textContent = customer.email || '—';
+  document.getElementById('c-phone').textContent = customer.phone || '—';
   document.getElementById('c-website').innerHTML = customer.website
-    ? `<a href="${esc(customer.website)}" target="_blank" rel="noopener">${esc(customer.website)}</a>` : '—'
-  document.getElementById('c-priority').innerHTML = priorityBadge(customer.priority)
-
-  renderContacts(customer.contacts || [])
-  renderOrders(customer.orders || [])
-  renderInteractions(customer.interactions || [])
+    ? '<a href="'+ERP.esc(customer.website)+'" target="_blank" rel="noopener" style="color:var(--blue)">'+ERP.esc(customer.website)+'</a>' : '—';
+  document.getElementById('c-priority').innerHTML = priorityBadge(customer.priority);
+  renderContacts(customer.contacts || []);
+  renderOrders(customer.orders || []);
+  renderInteractions(customer.interactions || []);
 }
 
 function renderContacts(list) {
-  const el = document.getElementById('contacts-list')
-  if (!list.length) { el.innerHTML = '<div class="empty" style="padding:16px">Контактов нет</div>'; return }
-  el.innerHTML = list.map(c => `
-    <div class="contact-item">
-      <div class="contact-name">${esc(c.name)}${c.position ? ' <span style="font-weight:400;color:var(--muted)">· ' + esc(c.position) + '</span>' : ''}</div>
-      ${c.email ? `<div class="contact-meta">${esc(c.email)}</div>` : ''}
-      ${c.phone ? `<div class="contact-meta">${esc(c.phone)}</div>` : ''}
-    </div>
-  `).join('')
+  var el = document.getElementById('contacts-list');
+  if (!list.length) { el.innerHTML = '<div class="empty" style="padding:16px">Контактов нет</div>'; return; }
+  el.innerHTML = list.map(function(c){
+    return '<div class="contact-item">' +
+      '<div class="contact-name">'+ERP.esc(c.name)+(c.position?' <span style="font-weight:400;color:var(--txts)">· '+ERP.esc(c.position)+'</span>':'')+'</div>' +
+      (c.email ? '<div class="contact-meta">'+ERP.esc(c.email)+'</div>' : '') +
+      (c.phone ? '<div class="contact-meta">'+ERP.esc(c.phone)+'</div>' : '') +
+    '</div>';
+  }).join('');
 }
 
 function renderOrders(list) {
-  const tbody = document.getElementById('orders-tbody')
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Заказов нет</div></td></tr>'; return }
-  tbody.innerHTML = list.map(o => `
-    <tr onclick="window.open('orders.html','_self')">
-      <td class="mono">${esc(o.orderNumber)}</td>
-      <td>${esc(o.title)}</td>
-      <td>${statusBadge(o.status)}</td>
-      <td>${fmtDate(o.createdAt)}</td>
-    </tr>
-  `).join('')
+  var tbody = document.getElementById('orders-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Заказов нет</div></td></tr>'; return; }
+  tbody.innerHTML = list.map(function(o){
+    return '<tr class="clickable" onclick="window.location.href=\'orders.html\'">' +
+      '<td class="mono" style="color:var(--blue);font-weight:700">'+ERP.esc(o.orderNumber)+'</td>' +
+      '<td>'+ERP.esc(o.title)+'</td>' +
+      '<td>'+statusBadge(o.status)+'</td>' +
+      '<td class="mono" style="color:var(--txts);font-size:11px">'+fmtDate(o.createdAt)+'</td>' +
+    '</tr>';
+  }).join('');
 }
 
 function renderInteractions(list) {
-  const el = document.getElementById('interactions-list')
-  if (!list.length) { el.innerHTML = '<div class="empty">Взаимодействий нет</div>'; return }
-  el.innerHTML = list.map(i => `
-    <div class="interaction-item">
-      <div class="interaction-head">
-        ${typeBadge(i.type)}
-        ${dirBadge(i.direction)}
-        ${i.contact ? `<span style="font-size:11.5px;color:var(--muted)">${esc(i.contact.name)}</span>` : ''}
-      </div>
-      ${i.subject ? `<div class="interaction-subject">${esc(i.subject)}</div>` : ''}
-      ${i.body ? `<div class="interaction-body">${esc(i.body)}</div>` : ''}
-      <div class="interaction-meta">${fmtDate(i.createdAt)} · ${i.createdBy ? esc(i.createdBy.firstName + ' ' + i.createdBy.lastName) : ''}</div>
-    </div>
-  `).join('')
+  var el = document.getElementById('interactions-list');
+  if (!list.length) { el.innerHTML = '<div class="empty">Взаимодействий нет</div>'; return; }
+  el.innerHTML = list.map(function(i){
+    return '<div class="interaction-item">' +
+      '<div class="interaction-head">'+typeBadge(i.type)+dirBadge(i.direction)+(i.contact?'<span style="font-size:11.5px;color:var(--txts)">'+ERP.esc(i.contact.name)+'</span>':'')+'</div>' +
+      (i.subject ? '<div class="interaction-subject">'+ERP.esc(i.subject)+'</div>' : '') +
+      (i.body ? '<div class="interaction-body">'+ERP.esc(i.body)+'</div>' : '') +
+      '<div class="interaction-meta">'+fmtDate(i.createdAt)+(i.createdBy?' · '+ERP.esc(i.createdBy.firstName+' '+i.createdBy.lastName):'')+'</div>' +
+    '</div>';
+  }).join('');
 }
 
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['orders','interactions'][i] === name))
-  document.getElementById('tab-orders').classList.toggle('active', name === 'orders')
-  document.getElementById('tab-interactions').classList.toggle('active', name === 'interactions')
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  btn.classList.add('on');
+  document.getElementById('tab-orders').classList.toggle('on', name==='orders');
+  document.getElementById('tab-interactions').classList.toggle('on', name==='interactions');
 }
 
 function openContactModal() {
-  document.getElementById('ct-name').value = ''
-  document.getElementById('ct-position').value = ''
-  document.getElementById('ct-email').value = ''
-  document.getElementById('ct-phone').value = ''
-  document.getElementById('contact-modal-bg').style.display = 'flex'
-  setTimeout(() => document.getElementById('ct-name').focus(), 50)
+  ['ct-name','ct-position','ct-email','ct-phone'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('contact-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('ct-name').focus(); }, 50);
 }
-
-function closeContactModal() {
-  document.getElementById('contact-modal-bg').style.display = 'none'
-}
+function closeContactModal() { document.getElementById('contact-modal-bg').style.display = 'none'; }
 
 async function saveContact() {
-  const name = document.getElementById('ct-name').value.trim()
-  if (!name) { showToast('Введите имя контакта', 'error'); return }
-  const btn = document.getElementById('ct-save-btn')
-  btn.disabled = true
+  var name = document.getElementById('ct-name').value.trim();
+  if (!name) { ERP.toast('Введите имя контакта', 'error'); return; }
+  var btn = document.getElementById('ct-save-btn');
+  btn.disabled = true;
   try {
-    const r = await fetch(API + '/api/customers/' + customerId + '/contacts', {
+    var r = await ERP.authFetch('/api/customers/' + customerId + '/contacts', {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({
-        name,
+        name: name,
         position: document.getElementById('ct-position').value.trim() || null,
         email:    document.getElementById('ct-email').value.trim() || null,
         phone:    document.getElementById('ct-phone').value.trim() || null,
       }),
-    })
-    const data = await r.json()
-    if (!r.ok) throw new Error(data.error || 'Ошибка')
-    closeContactModal()
-    showToast('Контакт добавлен', 'success')
-    loadCustomer()
-  } catch (e) {
-    showToast(e.message, 'error')
-  } finally {
-    btn.disabled = false
-  }
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeContactModal();
+    ERP.toast('Контакт добавлен', 'success');
+    loadCustomer();
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
 }
 
 function openRfqModal() {
-  document.getElementById('rfq-title').value = ''
-  document.getElementById('rfq-desc').value = ''
-  document.getElementById('rfq-modal-bg').style.display = 'flex'
-  setTimeout(() => document.getElementById('rfq-title').focus(), 50)
+  document.getElementById('rfq-title').value = '';
+  document.getElementById('rfq-desc').value = '';
+  document.getElementById('rfq-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('rfq-title').focus(); }, 50);
 }
-
-function closeRfqModal() {
-  document.getElementById('rfq-modal-bg').style.display = 'none'
-}
+function closeRfqModal() { document.getElementById('rfq-modal-bg').style.display = 'none'; }
 
 async function saveRfq() {
-  const title = document.getElementById('rfq-title').value.trim()
-  if (!title) { showToast('Введите название объекта', 'error'); return }
-  const btn = document.getElementById('rfq-save-btn')
-  btn.disabled = true
+  var title = document.getElementById('rfq-title').value.trim();
+  if (!title) { ERP.toast('Введите название объекта', 'error'); return; }
+  var btn = document.getElementById('rfq-save-btn');
+  btn.disabled = true;
   try {
-    const r = await fetch(API + '/api/orders', {
+    var r = await ERP.authFetch('/api/orders', {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({
         orderNumber:  'RFQ-' + Date.now(),
         customerName: customer.name,
         customerId:   customer.id,
-        title,
-        description:  document.getElementById('rfq-desc').value.trim() || null,
+        title: title,
+        description: document.getElementById('rfq-desc').value.trim() || null,
       }),
-    })
-    const data = await r.json()
-    if (!r.ok) throw new Error(data.error || 'Ошибка')
-    closeRfqModal()
-    showToast('Заявка создана', 'success')
-    window.location.href = 'simulator.html?orderId=' + data.id
-  } catch (e) {
-    showToast(e.message, 'error')
-  } finally {
-    btn.disabled = false
-  }
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeRfqModal();
+    ERP.toast('Заявка создана', 'success');
+    window.location.href = 'simulator.html?orderId=' + data.id;
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeContactModal()
-    closeRfqModal()
-  }
-})
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { closeContactModal(); closeRfqModal(); }
+});
 
-loadCustomer()
+loadCustomer();
 </script>
 </body>
 </html>
