@@ -274,7 +274,19 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
 <div id="toast" class="toast"></div>
 
 <script>
-const API = 'http://5.35.92.112';
+const API = '';
+function authHeaders() {
+  const t = localStorage.getItem('erp_token') || '';
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t };
+}
+function authedFetch(url, opts) {
+  const options = opts || {};
+  options.headers = Object.assign({}, authHeaders(), options.headers || {});
+  return fetch(url, options).then(function(r) {
+    if (r.status === 401) { localStorage.removeItem('erp_token'); location.replace('login.html'); }
+    return r;
+  });
+}
 
 const PROFILE_LABELS = {
   RECTANGULAR_TUBE:'Труба пр.',ROUND_TUBE:'Труба кр.',ANGLE:'Уголок',
@@ -288,8 +300,8 @@ let _searchTimer=null;
 async function init(){
   try{
     const [cats, mats] = await Promise.all([
-      fetch(API+'/api/material-categories').then(r=>r.json()),
-      fetch(API+'/api/materials').then(r=>r.json()),
+      authedFetch(API+'/api/material-categories').then(r=>r.json()),
+      authedFetch(API+'/api/materials').then(r=>r.json()),
     ]);
     categories = cats;
     materials  = mats;
@@ -317,7 +329,7 @@ async function loadMaterials(search){
   if(search)p.set('search',search);
   if(curCatId)p.set('categoryId',curCatId);
   try{
-    const res=await fetch(API+'/api/materials?'+p);
+    const res=await authedFetch(API+'/api/materials?'+p);
     materials=await res.json();
     renderTable();
   }catch(e){toast('Ошибка: '+e.message,'error');}
@@ -400,7 +412,7 @@ async function openEdit(id){
   document.getElementById('modal-title').textContent='Редактировать материал';
   populateCategorySelect();
   try{
-    const res=await fetch(API+'/api/materials/'+id);
+    const res=await authedFetch(API+'/api/materials/'+id);
     if(!res.ok)throw new Error('HTTP '+res.status);
     const m=await res.json();
     fillForm(m);
@@ -485,7 +497,7 @@ async function submitForm(){
   btn.disabled=true;btn.textContent='Сохранение...';
   try{
     const url=editingId?API+'/api/materials/'+editingId:API+'/api/materials';
-    const res=await fetch(url,{method:editingId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const res=await authedFetch(url,{method:editingId?'PUT':'POST',body:JSON.stringify(body)});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'HTTP '+res.status);}
     localStorage.setItem('materials_changed', Date.now());
     closeModal();
@@ -498,7 +510,7 @@ async function submitForm(){
 async function archiveMat(id){
   if(!confirm('Архивирование скроет материал из новых заказов. Старые заказы не изменятся.'))return;
   try{
-    const res=await fetch(API+'/api/materials/'+id,{method:'DELETE'});
+    const res=await authedFetch(API+'/api/materials/'+id,{method:'DELETE'});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'HTTP '+res.status);}
     localStorage.setItem('materials_changed',Date.now());
     await loadMaterials();
