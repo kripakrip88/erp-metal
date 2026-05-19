@@ -41,7 +41,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public')
 
 function serveStatic(req, res) {
   const [pathname] = req.url.split('?')
-  const target = pathname === '/' ? '/orders.html' : pathname
+  const target = pathname === '/' ? '/login.html' : pathname
   const filePath = path.join(PUBLIC_DIR, target)
 
   if (!filePath.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end(); return true }
