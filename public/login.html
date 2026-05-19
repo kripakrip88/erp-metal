@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Вход</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Manrope',sans-serif;background:#f4f5f7;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.card{background:#fff;border-radius:12px;border:1px solid #e2e5ea;padding:40px;width:360px;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+.logo{font-weight:800;font-size:20px;color:#2563eb;margin-bottom:4px;}
+.logo-sub{font-size:12px;color:#6b7280;margin-bottom:32px;}
+label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;}
+input{width:100%;padding:9px 12px;border:1px solid #e2e5ea;border-radius:6px;font-family:'Manrope';font-size:13px;outline:none;transition:border .15s;margin-bottom:16px;}
+input:focus{border-color:#2563eb;}
+.btn{width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-family:'Manrope';font-size:13px;font-weight:700;cursor:pointer;transition:background .12s;margin-top:4px;}
+.btn:hover{background:#1d4ed8;}
+.btn:disabled{background:#93c5fd;cursor:not-allowed;}
+.error{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:10px 12px;border-radius:6px;font-size:12px;margin-bottom:16px;display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">МеталлПро</div>
+  <div class="logo-sub">ERP-система</div>
+  <div class="error" id="err"></div>
+  <label>Email</label>
+  <input type="email" id="email" placeholder="admin@company.ru" autocomplete="username">
+  <label>Пароль</label>
+  <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password">
+  <button class="btn" id="btn" onclick="doLogin()">Войти</button>
+</div>
+<script>
+// Если уже залогинен — редирект
+if (localStorage.getItem('erp_token')) location.replace('orders.html');
+
+document.getElementById('pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pass').focus(); });
+
+async function doLogin() {
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('pass').value;
+  const err   = document.getElementById('err');
+  const btn   = document.getElementById('btn');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Введите email и пароль'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Вход...';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка входа');
+    localStorage.setItem('erp_token', data.token);
+    localStorage.setItem('erp_user', JSON.stringify(data.user));
+    location.replace('orders.html');
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Войти';
+  }
+}
+</script>
+</body>
+</html>
