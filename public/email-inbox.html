@@ -7,7 +7,7 @@
 <script src="nav.js"></script>
 <style>
 /* ── INBOX LAYOUT ─────────────────────────────────────────── */
-.inbox-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - var(--topbarh));}
+.inbox-layout{position:fixed;top:var(--topbarh);left:var(--sbw);right:0;bottom:0;display:flex;overflow:hidden;}
 
 /* ── LEFT PANEL: folders + list ──────────────────────────── */
 .list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);overflow:hidden;min-height:0;}
