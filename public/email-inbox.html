@@ -589,18 +589,31 @@ async function archiveMail(id) {
 
 /* ── CREATE RFQ ─────────────────────────────────────────── */
 async function createRfqFromEmail(id) {
-  var title = prompt('Название объекта для КП:');
+  var msg = messages.find(function(m){ return m.id === id; });
+  if (!msg) return ERP.toast('Письмо не найдено', 'error');
+
+  var title = prompt('Название объекта / проекта для КП:', msg.subject || '');
   if (!title) return;
+
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/create-rfq', {
+    var token = localStorage.getItem('erp_token');
+    var r = await fetch('/api/orders/from-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messageId: id, title: title }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        messageId:   id,
+        title:       title,
+        fromAddress: msg.fromAddress || '',
+        fromName:    msg.fromName    || '',
+        subject:     msg.subject     || '',
+      }),
     });
     var data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка');
-    ERP.toast('Заявка создана', 'success');
-    if (data.orderId && confirm('Перейти в симулятор КП?'))
+
+    var label = data.created ? 'Заказ создан' : 'Заказ уже существует';
+    ERP.toast(label + ' — ' + data.orderNumber, 'success');
+    if (data.orderId && confirm(label + ': ' + data.orderNumber + '\n\nОткрыть в калькуляторе КП?'))
       window.location.href = 'simulator.html?orderId=' + data.orderId;
   } catch(e) { ERP.toast(e.message, 'error'); }
 }

@@ -35,6 +35,7 @@ const routes = [
   ...require('./src/routes/templates'),
   ...require('./src/routes/customers'),
   ...require('./src/routes/files'),
+  ...require('./src/routes/ordersFromEmail'),
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
