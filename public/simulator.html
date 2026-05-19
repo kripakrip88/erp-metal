@@ -774,16 +774,17 @@ const _origFetch = window.fetch.bind(window);
 window.fetch = async function(url, opts) {
   opts = opts ? { ...opts } : {};
   const surl = String(url);
-  if (surl.startsWith(API)) {
+  const isApiCall = surl.startsWith('/api/') || surl.startsWith(location.origin + '/api/');
+  if (isApiCall) {
     const token = localStorage.getItem('erp_token');
     if (token) {
       opts.headers = { ...opts.headers, 'Authorization': `Bearer ${token}` };
     }
   }
   const r = await _origFetch(url, opts);
-  if (r.status === 401 && surl.startsWith(API)) {
+  if (r.status === 401 && isApiCall) {
     localStorage.removeItem('erp_token');
-    showLoginModal();
+    location.replace('login.html');
     throw new Error('Требуется авторизация — войдите снова');
   }
   return r;
