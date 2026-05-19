@@ -42,6 +42,11 @@
 .draft-card.on{border-color:var(--blue);background:rgba(59,130,246,.06);}
 .draft-strategy{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:6px;}
 .draft-preview{font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.attach-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.attach-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--brd);border-radius:6px;font-size:12.5px;}
+.attach-icon{font-size:15px;flex-shrink:0;}
+.attach-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.attach-size{font-size:11px;color:var(--txts);flex-shrink:0;font-family:var(--ffm);}
 .reply-editor{background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:14px;margin-bottom:12px;}
 .reply-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txts);margin-bottom:8px;}
 .reply-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;}
@@ -183,6 +188,15 @@ function renderDetail(msg) {
   var panel = document.getElementById('detail-panel');
   var confidence = msg.aiConfidence != null ? Math.round(msg.aiConfidence * 100) : 0;
 
+  var attachmentsHtml = "";
+  if (msg.attachments && msg.attachments.length) {
+    attachmentsHtml = "<div class=\"section-block\"><div class=\"section-title\">Вложения (" + msg.attachments.length + ")</div><div class=\"attach-list\">" +
+      msg.attachments.map(function(a){
+        var icon = a.contentType.indexOf("image/") === 0 ? "🖼" : a.contentType.indexOf("pdf") >= 0 ? "📄" : a.contentType.indexOf("sheet") >= 0 || a.contentType.indexOf("excel") >= 0 ? "📊" : "📎";
+        var size = a.size > 1048576 ? (a.size/1048576).toFixed(1)+" МБ" : a.size > 1024 ? Math.round(a.size/1024)+" КБ" : a.size+" Б";
+        return "<div class=\"attach-item\"><span class=\"attach-icon\">" + icon + "</span><span class=\"attach-name\">" + ERP.esc(a.filename) + "</span><span class=\"attach-size\">" + size + "</span></div>";
+      }).join("") + "</div></div>";
+  }
   var itemsHtml = '';
   if (msg.aiExtracted && msg.aiExtracted.items && msg.aiExtracted.items.length) {
     itemsHtml = '<div class="section-block"><div class="section-title">Извлечённые позиции</div>' +
@@ -227,7 +241,7 @@ function renderDetail(msg) {
       '</div>'+
       (msg.aiSummary&&confidence>0?'<div class="section-block"><div class="section-title">AI-резюме</div><div class="summary-text">'+ERP.esc(msg.aiSummary)+'</div></div>':'')+
       '<div class="section-block"><div class="section-title">Текст письма</div>'+formatBody(msg.bodyText)+'</div>'+
-      itemsHtml+extractedHtml+draftsHtml+
+      attachmentsHtml+itemsHtml+extractedHtml+draftsHtml+
       '<div class="reply-editor">'+
         '<div class="reply-label">Редактор ответа</div>'+
         '<textarea id="reply-textarea" placeholder="Выберите вариант ответа выше или введите текст..."></textarea>'+
@@ -246,8 +260,11 @@ function selectDraft(index) {
   var ta = document.getElementById('reply-textarea');
   if (ta && currentDrafts[index]) {
     ta.value = currentDrafts[index].body || '';
-    ta.focus();
-    ta.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    // Scroll the detail panel to show the reply editor
+    var panel = document.getElementById('detail-panel');
+    if (panel) panel.scrollTop = panel.scrollHeight;
+    setTimeout(function() { ta.focus(); ta.setSelectionRange(0, 0); }, 50);
+    ERP.toast('Вариант вставлен в редактор', 'success');
   }
 }
 
