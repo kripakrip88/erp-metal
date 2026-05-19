@@ -558,12 +558,34 @@ async function sendReply(id, messageId) {
   var btn = document.querySelector('.reply-actions .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Отправка...'; }
   try {
+    var msg = messages.find(function(m){ return m.id === id; });
     var r = await fetch(AI_API + '/api/email-copilot/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messageId: messageId, replyBody: body, sentBy: 'manager' }),
     });
     if (!r.ok) throw new Error('Ошибка отправки');
+
+    // Log reply in ERP CRM and auto-transition order status
+    try {
+      var token = localStorage.getItem('erp_token');
+      var erpR = await fetch('/api/email-copilot/log-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          messageId: messageId,
+          replyBody: body,
+          subject:   msg ? msg.subject : '',
+        }),
+      });
+      if (erpR.ok) {
+        var erpData = await erpR.json();
+        if (erpData.statusChanged && erpData.orderNumber) {
+          ERP.toast('Заказ ' + erpData.orderNumber + ' переведён в КП', 'success');
+        }
+      }
+    } catch(_) { /* ERP logging is best-effort */ }
+
     ERP.toast('Ответ отправлен', 'success');
     clearReply();
     loadMessages();
