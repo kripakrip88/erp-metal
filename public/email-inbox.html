@@ -6,7 +6,7 @@
 <title>МеталлПро ERP — Email Copilot</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--purple:#7c3aed;--orange:#c2410c;}
+:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
 .shell{display:flex;min-height:100vh;}
@@ -31,7 +31,6 @@ nav{padding:8px;flex:1;}
 .btn-sm{padding:4px 10px;font-size:12px;}
 .btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca;}.btn-danger:hover{background:#fee2e2;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-/* Left panel */
 .list-panel{border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
 .list-filters{display:flex;gap:4px;padding:10px 10px 8px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
 .filter-btn{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:'Manrope';font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;}
@@ -47,36 +46,29 @@ nav{padding:8px;flex:1;}
 .mail-subject{font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mail-badges{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;}
 .empty-list{text-align:center;padding:40px 16px;color:var(--muted);}
-/* Right panel */
 .detail-panel{overflow-y:auto;background:var(--bg);}
 .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:14px;}
 .detail-content{padding:20px;max-width:860px;}
 .detail-header{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
 .detail-subject{font-size:16px;font-weight:700;margin-bottom:8px;}
 .detail-meta{font-size:12px;color:var(--muted);margin-bottom:8px;}
-.detail-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.detail-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
-.b-rfq{background:#eff6ff;color:#1d4ed8;}
-.b-order{background:#f0fdf4;color:var(--green);}
-.b-question{background:#fffbeb;color:var(--yellow);}
-.b-complaint{background:#fef2f2;color:var(--red);}
-.b-spam{background:#f9fafb;color:var(--muted);}
-.b-other{background:#f9fafb;color:var(--muted);}
-.b-critical{background:#fef2f2;color:var(--red);}
-.b-urgent{background:#fffbeb;color:var(--yellow);}
-.b-normal{background:#f0fdf4;color:var(--green);}
-.b-low{background:#f9fafb;color:var(--muted);}
+.b-rfq{background:#eff6ff;color:#1d4ed8;}.b-order{background:#f0fdf4;color:var(--green);}
+.b-question{background:#fffbeb;color:var(--yellow);}.b-complaint,.b-critical{background:#fef2f2;color:var(--red);}
+.b-spam,.b-other,.b-low,.b-archived{background:#f9fafb;color:var(--muted);}
+.b-urgent{background:#fffbeb;color:var(--yellow);}.b-normal,.b-replied{background:#f0fdf4;color:var(--green);}
 .b-pending{background:#fffbeb;color:var(--yellow);}
-.b-replied{background:#f0fdf4;color:var(--green);}
-.b-archived{background:#f9fafb;color:var(--muted);}
 .section-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
 .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;}
 .summary-text{font-size:13px;line-height:1.6;}
-.body-text{font-size:12.5px;line-height:1.7;white-space:pre-wrap;color:var(--text);}
+/* Email body formatting */
+.body-main{font-size:12.5px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.body-quoted{font-size:12px;color:var(--muted);border-left:3px solid var(--border2);padding:8px 10px;margin-top:10px;white-space:pre-wrap;word-break:break-word;line-height:1.6;background:#fafbfc;border-radius:0 4px 4px 0;}
+.body-sep{border:none;border-top:1px dashed var(--border2);margin:10px 0;}
 table{width:100%;border-collapse:collapse;}
 thead th{padding:6px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);}
-tbody tr{border-bottom:1px solid var(--border);}
-tbody tr:last-child{border-bottom:none;}
+tbody tr{border-bottom:1px solid var(--border);}tbody tr:last-child{border-bottom:none;}
 td{padding:7px 10px;font-size:12.5px;}
 .extracted-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .extracted-item{background:var(--bg);border-radius:5px;padding:8px 10px;}
@@ -84,15 +76,18 @@ td{padding:7px 10px;font-size:12.5px;}
 .extracted-value{font-size:13px;}
 .drafts-list{display:flex;flex-direction:column;gap:8px;}
 .draft-card{border:2px solid var(--border);border-radius:7px;padding:12px;cursor:pointer;transition:all .12s;}
-.draft-card:hover{border-color:var(--border2);}
+.draft-card:hover{border-color:var(--border2);background:#fafbfc;}
 .draft-card.selected{border-color:var(--accent);background:#eff6ff;}
 .draft-strategy{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;}
-.draft-body{font-size:12.5px;line-height:1.6;white-space:pre-wrap;}
+.draft-preview{font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
 .reply-editor{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
 .reply-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;}
-textarea{border:1px solid var(--border2);border-radius:5px;padding:8px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s;width:100%;resize:vertical;min-height:100px;}
+textarea{border:1px solid var(--border2);border-radius:5px;padding:8px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s;width:100%;resize:vertical;min-height:120px;}
 textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
-.reply-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.reply-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+.btn-reanalyze{margin-left:auto;}
+.spinner{display:inline-block;width:11px;height:11px;border:2px solid rgba(37,99,235,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.success{background:#15803d;}.toast.error{background:var(--red);}
@@ -121,24 +116,19 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1
     <div class="topbar-title">Email Copilot</div>
     <div class="topbar-right">
       <span class="last-update" id="last-update"></span>
-      <button class="btn btn-secondary btn-sm" onclick="pollMail()">⟳ Проверить почту</button>
+      <button class="btn btn-secondary btn-sm" onclick="pollMail()">&#x21BB; Проверить почту</button>
     </div>
   </div>
 
   <div class="inbox-layout">
-    <!-- Left: message list -->
     <div class="list-panel">
       <div class="list-filters">
-        <button class="filter-btn active" data-status="pending" onclick="setFilter('status','pending',this)">Новые</button>
-        <button class="filter-btn" data-status="" onclick="setFilter('status','',this)">Все</button>
-        <button class="filter-btn" data-intent="RFQ" onclick="setFilter('intent','RFQ',this)">RFQ</button>
+        <button class="filter-btn active" onclick="setFilter('status','pending',this)">Новые</button>
+        <button class="filter-btn" onclick="setFilter('status','',this)">Все</button>
+        <button class="filter-btn" onclick="setFilter('intent','RFQ',this)">RFQ</button>
       </div>
-      <div class="mail-list" id="mail-list">
-        <div class="empty-list">Загрузка...</div>
-      </div>
+      <div class="mail-list" id="mail-list"><div class="empty-list">Загрузка...</div></div>
     </div>
-
-    <!-- Right: detail -->
     <div class="detail-panel" id="detail-panel">
       <div class="detail-empty">Выберите письмо</div>
     </div>
@@ -149,225 +139,241 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1
 <div id="toast" class="toast"></div>
 
 <script>
-const AI_API = (window.AI_API_URL || (window.location.protocol + '//' + window.location.hostname + ':4000'))
-const TOKEN = localStorage.getItem('erp_token') || ''
-
-let currentFilter = { status: 'pending', intent: '' }
-let selectedId = null
-let messages = []
-
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }
-}
+var AI_API = (window.AI_API_URL || (window.location.protocol + '//' + window.location.hostname + ':4000'))
+var currentFilter = { status: 'pending', intent: '' }
+var selectedId = null
+var messages = []
+var currentDrafts = []
 
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
 
-function showToast(msg, type = '') {
-  const t = document.getElementById('toast')
+function showToast(msg, type) {
+  var t = document.getElementById('toast')
   t.textContent = msg
   t.className = 'toast show' + (type ? ' ' + type : '')
-  setTimeout(() => { t.className = 'toast' }, 3500)
+  setTimeout(function(){ t.className = 'toast' }, 3500)
 }
 
 function fmtTime(d) {
   if (!d) return ''
-  const dt = new Date(d)
-  const now = new Date()
-  if (dt.toDateString() === now.toDateString()) {
+  var dt = new Date(d), now = new Date()
+  if (dt.toDateString() === now.toDateString())
     return dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-  }
   return dt.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 }
 
 function intentBadge(v) {
   if (!v) return ''
-  const map = { RFQ: 'b-rfq', ORDER: 'b-order', QUESTION: 'b-question', COMPLAINT: 'b-complaint', SPAM: 'b-spam', OTHER: 'b-other' }
-  return `<span class="badge ${map[v] || 'b-other'}">${v}</span>`
+  var m = { RFQ:'b-rfq', ORDER:'b-order', QUESTION:'b-question', COMPLAINT:'b-complaint', SPAM:'b-spam', OTHER:'b-other' }
+  return '<span class="badge ' + (m[v]||'b-other') + '">' + v + '</span>'
 }
 
 function priorityBadge(v) {
   if (!v) return ''
-  const map = { critical: 'b-critical', urgent: 'b-urgent', normal: 'b-normal', low: 'b-low' }
-  return `<span class="badge ${map[v] || 'b-normal'}">${v}</span>`
+  var m = { critical:'b-critical', urgent:'b-urgent', normal:'b-normal', low:'b-low' }
+  return '<span class="badge ' + (m[v]||'b-normal') + '">' + v.toUpperCase() + '</span>'
 }
 
 function statusBadge(v) {
   if (!v) return ''
-  const map = { pending: 'b-pending', replied: 'b-replied', archived: 'b-archived' }
-  return `<span class="badge ${map[v] || 'b-pending'}">${v}</span>`
+  var m = { pending:'b-pending', replied:'b-replied', archived:'b-archived' }
+  return '<span class="badge ' + (m[v]||'b-pending') + '">' + v + '</span>'
 }
 
 function setFilter(key, val, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active') })
   btn.classList.add('active')
-  if (key === 'status') {
-    currentFilter.status = val
-    currentFilter.intent = ''
-  } else {
-    currentFilter.intent = val
-    currentFilter.status = ''
-  }
+  if (key === 'status') { currentFilter.status = val; currentFilter.intent = '' }
+  else { currentFilter.intent = val; currentFilter.status = '' }
   loadMessages()
 }
 
 async function loadMessages() {
-  const list = document.getElementById('mail-list')
+  var list = document.getElementById('mail-list')
   list.innerHTML = '<div class="empty-list">Загрузка...</div>'
   try {
-    let url = AI_API + '/api/email-copilot/inbox'
-    const qs = []
+    var url = AI_API + '/api/email-copilot/inbox'
+    var qs = []
     if (currentFilter.status) qs.push('status=' + currentFilter.status)
     if (currentFilter.intent) qs.push('intent=' + currentFilter.intent)
     if (qs.length) url += '?' + qs.join('&')
-    const r = await fetch(url)
-    const data = await r.json()
+    var r = await fetch(url)
+    var data = await r.json()
     messages = Array.isArray(data.messages) ? data.messages : (Array.isArray(data) ? data : [])
     renderList()
     updateLastUpdate()
   } catch (e) {
-    list.innerHTML = '<div class="empty-list">AI-сервис недоступен<br><small>Письма загружаются из сервиса на порту 4000</small></div>'
+    list.innerHTML = '<div class="empty-list">AI-сервис недоступен<br><small>Порт 4000</small></div>'
   }
 }
 
 function renderList() {
-  const list = document.getElementById('mail-list')
-  if (!messages.length) {
-    list.innerHTML = '<div class="empty-list">Писем нет</div>'
-    return
-  }
-  list.innerHTML = messages.map(m => `
-    <div class="mail-item${m.id === selectedId ? ' selected' : ''}" onclick="selectMessage('${m.id}')">
-      <div class="mail-from">
-        <span class="mail-from-name">${esc(m.fromAddress || '—')}</span>
-        <span class="mail-time">${fmtTime(m.receivedAt)}</span>
-      </div>
-      <div class="mail-subject">${esc(m.subject || '(без темы)')}</div>
-      <div class="mail-badges">
-        ${intentBadge(m.aiIntent)}
-        ${priorityBadge(m.aiPriority)}
-      </div>
-    </div>
-  `).join('')
+  var list = document.getElementById('mail-list')
+  if (!messages.length) { list.innerHTML = '<div class="empty-list">Писем нет</div>'; return }
+  list.innerHTML = messages.map(function(m) {
+    return '<div class="mail-item' + (m.id === selectedId ? ' selected' : '') + '" onclick="selectMessage(\'' + m.id + '\')">' +
+      '<div class="mail-from">' +
+        '<span class="mail-from-name">' + esc(m.fromAddress||'—') + '</span>' +
+        '<span class="mail-time">' + fmtTime(m.receivedAt) + '</span>' +
+      '</div>' +
+      '<div class="mail-subject">' + esc(m.subject||'(без темы)') + '</div>' +
+      '<div class="mail-badges">' + intentBadge(m.aiIntent) + priorityBadge(m.aiPriority) + '</div>' +
+    '</div>'
+  }).join('')
 }
 
 function selectMessage(id) {
   selectedId = id
   renderList()
-  const msg = messages.find(m => m.id === id)
+  var msg = messages.find(function(m){ return m.id === id })
   if (msg) renderDetail(msg)
 }
 
-function renderDetail(msg) {
-  const panel = document.getElementById('detail-panel')
-  const confidence = msg.aiConfidence != null ? Math.round(msg.aiConfidence * 100) + '%' : null
-
-  const itemsHtml = msg.aiExtracted?.items?.length ? `
-    <div class="section-block">
-      <div class="section-title">Извлечённые позиции</div>
-      <table>
-        <thead><tr><th>Наименование</th><th>Кол-во</th><th>Ед.</th><th>Материал</th></tr></thead>
-        <tbody>${msg.aiExtracted.items.map(item => `
-          <tr>
-            <td>${esc(item.name || item.description || '—')}</td>
-            <td>${esc(item.qty || item.quantity || '—')}</td>
-            <td>${esc(item.unit || '—')}</td>
-            <td>${esc(item.material || '—')}</td>
-          </tr>
-        `).join('')}</tbody>
-      </table>
-    </div>
-  ` : ''
-
-  const extracted = msg.aiExtracted || {}
-  const hasExtracted = extracted.company || extracted.contact || extracted.deadline || extracted.currency
-  const extractedHtml = hasExtracted ? `
-    <div class="section-block">
-      <div class="section-title">Извлечённые данные</div>
-      <div class="extracted-grid">
-        ${extracted.company  ? `<div class="extracted-item"><div class="extracted-label">Компания</div><div class="extracted-value">${esc(extracted.company)}</div></div>` : ''}
-        ${extracted.contact  ? `<div class="extracted-item"><div class="extracted-label">Контакт</div><div class="extracted-value">${esc(extracted.contact)}</div></div>` : ''}
-        ${extracted.deadline ? `<div class="extracted-item"><div class="extracted-label">Срок</div><div class="extracted-value">${esc(extracted.deadline)}</div></div>` : ''}
-        ${extracted.currency ? `<div class="extracted-item"><div class="extracted-label">Валюта</div><div class="extracted-value">${esc(extracted.currency)}</div></div>` : ''}
-      </div>
-    </div>
-  ` : ''
-
-  const draftsHtml = msg.aiDrafts?.length ? `
-    <div class="section-block">
-      <div class="section-title">Варианты ответа (${msg.aiDrafts.length})</div>
-      <div class="drafts-list" id="drafts-list">
-        ${msg.aiDrafts.map((d, i) => `
-          <div class="draft-card" id="draft-${i}" onclick="selectDraft(${i}, ${JSON.stringify(d.body).replace(/</g,'\\u003c')})">
-            <div class="draft-strategy">${esc(d.strategy || 'Вариант ' + (i+1))}</div>
-            <div class="draft-body">${esc(d.body || '')}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  ` : ''
-
-  const rfqBtn = msg.aiSuggestRfq ? `
-    <button class="btn btn-primary btn-sm" onclick="createRfqFromEmail('${esc(msg.id)}')">+ Заявка на КП</button>
-  ` : ''
-
-  panel.innerHTML = `
-    <div class="detail-content">
-      <div class="detail-header">
-        <div class="detail-subject">${esc(msg.subject || '(без темы)')}</div>
-        <div class="detail-meta">От: ${esc(msg.fromAddress || '—')} · ${msg.receivedAt ? new Date(msg.receivedAt).toLocaleString('ru-RU') : ''}</div>
-        <div class="detail-badges">
-          ${intentBadge(msg.aiIntent)}
-          ${priorityBadge(msg.aiPriority)}
-          ${confidence ? `<span class="badge b-other">Уверенность: ${confidence}</span>` : ''}
-          ${msg.aiModelUsed ? `<span class="badge b-other">${esc(msg.aiModelUsed)}</span>` : ''}
-          ${statusBadge(msg.status)}
-        </div>
-      </div>
-
-      ${msg.aiSummary ? `
-      <div class="section-block">
-        <div class="section-title">AI-резюме</div>
-        <div class="summary-text">${esc(msg.aiSummary)}</div>
-      </div>` : ''}
-
-      <div class="section-block">
-        <div class="section-title">Текст письма</div>
-        <div class="body-text">${esc(msg.bodyText || '(пусто)')}</div>
-      </div>
-
-      ${itemsHtml}
-      ${extractedHtml}
-      ${draftsHtml}
-
-      <div class="reply-editor">
-        <div class="reply-label">Редактор ответа</div>
-        <textarea id="reply-textarea" placeholder="Введите текст ответа или выберите вариант выше..."></textarea>
-        <div class="reply-actions">
-          <button class="btn btn-primary btn-sm" onclick="sendReply('${esc(msg.id)}', '${esc(msg.messageId || '')}')">Отправить</button>
-          ${rfqBtn}
-          <button class="btn btn-danger btn-sm" onclick="archiveMail('${esc(msg.id)}')">В архив</button>
-        </div>
-      </div>
-    </div>
-  `
+/* Split email body: main text vs quoted reply chain */
+function formatBody(text) {
+  if (!text) return '<div class="body-main">(пусто)</div>'
+  var lines = text.split('\n')
+  var mainEnd = lines.length
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim()
+    if (/^From:/i.test(l) || /^От:/i.test(l) || /^_{5,}/.test(l) || /^-{5,}/.test(l) || /^>{3,}/.test(l)) {
+      mainEnd = i; break
+    }
+  }
+  var main = lines.slice(0, mainEnd).join('\n').trim()
+  var quoted = lines.slice(mainEnd).join('\n').trim()
+  var html = ''
+  if (main) html += '<div class="body-main">' + esc(main) + '</div>'
+  if (quoted) html += '<hr class="body-sep"><div class="body-quoted">' + esc(quoted) + '</div>'
+  return html || '<div class="body-main">' + esc(text) + '</div>'
 }
 
-function selectDraft(index, body) {
-  document.querySelectorAll('.draft-card').forEach((c, i) => c.classList.toggle('selected', i === index))
-  const ta = document.getElementById('reply-textarea')
-  if (ta) ta.value = body
+function renderDetail(msg) {
+  currentDrafts = msg.aiDrafts || []
+  var panel = document.getElementById('detail-panel')
+  var confidence = (msg.aiConfidence != null) ? Math.round(msg.aiConfidence * 100) : 0
+  var needsAnalysis = !msg.aiIntent || confidence === 0
+
+  /* Extracted items table */
+  var itemsHtml = ''
+  if (msg.aiExtracted && msg.aiExtracted.items && msg.aiExtracted.items.length) {
+    itemsHtml = '<div class="section-block"><div class="section-title">Извлечённые позиции</div>' +
+      '<table><thead><tr><th>Наименование</th><th>Кол-во</th><th>Ед.</th><th>Материал</th></tr></thead><tbody>' +
+      msg.aiExtracted.items.map(function(item) {
+        return '<tr><td>' + esc(item.name||item.description||'—') + '</td>' +
+          '<td>' + esc(item.qty||item.quantity||'—') + '</td>' +
+          '<td>' + esc(item.unit||'—') + '</td>' +
+          '<td>' + esc(item.material||'—') + '</td></tr>'
+      }).join('') + '</tbody></table></div>'
+  }
+
+  /* Extracted metadata grid */
+  var ex = msg.aiExtracted || {}
+  var extractedHtml = ''
+  if (ex.company || ex.contact || ex.deadline || ex.currency) {
+    extractedHtml = '<div class="section-block"><div class="section-title">Контрагент</div><div class="extracted-grid">' +
+      (ex.company  ? '<div class="extracted-item"><div class="extracted-label">Компания</div><div class="extracted-value">' + esc(ex.company) + '</div></div>' : '') +
+      (ex.contact  ? '<div class="extracted-item"><div class="extracted-label">Контакт</div><div class="extracted-value">' + esc(ex.contact) + '</div></div>' : '') +
+      (ex.deadline ? '<div class="extracted-item"><div class="extracted-label">Срок</div><div class="extracted-value">' + esc(ex.deadline) + '</div></div>' : '') +
+      (ex.currency ? '<div class="extracted-item"><div class="extracted-label">Валюта</div><div class="extracted-value">' + esc(ex.currency) + '</div></div>' : '') +
+    '</div></div>'
+  }
+
+  /* Draft cards — onclick uses index only, body stored in currentDrafts[] */
+  var draftsHtml = ''
+  if (currentDrafts.length) {
+    draftsHtml = '<div class="section-block">' +
+      '<div class="section-title">Варианты ответа (' + currentDrafts.length + ') — нажмите для вставки</div>' +
+      '<div class="drafts-list">' +
+      currentDrafts.map(function(d, i) {
+        return '<div class="draft-card" id="draft-' + i + '" onclick="selectDraft(' + i + ')">' +
+          '<div class="draft-strategy">' + esc(d.strategy||('Вариант ' + (i+1))) + '</div>' +
+          '<div class="draft-preview">' + esc(d.body||'') + '</div>' +
+        '</div>'
+      }).join('') +
+      '</div></div>'
+  }
+
+  var rfqBtn = msg.aiSuggestRfq
+    ? '<button class="btn btn-primary btn-sm" onclick="createRfqFromEmail(\'' + esc(msg.id) + '\')">+ Заявка на КП</button>'
+    : ''
+
+  var reanalyzeLabel = needsAnalysis ? '&#x1F504; Переанализировать' : '&#x1F504; Обновить анализ'
+
+  panel.innerHTML =
+    '<div class="detail-content">' +
+      '<div class="detail-header">' +
+        '<div class="detail-subject">' + esc(msg.subject||'(без темы)') + '</div>' +
+        '<div class="detail-meta">От: ' + esc(msg.fromAddress||'—') + ' · ' +
+          (msg.receivedAt ? new Date(msg.receivedAt).toLocaleString('ru-RU') : '') + '</div>' +
+        '<div class="detail-badges">' +
+          intentBadge(msg.aiIntent) +
+          priorityBadge(msg.aiPriority) +
+          (confidence ? '<span class="badge b-other">Уверенность: ' + confidence + '%</span>' : '') +
+          (msg.aiModelUsed ? '<span class="badge b-other">' + esc(msg.aiModelUsed) + '</span>' : '') +
+          statusBadge(msg.status) +
+        '</div>' +
+      '</div>' +
+      (msg.aiSummary && confidence > 0
+        ? '<div class="section-block"><div class="section-title">AI-резюме</div><div class="summary-text">' + esc(msg.aiSummary) + '</div></div>'
+        : '') +
+      '<div class="section-block"><div class="section-title">Текст письма</div>' + formatBody(msg.bodyText) + '</div>' +
+      itemsHtml +
+      extractedHtml +
+      draftsHtml +
+      '<div class="reply-editor">' +
+        '<div class="reply-label">Редактор ответа</div>' +
+        '<textarea id="reply-textarea" placeholder="Выберите вариант ответа выше или введите текст..."></textarea>' +
+        '<div class="reply-actions">' +
+          '<button class="btn btn-primary btn-sm" onclick="sendReply(\'' + esc(msg.id) + '\',\'' + esc(msg.messageId||'') + '\')">Отправить</button>' +
+          rfqBtn +
+          '<button class="btn btn-danger btn-sm" onclick="archiveMail(\'' + esc(msg.id) + '\')">В архив</button>' +
+          '<button class="btn btn-secondary btn-sm btn-reanalyze" id="reanalyze-btn" onclick="reanalyzeEmail(\'' + esc(msg.id) + '\')">' + reanalyzeLabel + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>'
+}
+
+/* Draft selection — body read from currentDrafts[], NOT from onclick attribute */
+function selectDraft(index) {
+  document.querySelectorAll('.draft-card').forEach(function(c, i) {
+    c.classList.toggle('selected', i === index)
+  })
+  var ta = document.getElementById('reply-textarea')
+  if (ta && currentDrafts[index]) {
+    ta.value = currentDrafts[index].body || ''
+    ta.focus()
+    ta.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+}
+
+async function reanalyzeEmail(id) {
+  var btn = document.getElementById('reanalyze-btn')
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>&nbsp;Анализ...' }
+  try {
+    var r = await fetch(AI_API + '/api/email-copilot/analyze/' + id, { method: 'POST' })
+    if (!r.ok) throw new Error('Ошибка анализа: ' + r.status)
+    showToast('Анализ завершён', 'success')
+    await loadMessages()
+    var updated = messages.find(function(m){ return m.id === id })
+    if (updated) renderDetail(updated)
+  } catch (e) {
+    showToast(e.message, 'error')
+    if (btn) { btn.disabled = false; btn.textContent = 'Переанализировать' }
+  }
 }
 
 async function sendReply(id, messageId) {
-  const body = document.getElementById('reply-textarea')?.value?.trim()
+  var ta = document.getElementById('reply-textarea')
+  var body = ta ? ta.value.trim() : ''
   if (!body) { showToast('Введите текст ответа', 'error'); return }
   try {
-    const r = await fetch(AI_API + '/api/email-copilot/reply', {
+    var r = await fetch(AI_API + '/api/email-copilot/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messageId, replyBody: body, sentBy: 'manager' }),
+      body: JSON.stringify({ messageId: messageId, replyBody: body, sentBy: 'manager' }),
     })
     if (!r.ok) throw new Error('Ошибка отправки')
     showToast('Ответ отправлен', 'success')
@@ -379,7 +385,7 @@ async function sendReply(id, messageId) {
 
 async function archiveMail(id) {
   try {
-    const r = await fetch(AI_API + '/api/email-copilot/archive/' + id, { method: 'POST' })
+    var r = await fetch(AI_API + '/api/email-copilot/archive/' + id, { method: 'POST' })
     if (!r.ok) throw new Error('Ошибка')
     showToast('Письмо в архиве', 'success')
     selectedId = null
@@ -391,20 +397,19 @@ async function archiveMail(id) {
 }
 
 async function createRfqFromEmail(id) {
-  const title = prompt('Название объекта для КП:')
+  var title = prompt('Название объекта для КП:')
   if (!title) return
   try {
-    const r = await fetch(AI_API + '/api/email-copilot/create-rfq', {
+    var r = await fetch(AI_API + '/api/email-copilot/create-rfq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messageId: id, title }),
+      body: JSON.stringify({ messageId: id, title: title }),
     })
-    const data = await r.json()
+    var data = await r.json()
     if (!r.ok) throw new Error(data.error || 'Ошибка')
     showToast('Заявка создана', 'success')
-    if (data.orderId && confirm('Перейти в симулятор КП?')) {
+    if (data.orderId && confirm('Перейти в симулятор КП?'))
       window.location.href = 'simulator.html?orderId=' + data.orderId
-    }
   } catch (e) {
     showToast(e.message, 'error')
   }
@@ -412,10 +417,11 @@ async function createRfqFromEmail(id) {
 
 async function pollMail() {
   try {
-    const r = await fetch(AI_API + '/api/email-copilot/poll', { method: 'POST' })
-    const data = await r.json()
-    const n = data.newCount ?? data.count ?? 0
-    showToast('Получено: ' + n + ' новых', 'success')
+    var r = await fetch(AI_API + '/api/email-copilot/poll', { method: 'POST' })
+    var data = await r.json()
+    /* Fix: response key is "received", not "newCount" */
+    var n = (data.received != null) ? data.received : ((data.newCount != null) ? data.newCount : (data.count || 0))
+    showToast('Получено: ' + n + ' новых', n > 0 ? 'success' : '')
     updateLastUpdate()
     loadMessages()
   } catch (e) {
@@ -424,8 +430,8 @@ async function pollMail() {
 }
 
 function updateLastUpdate() {
-  const el = document.getElementById('last-update')
-  if (el) el.textContent = 'Последнее обновление: ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  var el = document.getElementById('last-update')
+  if (el) el.textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })
 }
 
 loadMessages()
