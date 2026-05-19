@@ -1,49 +1,38 @@
-// ─── Assembly Revision validators ────────────────────────────────────────────
+const { z }        = require('zod')
+const { parseZod } = require('../utils/zodParse')
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Accepts non-empty string UUID; returns null for empty / absent values
+const optionalUUID = z.preprocess(
+  v => (v == null || v === '') ? null : v,
+  z.string().uuid('должен быть валидным UUID').nullable(),
+)
 
+const CreateDraftSchema = z.object({
+  notes:           z.string().max(2000, 'notes не должен превышать 2000 символов').optional().nullable().default(null),
+  createdByUserId: optionalUUID.default(null),
+})
+
+const FreezeSchema = z.object({
+  frozenByUserId: optionalUUID.default(null),
+  freezeReason:   z.string().max(1000, 'freezeReason не должен превышать 1000 символов').optional().nullable().default(null),
+})
+
+const CloneSchema = z.object({
+  notes:           z.string().max(2000, 'notes не должен превышать 2000 символов').optional().nullable().default(null),
+  createdByUserId: optionalUUID.default(null),
+})
+
+// Re-exported for callers that validate a single UUID param directly
 function validateUUID(value, field) {
-  if (!value || !UUID_RE.test(value)) throw new Error(`${field} должен быть валидным UUID`)
-  return value
-}
-
-// Returns null if absent, validates format if present
-function validateOptionalUUID(value, field) {
-  if (value == null || value === '') return null
-  return validateUUID(value, field)
-}
-
-function validateNotes(value) {
-  if (!value) return null
-  if (value.length > 2000) throw new Error('notes не должен превышать 2000 символов')
-  return value
-}
-
-function validateFreezeReason(value) {
-  if (!value) return null
-  if (value.length > 1000) throw new Error('freezeReason не должен превышать 1000 символов')
-  return value
-}
-
-function validateCreateDraft(body) {
-  return {
-    notes:           validateNotes(body.notes),
-    createdByUserId: validateOptionalUUID(body.createdByUserId, 'createdByUserId'),
+  const result = z.string().uuid().safeParse(value)
+  if (!result.success) {
+    throw Object.assign(new Error(`${field} должен быть валидным UUID`), { status: 400 })
   }
+  return result.data
 }
 
-function validateFreeze(body) {
-  return {
-    frozenByUserId: validateOptionalUUID(body.frozenByUserId, 'frozenByUserId'),
-    freezeReason:   validateFreezeReason(body.freezeReason),
-  }
-}
-
-function validateClone(body) {
-  return {
-    notes:           validateNotes(body.notes),
-    createdByUserId: validateOptionalUUID(body.createdByUserId, 'createdByUserId'),
-  }
-}
+function validateCreateDraft(body) { return parseZod(CreateDraftSchema, body) }
+function validateFreeze(body)       { return parseZod(FreezeSchema, body) }
+function validateClone(body)        { return parseZod(CloneSchema, body) }
 
 module.exports = { validateUUID, validateCreateDraft, validateFreeze, validateClone }

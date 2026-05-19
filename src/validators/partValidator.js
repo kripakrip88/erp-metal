@@ -1,29 +1,35 @@
-const { required } = require('./common')
+const { z }        = require('zod')
+const { parseZod } = require('../utils/zodParse')
+
+const optNum = z.preprocess(
+  v => (v != null && v !== '') ? Number(v) : null,
+  z.number().nullable().optional(),
+)
+
+const CreatePartSchema = z.object({
+  materialDefinitionId: z.string().min(1, 'materialDefinitionId обязателен'),
+  name:            z.string().optional().nullable().default(null),
+  measurementType: z.enum(['LINEAR', 'AREA', 'PIECE']).default('LINEAR'),
+  length:          optNum,
+  sheetWidth:      optNum,
+  sheetHeight:     optNum,
+  directWeightKg:  optNum,
+  quantity:        z.coerce.number().int().min(1).default(1),
+  notes:           z.string().optional().nullable().default(null),
+  position:        z.coerce.number().int().default(0),
+  bomTemplateCode:    z.string().optional().nullable().default(null),
+  bomTemplateId:      z.string().optional().nullable().default(null),
+  bomTemplateVersion: z.coerce.number().int().optional().nullable().default(null),
+  bomGroupKey:        z.string().optional().nullable().default(null),
+  bomGroupLabel:      z.string().optional().nullable().default(null),
+  bomDepth:           z.coerce.number().int().optional().nullable().default(null),
+  bomPath:            z.string().optional().nullable().default(null),
+  bomSortPath:        z.string().optional().nullable().default(null),
+  partCategory:       z.string().optional().nullable().default(null),
+})
 
 function validateCreatePart(body) {
-  required(body.materialDefinitionId, 'materialDefinitionId')
-  required(body.quantity, 'quantity')
-  return {
-    materialDefinitionId: body.materialDefinitionId,
-    name:            body.name || null,
-    measurementType: body.measurementType || 'LINEAR',
-    length:          body.length           != null ? Number(body.length)          : null,
-    sheetWidth:      body.sheetWidth       != null ? Number(body.sheetWidth)      : null,
-    sheetHeight:     body.sheetHeight      != null ? Number(body.sheetHeight)     : null,
-    directWeightKg:  body.directWeightKg   != null ? Number(body.directWeightKg)  : null,
-    quantity:        parseInt(body.quantity) || 1,
-    notes:           body.notes || null,
-    position:        body.position || 0,
-    bomTemplateCode:    body.bomTemplateCode    || null,
-    bomTemplateId:      body.bomTemplateId      || null,
-    bomTemplateVersion: body.bomTemplateVersion != null ? parseInt(body.bomTemplateVersion) : null,
-    bomGroupKey:        body.bomGroupKey        || null,
-    bomGroupLabel:      body.bomGroupLabel      || null,
-    bomDepth:           body.bomDepth           != null ? parseInt(body.bomDepth) : null,
-    bomPath:            body.bomPath            || null,
-    bomSortPath:        body.bomSortPath        || null,
-    partCategory:       body.partCategory       || null,
-  }
+  return parseZod(CreatePartSchema, body)
 }
 
 module.exports = { validateCreatePart }

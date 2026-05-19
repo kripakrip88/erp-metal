@@ -1,114 +1,86 @@
-const { required } = require('./common')
+const { z }        = require('zod')
+const { parseZod } = require('../utils/zodParse')
 
 const VALID_COATING_TYPES = ['PRIMER', 'BASE_COAT', 'TOPCOAT', 'CLEAR', 'OTHER']
 
-// ─── Domain assertion helpers ────────────────────────────────────────────────
-
-function positiveInt(value, field) {
-  const n = parseInt(value)
-  if (isNaN(n) || n <= 0) throw new Error(`${field} должен быть целым числом > 0`)
-  return n
-}
-
-function nonNegativeInt(value, field) {
-  const n = parseInt(value)
-  if (isNaN(n) || n < 0) throw new Error(`${field} должен быть целым числом >= 0`)
-  return n
-}
-
-function positiveDecimal(value, field) {
-  const n = Number(value)
-  if (isNaN(n) || n <= 0) throw new Error(`${field} должен быть числом > 0`)
-  return n
-}
-
-function nonNegativeDecimal(value, field) {
-  const n = Number(value)
-  if (isNaN(n) || n < 0) throw new Error(`${field} должен быть числом >= 0`)
-  return n
-}
-
-function dilutionPercent(value, field) {
-  const n = Number(value)
-  if (isNaN(n) || n < 0 || n > 100) throw new Error(`${field} должен быть числом от 0 до 100`)
-  return n
-}
+const positiveInt     = z.coerce.number().int().min(1)
+const nonNegativeInt  = z.coerce.number().int().min(0)
+const positiveDecimal = z.coerce.number().positive()
+const dilutionPct     = z.coerce.number().min(0).max(100)
 
 // ─── Coating material ────────────────────────────────────────────────────────
 
+const CoatingMaterialSchema = z.object({
+  code:             z.string().min(1, 'code обязателен'),
+  name:             z.string().min(1, 'name обязателен'),
+  coatingType:      z.enum(VALID_COATING_TYPES, {
+    errorMap: () => ({ message: `coatingType должен быть одним из: ${VALID_COATING_TYPES.join(', ')}` }),
+  }),
+  consumptionGm2:             positiveDecimal,
+  referenceDftMkm:            positiveInt,
+  densityKgL:                 positiveDecimal,
+  recommendedDilutionPercent: dilutionPct.optional().nullable().default(null),
+  pricePerKg:    positiveDecimal.optional().nullable().default(null),
+  supplierName:  z.string().optional().nullable().default(null),
+  notes:         z.string().optional().nullable().default(null),
+})
+
 function validateCoatingMaterial(body) {
-  required(body.code, 'code')
-  required(body.name, 'name')
-  required(body.coatingType, 'coatingType')
-  required(body.consumptionGm2, 'consumptionGm2')
-  required(body.referenceDftMkm, 'referenceDftMkm')
-  required(body.densityKgL, 'densityKgL')
-  if (!VALID_COATING_TYPES.includes(body.coatingType)) {
-    throw new Error(`coatingType должен быть одним из: ${VALID_COATING_TYPES.join(', ')}`)
-  }
-  return {
-    code:                       body.code,
-    name:                       body.name,
-    coatingType:                body.coatingType,
-    consumptionGm2:             positiveDecimal(body.consumptionGm2, 'consumptionGm2'),
-    referenceDftMkm:            positiveInt(body.referenceDftMkm, 'referenceDftMkm'),
-    densityKgL:                 positiveDecimal(body.densityKgL, 'densityKgL'),
-    recommendedDilutionPercent: body.recommendedDilutionPercent != null
-      ? dilutionPercent(body.recommendedDilutionPercent, 'recommendedDilutionPercent') : null,
-    pricePerKg:    body.pricePerKg != null ? positiveDecimal(body.pricePerKg, 'pricePerKg') : null,
-    supplierName:  body.supplierName || null,
-    notes:         body.notes        || null,
-  }
+  return parseZod(CoatingMaterialSchema, body)
 }
 
 // ─── Assembly coating (runtime instance) ────────────────────────────────────
 
+const AssemblyCoatingSchema = z.object({
+  coatingMaterialId: z.string().min(1, 'coatingMaterialId обязателен'),
+  layerNumber:       positiveInt.optional().nullable().default(null),
+  autoAreaLink:      z.boolean().optional().default(true),
+  manualAreaM2:      positiveDecimal.optional().nullable().default(null),
+  selectedDftMkm:    positiveInt.optional().nullable().default(null),
+  dilutionPercent:   dilutionPct.optional().nullable().default(null),
+  lossFactorPercent: dilutionPct.optional().nullable().default(null),
+  costSnapshotPerKg: positiveDecimal.optional(),
+  notes:             z.string().optional().nullable().default(null),
+})
+
 function validateAssemblyCoating(body) {
-  if (body.calculatedCost !== undefined) throw new Error('calculatedCost — derived field, cannot be set directly')
-  required(body.coatingMaterialId, 'coatingMaterialId')
-  return {
-    coatingMaterialId:  body.coatingMaterialId,
-    layerNumber:        body.layerNumber        != null ? positiveInt(body.layerNumber, 'layerNumber')           : null,
-    autoAreaLink:       body.autoAreaLink        != null ? Boolean(body.autoAreaLink)                             : true,
-    manualAreaM2:       body.manualAreaM2        != null ? positiveDecimal(body.manualAreaM2, 'manualAreaM2')     : null,
-    selectedDftMkm:     body.selectedDftMkm      != null ? positiveInt(body.selectedDftMkm, 'selectedDftMkm')    : null,
-    dilutionPercent:    body.dilutionPercent      != null ? dilutionPercent(body.dilutionPercent, 'dilutionPercent') : null,
-    lossFactorPercent:  body.lossFactorPercent    != null ? dilutionPercent(body.lossFactorPercent, 'lossFactorPercent') : null,
-    costSnapshotPerKg:  body.costSnapshotPerKg    != null ? positiveDecimal(body.costSnapshotPerKg, 'costSnapshotPerKg') : undefined,
-    notes:              body.notes || null,
+  if (body.calculatedCost !== undefined) {
+    throw Object.assign(
+      new Error('calculatedCost — derived field, cannot be set directly'),
+      { status: 400 },
+    )
   }
+  return parseZod(AssemblyCoatingSchema, body)
 }
 
 // ─── Coating system layer (template) ────────────────────────────────────────
 
+const CoatingSystemLayerSchema = z.object({
+  coatingMaterialId:      z.string().min(1, 'coatingMaterialId обязателен'),
+  layerNumber:            positiveInt,
+  position:               nonNegativeInt.default(0),
+  defaultDftMkm:          positiveInt.optional().nullable().default(null),
+  defaultDilutionPercent: dilutionPct.optional().nullable().default(null),
+  notes:                  z.string().optional().nullable().default(null),
+})
+
 function validateCoatingSystemLayer(body) {
-  required(body.coatingMaterialId, 'coatingMaterialId')
-  required(body.layerNumber, 'layerNumber')
-  return {
-    coatingMaterialId:      body.coatingMaterialId,
-    layerNumber:            positiveInt(body.layerNumber, 'layerNumber'),
-    position:               body.position != null ? nonNegativeInt(body.position, 'position') : 0,
-    defaultDftMkm:          body.defaultDftMkm != null
-      ? positiveInt(body.defaultDftMkm, 'defaultDftMkm') : null,
-    defaultDilutionPercent: body.defaultDilutionPercent != null
-      ? dilutionPercent(body.defaultDilutionPercent, 'defaultDilutionPercent') : null,
-    notes: body.notes || null,
-  }
+  return parseZod(CoatingSystemLayerSchema, body)
 }
 
 // ─── Coating system (template header) ───────────────────────────────────────
 
+const CoatingSystemSchema = z.object({
+  code:        z.string().min(1, 'code обязателен'),
+  name:        z.string().min(1, 'name обязателен'),
+  description: z.string().optional().nullable().default(null),
+  isActive:    z.boolean().default(true),
+  position:    nonNegativeInt.default(0),
+  uiColor:     z.string().optional().nullable().default(null),
+})
+
 function validateCoatingSystem(body) {
-  required(body.code, 'code')
-  required(body.name, 'name')
-  return {
-    code:        body.code,
-    name:        body.name,
-    description: body.description || null,
-    isActive:    body.isActive != null ? Boolean(body.isActive) : true,
-    position:    body.position != null ? nonNegativeInt(body.position, 'position') : 0,
-    uiColor:     body.uiColor || null,
-  }
+  return parseZod(CoatingSystemSchema, body)
 }
 
 module.exports = {

@@ -1,13 +1,18 @@
-const { required, optionalStr } = require('./common')
+const { z }        = require('zod')
+const { parseZod } = require('../utils/zodParse')
+
+const CreateOrderSchema = z.object({
+  orderNumber:  z.string().default(() => `ORD-${Date.now()}`),
+  customerName: z.string().min(1, 'customerName обязательное поле'),
+  title:        z.string().min(1, 'title обязательное поле'),
+  description:  z.string().optional().nullable().default(null),
+  mode:         z.enum(['STANDARD', 'PHASED'], {
+    errorMap: () => ({ message: 'mode должен быть STANDARD или PHASED' }),
+  }).default('STANDARD'),
+})
 
 function validateCreateOrder(body) {
-  return {
-    orderNumber:  body.orderNumber || `ORD-${Date.now()}`,
-    customerName: required(body.customerName, 'customerName'),
-    title:        required(body.title, 'title'),
-    description:  optionalStr(body.description),
-    mode:         body.mode || 'STANDARD',
-  }
+  return parseZod(CreateOrderSchema, body)
 }
 
 module.exports = { validateCreateOrder }
