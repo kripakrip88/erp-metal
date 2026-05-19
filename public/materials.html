@@ -11,6 +11,10 @@
 .ctrl-search input{padding-left:30px;}
 .ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
+.domain-tabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid var(--brd);padding-bottom:0;}
+.dtab{padding:7px 16px;font-size:12.5px;font-weight:500;color:var(--txts);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;user-select:none;}
+.dtab:hover{color:var(--txt);}
+.dtab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
 .filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
 .geo-section{display:none;}
 .geo-section.visible{display:block;}
@@ -28,6 +32,12 @@
       </div>
     </div>
     <div class="content">
+      <div class="domain-tabs">
+        <div class="dtab on" onclick="setDomain('',this)">Все</div>
+        <div class="dtab" onclick="setDomain('STRUCTURAL',this)">⬡ Металлопрокат</div>
+        <div class="dtab" onclick="setDomain('FASTENER',this)">🔩 Метизы</div>
+        <div class="dtab" onclick="setDomain('PAINT,COATING',this)">🎨 ЛКМ</div>
+      </div>
       <div class="controls">
         <div class="ctrl-search">
           <span class="ico">🔍</span>
@@ -155,7 +165,7 @@ var PROFILE_LABELS = {
   CHANNEL:'Швеллер',BEAM:'Балка',SHEET:'Лист',PLATE:'Плита',FLAT_BAR:'Полоса',ROUND_BAR:'Круг',
 };
 
-var materials = [], categories = [], curCatId = '', editingId = null, searchTimer = null;
+var materials = [], categories = [], curCatId = '', curDomain = '', editingId = null, searchTimer = null;
 
 async function init() {
   try {
@@ -178,6 +188,14 @@ function renderCats() {
     }).join('');
 }
 
+function setDomain(domain, el) {
+  curDomain = domain; curCatId = '';
+  document.querySelectorAll('.dtab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  renderCats();
+  loadMaterials();
+}
+
 function setFilter(catId) { curCatId = catId; renderCats(); loadMaterials(); }
 
 function onSearch(q) {
@@ -188,8 +206,9 @@ function onSearch(q) {
 async function loadMaterials(search) {
   if (search === undefined) search = document.getElementById('search-inp').value;
   var p = new URLSearchParams();
-  if (search) p.set('search', search);
-  if (curCatId) p.set('categoryId', curCatId);
+  if (search)     p.set('search', search);
+  if (curCatId)   p.set('categoryId', curCatId);
+  if (curDomain)  p.set('materialDomain', curDomain);
   try {
     var r = await ERP.authFetch('/api/materials?' + p);
     materials = await r.json();
