@@ -1,11 +1,21 @@
 require('dotenv').config()
 
 const http = require('http')
+const fs   = require('fs')
+const path = require('path')
 const { matchRoute }   = require('./src/utils/router')
 const { json }         = require('./src/utils/response')
 const { authenticate } = require('./src/middleware/authenticate')
 
 const PUBLIC_PATHS = new Set(['/api/health', '/api/auth/login'])
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript; charset=utf-8',
+  '.css':  'text/css; charset=utf-8',
+  '.png':  'image/png',
+  '.ico':  'image/x-icon',
+}
 
 const routes = [
   ...require('./src/routes/auth'),
@@ -21,10 +31,38 @@ const routes = [
   ...require('./src/routes/procurement'),
   ...require('./src/routes/inventory'),
   ...require('./src/routes/templates'),
-  { method: 'GET', pathname: '/api/health', handler: async (req, res) => {
+  ...require('./src/routes/customers'),
+  { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
 ]
+
+const PUBLIC_DIR = path.join(__dirname, 'public')
+
+function serveStatic(req, res) {
+  const [pathname] = req.url.split('?')
+  const target = pathname === '/' ? '/login.html' : pathname
+  const filePath = path.join(PUBLIC_DIR, target)
+
+  if (!filePath.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end(); return true }
+
+  const ext = path.extname(filePath)
+  if (!MIME[ext] && ext !== '') return false
+
+  try {
+    const data = fs.readFileSync(filePath)
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': ext === '.html' ? 'no-cache, no-store, must-revalidate' : 'public, max-age=3600',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    })
+    res.end(data)
+    return true
+  } catch {
+    return false
+  }
+}
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin',  '*')
@@ -34,6 +72,12 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return }
 
   const [pathname] = req.url.split('?')
+
+  // Serve static files first (no auth required for HTML/JS/CSS)
+  if (req.method === 'GET' && !pathname.startsWith('/api/')) {
+    if (serveStatic(req, res)) return
+  }
+
   if (!PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
 
   const match = matchRoute(routes, req.method, req.url)
@@ -51,4 +95,4 @@ const server = http.createServer(async (req, res) => {
 })
 
 const PORT = process.env.PORT || 3000
-server.listen(PORT, () => console.log(`РњРµС‚Р°Р»Р»РџСЂРѕ ERP API Р·Р°РїСѓС‰РµРЅ РЅР° РїРѕСЂС‚Сѓ ${PORT}`))
+server.listen(PORT, () => console.log(`МеталлПро ERP запущен на порту ${PORT}`))

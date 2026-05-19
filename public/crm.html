@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Клиенты</title>
+<script src="nav.js"></script>
+<style>
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.ctrl-search{position:relative;flex:1;min-width:200px;max-width:360px;}
+.ctrl-search input{padding-left:30px;}
+.ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
+.count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Клиенты</div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="openCreate()">+ Новый клиент</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="controls">
+        <div class="ctrl-search">
+          <span class="ico">🔍</span>
+          <input type="text" id="search-inp" placeholder="Поиск по названию..." oninput="onSearch(this.value)">
+        </div>
+        <span class="count-lbl" id="crm-count"></span>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Компания</th>
+              <th>ИНН</th>
+              <th>Email</th>
+              <th>Телефон</th>
+              <th>Заказов</th>
+              <th>Приоритет</th>
+            </tr>
+          </thead>
+          <tbody id="crm-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Новый клиент</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Название компании *</label><input type="text" id="f-name" placeholder="ООО Металлконструкция"></div>
+      <div class="grid2">
+        <div class="field"><label>ИНН</label><input type="text" id="f-inn" placeholder="7700000000"></div>
+        <div class="field">
+          <label>Приоритет</label>
+          <select id="f-priority">
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="VIP">VIP</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="info@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="f-phone" placeholder="+7 (999) 000-00-00"></div>
+      </div>
+      <div class="field"><label>Сайт</label><input type="url" id="f-website" placeholder="https://company.ru"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveCustomer()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+ERP.init('crm');
+
+var searchTimer = null;
+
+function priorityBadge(p) {
+  var map = { VIP: 'b-vip', HIGH: 'b-high', NORMAL: 'b-normal', LOW: 'b-low' };
+  return '<span class="badge ' + (map[p] || 'b-normal') + '">' + p + '</span>';
+}
+
+async function loadCustomers(search) {
+  search = search || '';
+  try {
+    var url = '/api/customers' + (search ? '?search=' + encodeURIComponent(search) : '');
+    var r = await ERP.authFetch(url);
+    var data = await r.json();
+    renderTable(Array.isArray(data) ? data : []);
+  } catch(e) {
+    ERP.toast('Ошибка загрузки', 'error');
+  }
+}
+
+function renderTable(list) {
+  var tbody = document.getElementById('crm-tbody');
+  var cnt = list.length;
+  document.getElementById('crm-count').textContent = cnt + ' клиент' + (cnt===1?'':cnt<5?'а':'ов');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Клиентов пока нет</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(c){
+    return '<tr class="clickable" onclick="window.location.href=\'customer.html?id=' + c.id + '\'">' +
+      '<td><strong>' + ERP.esc(c.name) + '</strong></td>' +
+      '<td class="mono">' + ERP.esc(c.inn || '—') + '</td>' +
+      '<td>' + ERP.esc(c.email || '—') + '</td>' +
+      '<td>' + ERP.esc(c.phone || '—') + '</td>' +
+      '<td><span class="mono">' + (c._count && c._count.orders != null ? c._count.orders : 0) + '</span></td>' +
+      '<td>' + priorityBadge(c.priority) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function(){ loadCustomers(val); }, 300);
+}
+
+function openCreate() {
+  ['f-name','f-inn','f-email','f-phone','f-website'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('f-priority').value = 'NORMAL';
+  document.getElementById('modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
+}
+
+function closeModal() { document.getElementById('modal-bg').style.display = 'none'; }
+
+async function saveCustomer() {
+  var name = document.getElementById('f-name').value.trim();
+  if (!name) { ERP.toast('Введите название компании', 'error'); return; }
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: name,
+        inn:      document.getElementById('f-inn').value.trim() || null,
+        email:    document.getElementById('f-email').value.trim() || null,
+        phone:    document.getElementById('f-phone').value.trim() || null,
+        website:  document.getElementById('f-website').value.trim() || null,
+        priority: document.getElementById('f-priority').value,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeModal();
+    ERP.toast('Клиент создан', 'success');
+    loadCustomers();
+  } catch(e) {
+    ERP.toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+loadCustomers();
+</script>
+</body>
+</html>

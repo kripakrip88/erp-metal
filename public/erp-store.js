@@ -6,7 +6,7 @@
 
 const ERPStore = (() => {
 
-  const API_BASE = 'http://5.35.92.112';
+  const API_BASE = '';
 
   // In-memory список заказов (живёт только в рамках сессии страницы)
   let _orders = null;
@@ -16,10 +16,11 @@ const ERPStore = (() => {
 
   async function _fetch(path, opts = {}) {
     const res = await fetch(_url(path), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(localStorage.getItem('erp_token') ? { 'Authorization': 'Bearer ' + localStorage.getItem('erp_token') } : {}) },
       ...opts,
     })
     if (!res.ok) {
+      if (res.status === 401) { localStorage.removeItem('erp_token'); localStorage.removeItem('erp_user'); location.replace('login.html'); return; }
       const err = await res.json().catch(() => ({}))
       throw Object.assign(new Error(err.error || 'HTTP ' + res.status), { status: res.status })
     }

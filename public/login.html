@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Вход</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f12;--panel:#161b22;--card:#1c2330;--brd:#252d3a;--brdl:#2d3748;--txt:#e8ecf0;--txts:#8b9ab0;--txtm:#4a5568;--blue:#3b82f6;--green:#10b981;--red:#ef4444;--ff:'Inter',sans-serif;}
+.light{--bg:#eef1f5;--panel:#fff;--card:#f4f6f9;--brd:#dde2ea;--brdl:#c8d0dc;--txt:#1a1d23;--txts:#5a6478;--txtm:#9aa3b2;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--ff);font-size:13px;background:var(--bg);color:var(--txt);}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.wrap{width:360px;}
+.logo{font-weight:700;font-size:22px;color:var(--txt);margin-bottom:4px;letter-spacing:-.5px;}
+.logo em{display:block;font-style:normal;font-size:13px;color:var(--txts);font-weight:400;margin-top:3px;}
+.card{background:var(--panel);border:1px solid var(--brd);border-radius:12px;padding:32px;margin-top:20px;box-shadow:0 4px 24px rgba(0,0,0,.3);}
+label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:6px;}
+.field{margin-bottom:16px;}
+input{width:100%;padding:9px 12px;background:var(--card);border:1px solid var(--brd);border-radius:6px;font-family:var(--ff);font-size:13px;color:var(--txt);outline:none;transition:border-color .12s,box-shadow .12s;}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12);}
+input::placeholder{color:var(--txtm);}
+.btn{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;transition:filter .12s;margin-top:4px;}
+.btn:hover{filter:brightness(1.1);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:10px 12px;border-radius:6px;font-size:12px;margin-bottom:16px;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">МеталлПро <em>ERP-система</em></div>
+  <div class="card">
+    <div class="err" id="err"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="admin@company.ru" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" id="btn" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+<script>
+// Apply saved theme
+document.documentElement.classList.toggle('light', localStorage.getItem('erp_theme') === 'light');
+if (localStorage.getItem('erp_token')) location.replace('orders.html');
+
+document.getElementById('pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+document.getElementById('email').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('pass').focus(); });
+
+async function doLogin() {
+  var email = document.getElementById('email').value.trim();
+  var pass  = document.getElementById('pass').value;
+  var err   = document.getElementById('err');
+  var btn   = document.getElementById('btn');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Введите email и пароль'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Вход...';
+  try {
+    var res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pass }),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка входа');
+    localStorage.setItem('erp_token', data.token);
+    localStorage.setItem('erp_user', JSON.stringify(data.user));
+    location.replace('orders.html');
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Войти';
+  }
+}
+</script>
+</body>
+</html>

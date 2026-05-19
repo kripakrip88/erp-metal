@@ -4,191 +4,108 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>МеталлПро ERP — Шаблоны изделий</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="nav.js"></script>
 <style>
-:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--purple:#7c3aed;--orange:#c2410c;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
-.shell{display:flex;min-height:100vh;}
-.sidebar{width:204px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
-.logo{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;color:var(--accent);}
-.logo span{display:block;font-size:10px;font-weight:500;color:var(--muted);margin-top:2px;}
-nav{padding:8px;flex:1;}
-.nav-group{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 8px 4px;}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;font-size:12.5px;transition:all .1s;margin-bottom:1px;text-decoration:none;}
-.nav-item:hover{background:var(--bg);color:var(--text);}
-.nav-item.active{background:#eff6ff;color:var(--accent);font-weight:600;}
-.sidebar-bottom{padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
-.main{margin-left:204px;flex:1;display:flex;flex-direction:column;height:100vh;}
-.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
-.topbar-title{font-weight:700;font-size:14px;}
-.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Manrope';font-size:12.5px;font-weight:600;transition:all .12s;white-space:nowrap;}
-.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
-.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca;}.btn-danger:hover{background:#fee2e2;}
-.btn-sm{padding:4px 10px;font-size:12px;}.btn-xs{padding:2px 8px;font-size:11px;}
-.btn:disabled{opacity:.5;cursor:not-allowed;}
-.two-panel{display:flex;flex:1;overflow:hidden;}
-.panel-list{width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
-.panel-list-head{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.two-panel{display:flex;flex:1;overflow:hidden;height:calc(100vh - var(--topbarh));}
+.panel-list{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);}
+.panel-list-head{padding:12px;border-bottom:1px solid var(--brd);display:flex;flex-direction:column;gap:8px;}
 .panel-list-body{flex:1;overflow-y:auto;}
 .panel-detail{flex:1;overflow-y:auto;background:var(--bg);}
-.search-wrap{position:relative;}
-.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
-.search-input{width:100%;height:32px;padding:0 10px 0 28px;border:1px solid var(--border2);border-radius:5px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s;}
-.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
-.search-input::placeholder{color:var(--muted);}
-.tmpl-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
-.tmpl-item:hover{background:#fafbfc;}
-.tmpl-item.active{background:#eff6ff;border-left:3px solid var(--accent);}
-.tmpl-item.active .tmpl-code{color:var(--accent);}
-.tmpl-code{font-family:'JetBrains Mono';font-size:11.5px;font-weight:700;color:var(--text);}
+.ctrl-search{position:relative;}
+.ctrl-search input{padding-left:30px;}
+.ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
+.tmpl-item{padding:10px 12px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .1s;}
+.tmpl-item:hover{background:var(--hov);}
+.tmpl-item.on{background:rgba(16,185,129,.08);border-left:3px solid var(--green);}
+.tmpl-item.on .tmpl-code{color:var(--green);}
+.tmpl-code{font-family:var(--ffm);font-size:11.5px;font-weight:700;color:var(--txt);}
 .tmpl-name{font-size:12.5px;font-weight:600;margin-top:2px;}
-.tmpl-meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
-.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
-.s-active{background:#f0fdf4;color:#16a34a;}
-.s-archived{background:#fef2f2;color:#dc2626;}
-.b-linear{background:#eff6ff;color:#1d4ed8;}
-.b-area{background:#fff7ed;color:var(--orange);}
-.b-piece{background:#f5f3ff;color:var(--purple);}
-.empty{text-align:center;padding:40px 20px;color:var(--muted);}
-.empty .icon{font-size:28px;margin-bottom:8px;}
+.tmpl-meta{font-size:11px;color:var(--txts);margin-top:2px;}
+.list-count{font-size:11px;color:var(--txts);}
 .detail-wrap{padding:16px;}
-.detail-header{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px;}
+.detail-header{background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;margin-bottom:16px;}
 .detail-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-.detail-code{font-family:'JetBrains Mono';font-size:13px;font-weight:700;color:var(--accent);}
-.detail-name{font-size:16px;font-weight:800;margin-top:2px;}
-.detail-desc{font-size:12px;color:var(--muted);margin-top:4px;}
+.detail-code{font-family:var(--ffm);font-size:13px;font-weight:700;color:var(--green);}
+.detail-name{font-size:16px;font-weight:700;margin-top:2px;}
+.detail-desc{font-size:12px;color:var(--txts);margin-top:4px;}
 .detail-actions{display:flex;gap:6px;flex-shrink:0;}
-.node-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
-.node-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:#fafbfc;cursor:pointer;}
-.node-chevron{color:var(--muted);font-size:11px;transition:transform .15s;flex-shrink:0;}
+.chip-count{font-family:var(--ffm);font-size:11px;background:var(--card);color:var(--txts);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;}
+.node-card{background:var(--panel);border:1px solid var(--brd);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.node-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--brd);background:var(--card);cursor:pointer;}
+.node-chevron{color:var(--txts);font-size:11px;transition:transform .15s;flex-shrink:0;}
 .node-chevron.open{transform:rotate(90deg);}
 .node-title{font-weight:700;font-size:13px;flex:1;}
-.node-qty{font-family:'JetBrains Mono';font-size:11.5px;color:var(--muted);}
+.node-qty{font-family:var(--ffm);font-size:11.5px;color:var(--txts);}
 .node-body{display:none;}
 .node-body.open{display:block;}
-table{width:100%;border-collapse:collapse;}
-thead th{padding:7px 12px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
-tbody tr{border-bottom:1px solid var(--border);}
-tbody tr:last-child{border-bottom:none;}
-td{padding:8px 12px;vertical-align:middle;}
-.mono{font-family:'JetBrains Mono';font-size:11.5px;}
-.node-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
-.child-section{border-top:1px solid var(--border);background:#fdfeff;}
-.child-label{padding:6px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);}
-.add-node-row{background:var(--surface);border:1px dashed var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+.child-section{border-top:1px solid var(--brd);background:var(--bg);}
+.child-label{padding:6px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txts);}
+.add-node-row{background:var(--panel);border:1px dashed var(--brd);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
 .add-node-row form{display:flex;gap:8px;align-items:flex-end;}
-.field{display:flex;flex-direction:column;gap:3px;}
-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
-input,select{border:1px solid var(--border2);border-radius:5px;padding:6px 9px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s;}
-input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
-.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:var(--surface);border-radius:10px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
-.modal-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;}
-.modal-title{font-weight:700;font-size:15px;}
-.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px;line-height:1;border-radius:4px;}
-.modal-close:hover{color:var(--text);}
-.modal-body{padding:18px;}
-.modal-footer{padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.mtype-tabs{display:flex;gap:4px;margin-bottom:12px;}
-.mtype-btn{flex:1;padding:6px;border:1px solid var(--border2);border-radius:5px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);background:var(--surface);transition:all .12s;}
-.mtype-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.add-node-row .field{margin-bottom:0;}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--brd);}
 .mat-search-wrap{position:relative;}
-.mat-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:50;max-height:260px;overflow-y:auto;display:none;}
+.mat-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--brd);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:50;max-height:260px;overflow-y:auto;display:none;}
 .mat-dropdown.open{display:block;}
-.mat-cat-hdr{padding:4px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);}
-.mat-opt{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
-.mat-opt:last-child{border-bottom:none;}.mat-opt:hover{background:#eff6ff;}
-.mat-opt-code{font-family:'JetBrains Mono';font-size:11px;color:var(--accent);font-weight:700;}
-.mat-opt-meta{font-size:11px;color:var(--muted);}
-.mat-sel-box{margin-top:6px;padding:7px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:12px;}
-.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-left:3px solid var(--accent);border-radius:5px;padding:8px 12px;font-size:12px;color:#1e40af;margin-bottom:12px;}
+.mat-cat-hdr{padding:4px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txts);background:var(--card);border-bottom:1px solid var(--brd);}
+.mat-opt{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--brd);transition:background .1s;}
+.mat-opt:last-child{border-bottom:none;}
+.mat-opt:hover{background:var(--hov);}
+.mat-opt-code{font-family:var(--ffm);font-size:11px;color:var(--green);font-weight:700;}
+.mat-opt-meta{font-size:11px;color:var(--txts);}
+.mat-sel-box{margin-top:6px;padding:7px 10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:5px;font-size:12px;}
+.mtype-tabs{display:flex;gap:4px;margin-bottom:12px;}
+.mtype-btn{flex:1;padding:6px;border:1px solid var(--brd);border-radius:5px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--txts);background:var(--card);transition:all .12s;}
+.mtype-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 .dims-block{display:none;}
 .dims-block.visible{display:block;}
 .field-mb{margin-bottom:12px;}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:200;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
-.toast.show{transform:translateY(0);opacity:1;}
-.toast.success{background:#15803d;}.toast.error{background:var(--red);}
-.text-muted{color:var(--muted);}.text-xs{font-size:11px;}.fw7{font-weight:700;}
-.chip-count{font-family:'JetBrains Mono';font-size:11px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:4px;padding:1px 6px;}
 </style>
 </head>
 <body>
 <div class="shell">
-<aside class="sidebar">
-  <div class="logo">МеталлПро ERP <span>Рабочий стенд v1.0</span></div>
-  <nav>
-    <div class="nav-group">Workflow</div>
-    <a class="nav-item" href="orders.html"><span>📋</span> Журнал заказов</a>
-    <a class="nav-item" href="simulator.html"><span>🧮</span> Расчёт КП</a>
-    <div class="nav-group">Справочники</div>
-    <a class="nav-item" href="materials.html"><span>🔩</span> Материалы</a>
-    <a class="nav-item active" href="templates.html"><span>📦</span> Шаблоны</a>
-  </nav>
-  <div class="sidebar-bottom">МеталлПро ERP · v1.0</div>
-</aside>
-
-<div class="main">
-  <div class="topbar">
-    <div class="topbar-title">Шаблоны изделий</div>
-    <div class="topbar-right">
-      <button class="btn btn-primary" onclick="openCreateTmpl()">+ Создать шаблон</button>
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Шаблоны изделий</div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="openCreateTmpl()">+ Создать шаблон</button>
+      </div>
     </div>
-  </div>
-
-  <div class="two-panel">
-    <!-- Left: template list -->
-    <div class="panel-list">
-      <div class="panel-list-head">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input class="search-input" id="search-inp" placeholder="Поиск по коду / названию..." oninput="renderList()">
+    <div class="two-panel">
+      <div class="panel-list">
+        <div class="panel-list-head">
+          <div class="ctrl-search">
+            <span class="ico">🔍</span>
+            <input type="text" id="search-inp" placeholder="Поиск по коду / названию..." oninput="renderList()">
+          </div>
+          <div class="list-count" id="list-count"></div>
         </div>
-        <div id="list-count" style="font-size:11px;color:var(--muted)"></div>
+        <div class="panel-list-body" id="tmpl-list">
+          <div class="empty">⏳ Загрузка...</div>
+        </div>
       </div>
-      <div class="panel-list-body" id="tmpl-list">
-        <div class="empty"><div class="icon">⏳</div>Загрузка...</div>
-      </div>
-    </div>
-
-    <!-- Right: template detail -->
-    <div class="panel-detail" id="panel-detail">
-      <div class="empty" style="padding-top:80px">
-        <div class="icon">📦</div>
-        <div style="font-weight:700;margin-bottom:4px">Выберите шаблон слева</div>
-        <div style="font-size:12px">или создайте новый</div>
+      <div class="panel-detail" id="panel-detail">
+        <div class="empty" style="padding-top:80px">
+          <div style="font-size:28px;margin-bottom:8px">📦</div>
+          <div style="font-weight:700;margin-bottom:4px">Выберите шаблон слева</div>
+          <div style="font-size:12px">или создайте новый</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
-</div>
 
-<!-- Modal: create / edit template -->
 <div id="tmpl-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeTmplModal()">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="tmpl-modal-title">Создать шаблон</div>
       <button class="modal-close" onclick="closeTmplModal()">✕</button>
     </div>
-    <div class="modal-body" id="tmpl-modal-body">
-      <div class="field field-mb">
-        <label>Код *</label>
-        <input type="text" id="f-code" placeholder="например, GATE-3X3">
-      </div>
-      <div class="field field-mb">
-        <label>Название *</label>
-        <input type="text" id="f-name" placeholder="Ворота распашные 3×3 м">
-      </div>
-      <div class="field">
-        <label>Описание</label>
-        <input type="text" id="f-desc" placeholder="Необязательно">
-      </div>
+    <div class="modal-body">
+      <div class="field field-mb"><label>Код *</label><input type="text" id="f-code" placeholder="GATE-3X3"></div>
+      <div class="field field-mb"><label>Название *</label><input type="text" id="f-name" placeholder="Ворота распашные 3×3 м"></div>
+      <div class="field"><label>Описание</label><input type="text" id="f-desc" placeholder="Необязательно"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeTmplModal()">Отмена</button>
@@ -197,7 +114,6 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37
   </div>
 </div>
 
-<!-- Modal: add / edit node part -->
 <div id="part-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closePartModal()">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
@@ -206,15 +122,14 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37
     </div>
     <div class="modal-body">
       <div id="part-mtype-tabs" class="mtype-tabs">
-        <div class="mtype-btn active" id="pmt-linear" onclick="setPartMtype('LINEAR')">📏 Погонаж</div>
+        <div class="mtype-btn on" id="pmt-linear" onclick="setPartMtype('LINEAR')">📏 Погонаж</div>
         <div class="mtype-btn" id="pmt-area" onclick="setPartMtype('AREA')">⬜ Лист</div>
         <div class="mtype-btn" id="pmt-piece" onclick="setPartMtype('PIECE')">🔩 Штучно</div>
       </div>
       <div class="field field-mb">
         <label>Материал *</label>
         <div class="mat-search-wrap">
-          <input type="text" id="pm-mat-inp" placeholder="Введите код или название..." autocomplete="off"
-            oninput="searchPartMat(this.value)" onfocus="searchPartMat(this.value)">
+          <input type="text" id="pm-mat-inp" placeholder="Введите код или название..." autocomplete="off" oninput="searchPartMat(this.value)" onfocus="searchPartMat(this.value)">
           <div class="mat-dropdown" id="pm-mat-dd"></div>
         </div>
         <div id="pm-mat-sel" class="mat-sel-box" style="display:none"></div>
@@ -238,10 +153,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37
           <div class="field"><label>Масса 1 шт, кг</label><input type="number" id="pm-pw" min="0" step="0.001" placeholder="0.200"></div>
         </div>
       </div>
-      <div class="field">
-        <label>Примечание</label>
-        <input type="text" id="pm-notes" placeholder="Необязательно">
-      </div>
+      <div class="field"><label>Примечание</label><input type="text" id="pm-notes" placeholder="Необязательно"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closePartModal()">Отмена</button>
@@ -250,37 +162,24 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
 <script src="erp-store.js"></script>
 <script>
-const API = 'http://5.35.92.112';
+ERP.init('templates');
 
-let templates = [];
-let materials = [];
-let selectedId = null;
-let selectedTemplate = null;
-let editingTmplId = null;
-
-// Part modal state
-let _partMtype = 'LINEAR';
-let _partNodeId = null;
-let _partTemplateId = null;
-let _partEditId = null;
-let _partSelMat = null;
-
-// ─── Init ──────────────────────────────────────────────────────────────────────
+var templates = [], materials = [], selectedId = null, selectedTemplate = null, editingTmplId = null;
+var _partMtype = 'LINEAR', _partNodeId = null, _partTemplateId = null, _partEditId = null, _partSelMat = null;
 
 async function init() {
   try {
-    const [tmplData, matData] = await Promise.all([
+    var results = await Promise.all([
       ERPStore.listTemplates(),
-      fetch(API + '/api/materials').then(r => r.json()),
+      ERP.authFetch('/api/materials').then(function(r){ return r.json(); }),
     ]);
-    templates = tmplData;
-    materials = matData.map(m => {
-      const geo = m.geometry || {};
+    templates = results[0];
+    materials = results[1].map(function(m){
+      var geo = m.geometry || {};
       return {
-        id: m.id, code: m.code, name: m.name,
+        id:m.id, code:m.code, name:m.name,
         kgm: geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null,
         kgm2: geo.weightPerSquareMeter ? parseFloat(geo.weightPerSquareMeter) : null,
         unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null,
@@ -290,467 +189,283 @@ async function init() {
       };
     });
     renderList();
-  } catch(e) {
-    toast('Ошибка загрузки: ' + e.message, 'error');
-  }
+  } catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
 }
 
-// ─── List panel ────────────────────────────────────────────────────────────────
-
 function renderList() {
-  const q = document.getElementById('search-inp').value.trim().toLowerCase();
-  const filtered = templates.filter(t =>
-    !q || t.code.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)
-  );
+  var q = document.getElementById('search-inp').value.trim().toLowerCase();
+  var filtered = templates.filter(function(t){ return !q || t.code.toLowerCase().includes(q) || t.name.toLowerCase().includes(q); });
   document.getElementById('list-count').textContent = filtered.length + ' шаблонов';
-  const el = document.getElementById('tmpl-list');
+  var el = document.getElementById('tmpl-list');
   if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="icon">📦</div>' +
-      (q ? 'Ничего не найдено' : 'Шаблонов нет — создайте первый') + '</div>';
+    el.innerHTML = '<div class="empty">' + (q ? 'Ничего не найдено' : 'Шаблонов нет — создайте первый') + '</div>';
     return;
   }
-  el.innerHTML = filtered.map(t => {
-    const active = t.id === selectedId;
-    return `<div class="tmpl-item${active ? ' active' : ''}" onclick="selectTmpl('${t.id}')">
-      <div class="tmpl-code">${esc(t.code)}</div>
-      <div class="tmpl-name">${esc(t.name)}</div>
-      <div class="tmpl-meta">
-        <span class="badge ${t.isActive ? 's-active' : 's-archived'}">${t.isActive ? 'активный' : 'архив'}</span>
-      </div>
-    </div>`;
+  el.innerHTML = filtered.map(function(t){
+    return '<div class="tmpl-item'+(t.id===selectedId?' on':'')+'" onclick="selectTmpl(\''+t.id+'\')">'+
+      '<div class="tmpl-code">'+ERP.esc(t.code)+'</div>'+
+      '<div class="tmpl-name">'+ERP.esc(t.name)+'</div>'+
+      '<div class="tmpl-meta"><span class="badge '+(t.isActive?'b-active':'b-danger')+'">'+(t.isActive?'активный':'архив')+'</span></div>'+
+    '</div>';
   }).join('');
 }
 
 async function selectTmpl(id) {
-  selectedId = id;
-  renderList();
-  const detail = document.getElementById('panel-detail');
-  detail.innerHTML = '<div class="empty" style="padding-top:80px"><div class="icon">⏳</div>Загрузка...</div>';
-  try {
-    selectedTemplate = await ERPStore.getTemplate(id);
-    renderDetail();
-  } catch(e) {
-    detail.innerHTML = `<div class="empty" style="padding-top:80px"><div class="icon">⚠️</div>${esc(e.message)}</div>`;
-  }
+  selectedId = id; renderList();
+  var detail = document.getElementById('panel-detail');
+  detail.innerHTML = '<div class="empty" style="padding-top:80px">⏳ Загрузка...</div>';
+  try { selectedTemplate = await ERPStore.getTemplate(id); renderDetail(); }
+  catch(e) { detail.innerHTML = '<div class="empty" style="padding-top:80px">⚠ '+ERP.esc(e.message)+'</div>'; }
 }
-
-// ─── Detail panel ──────────────────────────────────────────────────────────────
 
 function renderDetail() {
   if (!selectedTemplate) return;
-  const t = selectedTemplate;
-  const nodeCount = (t.nodes || []).reduce((s, n) => s + 1 + (n.children || []).length, 0);
-  const partCount = (t.nodes || []).reduce((s, n) => s + n.parts.length + (n.children || []).reduce((sc, c) => sc + c.parts.length, 0), 0);
-  const detail = document.getElementById('panel-detail');
-  detail.innerHTML = `
-  <div class="detail-wrap">
-    <div class="detail-header">
-      <div class="detail-title-row">
-        <div>
-          <div class="detail-code">${esc(t.code)}</div>
-          <div class="detail-name">${esc(t.name)}</div>
-          ${t.description ? `<div class="detail-desc">${esc(t.description)}</div>` : ''}
-          <div style="margin-top:6px;display:flex;gap:6px">
-            <span class="badge ${t.isActive ? 's-active' : 's-archived'}">${t.isActive ? 'активный' : 'архив'}</span>
-            <span class="chip-count">${nodeCount} узлов</span>
-            <span class="chip-count">${partCount} деталей</span>
-          </div>
-        </div>
-        <div class="detail-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openEditTmpl()">✏️ Ред.</button>
-          ${t.isActive
-            ? `<button class="btn btn-danger btn-sm" onclick="archiveTmpl()">Архив.</button>`
-            : `<button class="btn btn-secondary btn-sm" onclick="restoreTmpl()">↩ Восст.</button>`}
-        </div>
-      </div>
-    </div>
-
-    <div class="section-title">Узлы шаблона</div>
-    <div id="nodes-container">
-      ${renderNodes(t.nodes || [], t.id)}
-    </div>
-    ${t.isActive ? `
-    <div class="add-node-row">
-      <div class="section-title" style="margin-bottom:8px">Добавить узел</div>
-      <form onsubmit="addNode(event,'${t.id}',null)">
-        <div class="field" style="flex:1"><label>Название</label><input id="new-node-name" placeholder="Рама нижняя" required style="width:100%"></div>
-        <div class="field" style="width:70px"><label>Кол-во</label><input id="new-node-qty" type="number" value="1" min="1"></div>
-        <button type="submit" class="btn btn-primary btn-sm" style="margin-top:18px">+ Добавить</button>
-      </form>
-    </div>` : ''}
-  </div>`;
+  var t = selectedTemplate;
+  var nodeCount = (t.nodes||[]).reduce(function(s,n){ return s+1+(n.children||[]).length; }, 0);
+  var partCount = (t.nodes||[]).reduce(function(s,n){ return s+n.parts.length+(n.children||[]).reduce(function(sc,c){ return sc+c.parts.length; },0); }, 0);
+  document.getElementById('panel-detail').innerHTML =
+    '<div class="detail-wrap">'+
+      '<div class="detail-header">'+
+        '<div class="detail-title-row">'+
+          '<div>'+
+            '<div class="detail-code">'+ERP.esc(t.code)+'</div>'+
+            '<div class="detail-name">'+ERP.esc(t.name)+'</div>'+
+            (t.description?'<div class="detail-desc">'+ERP.esc(t.description)+'</div>':'')+
+            '<div style="margin-top:6px;display:flex;gap:6px">'+
+              '<span class="badge '+(t.isActive?'b-active':'b-danger')+'">'+(t.isActive?'активный':'архив')+'</span>'+
+              '<span class="chip-count">'+nodeCount+' узлов</span>'+
+              '<span class="chip-count">'+partCount+' деталей</span>'+
+            '</div>'+
+          '</div>'+
+          '<div class="detail-actions">'+
+            '<button class="btn btn-secondary btn-sm" onclick="openEditTmpl()">✏ Ред.</button>'+
+            (t.isActive?'<button class="btn btn-danger btn-sm" onclick="archiveTmpl()">Архив.</button>':'<button class="btn btn-secondary btn-sm" onclick="restoreTmpl()">↩ Восст.</button>')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="section-title">Узлы шаблона</div>'+
+      '<div id="nodes-container">'+renderNodes(t.nodes||[], t.id)+'</div>'+
+      (t.isActive?'<div class="add-node-row"><div class="section-title" style="margin-bottom:8px">Добавить узел</div><form onsubmit="addNode(event,\''+t.id+'\',null)"><div class="field" style="flex:1"><label>Название</label><input id="new-node-name" placeholder="Рама нижняя" required style="width:100%"></div><div class="field" style="width:70px"><label>Кол-во</label><input id="new-node-qty" type="number" value="1" min="1"></div><button type="submit" class="btn btn-primary btn-sm" style="margin-top:18px">+ Добавить</button></form></div>':'')+
+    '</div>';
 }
 
 function renderNodes(nodes, tmplId) {
   if (!nodes.length) return '<div class="empty" style="padding:20px">Узлов нет — добавьте ниже</div>';
-  return nodes.map((node, ni) => renderNode(node, tmplId, ni)).join('');
+  return nodes.map(function(node,ni){ return renderNode(node,tmplId,ni); }).join('');
 }
 
 function renderNode(node, tmplId, idx) {
-  const parts = (node.parts || []);
-  const children = (node.children || []);
-  const isActive = selectedTemplate && selectedTemplate.isActive;
-  return `<div class="node-card" id="node-${node.id}">
-    <div class="node-header" onclick="toggleNode('${node.id}')">
-      <span class="node-chevron open" id="chev-${node.id}">▶</span>
-      <span class="node-title">${esc(node.name)}</span>
-      <span class="node-qty">× ${node.qty}</span>
-      ${isActive ? `
-        <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteNode('${tmplId}','${node.id}')" style="margin-left:8px">✕</button>
-      ` : ''}
-    </div>
-    <div class="node-body open" id="body-${node.id}">
-      ${renderPartsTable(parts, tmplId, node.id, null)}
-      ${isActive ? `
-      <div style="padding:8px 14px;border-top:1px solid var(--border)">
-        <button class="btn btn-secondary btn-sm" onclick="openAddPart('${tmplId}','${node.id}')">+ Деталь</button>
-      </div>` : ''}
-
-      ${children.length ? `
-      <div class="child-section">
-        <div class="child-label">Дочерние узлы</div>
-        ${children.map(ch => renderChildNode(ch, tmplId, node.id)).join('')}
-        ${isActive ? `<div style="padding:8px 14px">
-          <button class="btn btn-secondary btn-xs" onclick="openAddChildNode('${tmplId}','${node.id}')">+ Дочерний узел</button>
-        </div>` : ''}
-      </div>` : (isActive ? `
-      <div class="child-section" style="padding:8px 14px">
-        <button class="btn btn-secondary btn-xs" onclick="openAddChildNode('${tmplId}','${node.id}')">+ Дочерний узел</button>
-      </div>` : '')}
-    </div>
-  </div>`;
+  var parts = node.parts||[], children = node.children||[];
+  var isActive = selectedTemplate && selectedTemplate.isActive;
+  return '<div class="node-card" id="node-'+node.id+'">'+
+    '<div class="node-header" onclick="toggleNode(\''+node.id+'\')">'+
+      '<span class="node-chevron open" id="chev-'+node.id+'">▶</span>'+
+      '<span class="node-title">'+ERP.esc(node.name)+'</span>'+
+      '<span class="node-qty">× '+node.qty+'</span>'+
+      (isActive?'<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteNode(\''+tmplId+'\',\''+node.id+'\')" style="margin-left:8px">✕</button>':'')+
+    '</div>'+
+    '<div class="node-body open" id="body-'+node.id+'">'+
+      renderPartsTable(parts,tmplId,node.id,null)+
+      (isActive?'<div style="padding:8px 14px;border-top:1px solid var(--brd)"><button class="btn btn-secondary btn-sm" onclick="openAddPart(\''+tmplId+'\',\''+node.id+'\')">+ Деталь</button></div>':'')+
+      (children.length?'<div class="child-section"><div class="child-label">Дочерние узлы</div>'+children.map(function(ch){ return renderChildNode(ch,tmplId,node.id); }).join('')+(isActive?'<div style="padding:8px 14px"><button class="btn btn-secondary btn-xs" onclick="openAddChildNode(\''+tmplId+'\',\''+node.id+'\')">+ Дочерний узел</button></div>':'')+'</div>':(isActive?'<div class="child-section" style="padding:8px 14px"><button class="btn btn-secondary btn-xs" onclick="openAddChildNode(\''+tmplId+'\',\''+node.id+'\')">+ Дочерний узел</button></div>':''))+
+    '</div>'+
+  '</div>';
 }
 
 function renderChildNode(node, tmplId, parentId) {
-  const parts = (node.parts || []);
-  const isActive = selectedTemplate && selectedTemplate.isActive;
-  return `<div style="padding:0 14px 0 28px;border-top:1px solid var(--border)">
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 0;font-weight:700;font-size:12.5px">
-      <span style="color:var(--muted);font-size:11px">└</span>
-      ${esc(node.name)} <span class="node-qty">× ${node.qty}</span>
-      ${isActive ? `<button class="btn btn-danger btn-xs" onclick="deleteNode('${tmplId}','${node.id}')">✕</button>` : ''}
-    </div>
-    ${renderPartsTable(parts, tmplId, node.id, parentId)}
-    ${isActive ? `<div style="padding:0 0 8px">
-      <button class="btn btn-secondary btn-xs" onclick="openAddPart('${tmplId}','${node.id}')">+ Деталь</button>
-    </div>` : ''}
-  </div>`;
+  var isActive = selectedTemplate && selectedTemplate.isActive;
+  return '<div style="padding:0 14px 0 28px;border-top:1px solid var(--brd)">'+
+    '<div style="display:flex;align-items:center;gap:6px;padding:8px 0;font-weight:700;font-size:12.5px">'+
+      '<span style="color:var(--txts);font-size:11px">└</span>'+ERP.esc(node.name)+' <span class="node-qty">× '+node.qty+'</span>'+
+      (isActive?'<button class="btn btn-danger btn-xs" onclick="deleteNode(\''+tmplId+'\',\''+node.id+'\')">✕</button>':'')+
+    '</div>'+
+    renderPartsTable(node.parts||[],tmplId,node.id,parentId)+
+    (isActive?'<div style="padding:0 0 8px"><button class="btn btn-secondary btn-xs" onclick="openAddPart(\''+tmplId+'\',\''+node.id+'\')">+ Деталь</button></div>':'')+
+  '</div>';
 }
 
 function renderPartsTable(parts, tmplId, nodeId, parentNodeId) {
-  if (!parts.length) return '<div style="padding:10px 14px;font-size:12px;color:var(--muted)">Деталей нет</div>';
-  const isActive = selectedTemplate && selectedTemplate.isActive;
-  return `<table>
-    <thead><tr>
-      <th>Материал</th><th>Тип</th><th>Размеры</th><th>Кол-во</th><th>Примечание</th>${isActive ? '<th></th>' : ''}
-    </tr></thead>
-    <tbody>
-    ${parts.map(p => {
-      const mat = materials.find(m => m.id === p.materialDefinitionId);
-      const mtBadge = {
-        LINEAR: '<span class="badge b-linear">Погонаж</span>',
-        AREA: '<span class="badge b-area">Лист</span>',
-        PIECE: '<span class="badge b-piece">Штучно</span>',
-      }[p.measurementType] || '—';
-      let dims = '—';
-      if (p.measurementType === 'LINEAR' && p.length) dims = fm(p.length) + ' мм';
-      else if (p.measurementType === 'AREA' && p.sheetWidth) dims = fm(p.sheetWidth) + '×' + fm(p.sheetHeight) + ' мм';
-      else if (p.measurementType === 'PIECE' && p.directWeightKg) dims = p.directWeightKg + ' кг/шт';
-      const delBtn = isActive
-        ? `<button class="btn btn-danger btn-xs" onclick="deletePart('${tmplId}','${nodeId}','${p.id}')">✕</button>`
-        : '';
-      return `<tr>
-        <td><span class="mono" style="color:var(--accent);font-weight:700">${mat ? esc(mat.code) : '?'}</span><br>
-            <span class="text-xs text-muted">${mat ? esc(mat.name) : esc(p.materialDefinitionId)}</span></td>
-        <td>${mtBadge}</td>
-        <td class="mono">${dims}</td>
-        <td class="mono">${p.quantity} шт</td>
-        <td class="text-xs text-muted">${esc(p.notes || '—')}</td>
-        ${isActive ? `<td>${delBtn}</td>` : ''}
-      </tr>`;
-    }).join('')}
-    </tbody>
-  </table>`;
+  if (!parts.length) return '<div style="padding:10px 14px;font-size:12px;color:var(--txts)">Деталей нет</div>';
+  var isActive = selectedTemplate && selectedTemplate.isActive;
+  return '<table><thead><tr><th>Материал</th><th>Тип</th><th>Размеры</th><th>Кол-во</th><th>Примечание</th>'+(isActive?'<th></th>':'')+'</tr></thead><tbody>'+
+    parts.map(function(p){
+      var mat = materials.find(function(m){ return m.id===p.materialDefinitionId; });
+      var mtBadge = { LINEAR:'<span class="badge b-linear">Погонаж</span>', AREA:'<span class="badge b-area">Лист</span>', PIECE:'<span class="badge b-piece">Штучно</span>' }[p.measurementType]||'—';
+      var dims = '—';
+      if (p.measurementType==='LINEAR'&&p.length) dims=fm(p.length)+' мм';
+      else if (p.measurementType==='AREA'&&p.sheetWidth) dims=fm(p.sheetWidth)+'×'+fm(p.sheetHeight)+' мм';
+      else if (p.measurementType==='PIECE'&&p.directWeightKg) dims=p.directWeightKg+' кг/шт';
+      return '<tr>'+
+        '<td><span class="mono" style="color:var(--green);font-weight:700">'+(mat?ERP.esc(mat.code):'?')+'</span><br><span style="font-size:11px;color:var(--txts)">'+(mat?ERP.esc(mat.name):ERP.esc(p.materialDefinitionId))+'</span></td>'+
+        '<td>'+mtBadge+'</td>'+
+        '<td class="mono">'+dims+'</td>'+
+        '<td class="mono">'+p.quantity+' шт</td>'+
+        '<td style="font-size:11px;color:var(--txts)">'+ERP.esc(p.notes||'—')+'</td>'+
+        (isActive?'<td><button class="btn btn-danger btn-xs" onclick="deletePart(\''+tmplId+'\',\''+nodeId+'\',\''+p.id+'\')">✕</button></td>':'')+
+      '</tr>';
+    }).join('')+'</tbody></table>';
 }
 
 function toggleNode(id) {
-  const body = document.getElementById('body-' + id);
-  const chev = document.getElementById('chev-' + id);
+  var body = document.getElementById('body-'+id), chev = document.getElementById('chev-'+id);
   if (!body) return;
-  const open = body.classList.toggle('open');
+  var open = body.classList.toggle('open');
   if (chev) chev.classList.toggle('open', open);
 }
+function fm(n) { return Number(n).toLocaleString('ru-RU'); }
 
-// ─── Template CRUD ─────────────────────────────────────────────────────────────
-
+// Template CRUD
 function openCreateTmpl() {
   editingTmplId = null;
   document.getElementById('tmpl-modal-title').textContent = 'Создать шаблон';
   document.getElementById('tmpl-save-btn').textContent = 'Создать';
-  document.getElementById('f-code').value = '';
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-desc').value = '';
+  ['f-code','f-name','f-desc'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('tmpl-modal-bg').style.display = 'flex';
-  setTimeout(() => document.getElementById('f-code').focus(), 50);
+  setTimeout(function(){ document.getElementById('f-code').focus(); }, 50);
 }
-
 function openEditTmpl() {
   if (!selectedTemplate) return;
   editingTmplId = selectedTemplate.id;
   document.getElementById('tmpl-modal-title').textContent = 'Редактировать шаблон';
   document.getElementById('tmpl-save-btn').textContent = 'Сохранить';
-  document.getElementById('f-code').value = selectedTemplate.code || '';
-  document.getElementById('f-name').value = selectedTemplate.name || '';
-  document.getElementById('f-desc').value = selectedTemplate.description || '';
+  document.getElementById('f-code').value = selectedTemplate.code||'';
+  document.getElementById('f-name').value = selectedTemplate.name||'';
+  document.getElementById('f-desc').value = selectedTemplate.description||'';
   document.getElementById('tmpl-modal-bg').style.display = 'flex';
-  setTimeout(() => document.getElementById('f-code').focus(), 50);
+  setTimeout(function(){ document.getElementById('f-code').focus(); }, 50);
 }
-
-function closeTmplModal() {
-  document.getElementById('tmpl-modal-bg').style.display = 'none';
-}
+function closeTmplModal() { document.getElementById('tmpl-modal-bg').style.display = 'none'; }
 
 async function saveTmpl() {
-  const code = document.getElementById('f-code').value.trim();
-  const name = document.getElementById('f-name').value.trim();
-  const description = document.getElementById('f-desc').value.trim();
-  if (!code || !name) { toast('Заполните код и название', 'error'); return; }
-  const btn = document.getElementById('tmpl-save-btn');
+  var code = document.getElementById('f-code').value.trim();
+  var name = document.getElementById('f-name').value.trim();
+  var description = document.getElementById('f-desc').value.trim();
+  if (!code||!name) { ERP.toast('Заполните код и название', 'error'); return; }
+  var btn = document.getElementById('tmpl-save-btn');
   btn.disabled = true; btn.textContent = 'Сохранение...';
   try {
-    if (editingTmplId) {
-      await ERPStore.updateTemplate(editingTmplId, { code, name, description: description || null });
-      toast('Шаблон обновлён', 'success');
-    } else {
-      await ERPStore.createTemplate({ code, name, description: description || null });
-      toast('Шаблон создан', 'success');
-    }
+    if (editingTmplId) { await ERPStore.updateTemplate(editingTmplId, { code:code, name:name, description:description||null }); ERP.toast('Шаблон обновлён','success'); }
+    else { await ERPStore.createTemplate({ code:code, name:name, description:description||null }); ERP.toast('Шаблон создан','success'); }
     closeTmplModal();
-    templates = await ERPStore.listTemplates();
-    renderList();
-    if (editingTmplId && selectedId === editingTmplId) {
-      selectedTemplate = await ERPStore.getTemplate(editingTmplId);
-      renderDetail();
-    }
-  } catch(e) {
-    toast('Ошибка: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = editingTmplId ? 'Сохранить' : 'Создать';
-  }
+    templates = await ERPStore.listTemplates(); renderList();
+    if (editingTmplId && selectedId===editingTmplId) { selectedTemplate = await ERPStore.getTemplate(editingTmplId); renderDetail(); }
+  } catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent=editingTmplId?'Сохранить':'Создать'; }
 }
 
 async function archiveTmpl() {
-  if (!selectedTemplate || !confirm('Архивировать шаблон? Его нельзя будет применить к заказам.')) return;
-  try {
-    await ERPStore.updateTemplate(selectedTemplate.id, { isActive: false });
-    toast('Шаблон архивирован', 'success');
-    templates = await ERPStore.listTemplates();
-    renderList();
-    selectedTemplate = await ERPStore.getTemplate(selectedId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  if (!selectedTemplate||!confirm('Архивировать шаблон?')) return;
+  try { await ERPStore.updateTemplate(selectedTemplate.id,{isActive:false}); ERP.toast('Архивирован','success'); templates=await ERPStore.listTemplates(); renderList(); selectedTemplate=await ERPStore.getTemplate(selectedId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
 }
-
 async function restoreTmpl() {
   if (!selectedTemplate) return;
-  try {
-    await ERPStore.updateTemplate(selectedTemplate.id, { isActive: true });
-    toast('Шаблон восстановлен', 'success');
-    templates = await ERPStore.listTemplates();
-    renderList();
-    selectedTemplate = await ERPStore.getTemplate(selectedId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  try { await ERPStore.updateTemplate(selectedTemplate.id,{isActive:true}); ERP.toast('Восстановлен','success'); templates=await ERPStore.listTemplates(); renderList(); selectedTemplate=await ERPStore.getTemplate(selectedId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
 }
 
-// ─── Node CRUD ─────────────────────────────────────────────────────────────────
-
+// Node CRUD
 async function addNode(event, tmplId, parentNodeId) {
   event.preventDefault();
-  const name = document.getElementById('new-node-name').value.trim();
-  const qty = parseInt(document.getElementById('new-node-qty').value) || 1;
+  var name = document.getElementById('new-node-name').value.trim();
+  var qty = parseInt(document.getElementById('new-node-qty').value)||1;
   if (!name) return;
-  try {
-    await ERPStore.createTemplateNode(tmplId, { parentNodeId, name, qty, position: 0 });
-    toast('Узел добавлен', 'success');
-    selectedTemplate = await ERPStore.getTemplate(tmplId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  try { await ERPStore.createTemplateNode(tmplId,{parentNodeId:parentNodeId,name:name,qty:qty,position:0}); ERP.toast('Узел добавлен','success'); selectedTemplate=await ERPStore.getTemplate(tmplId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
 }
-
-let _addChildNodeTmplId = null, _addChildNodeParentId = null;
-
 function openAddChildNode(tmplId, parentNodeId) {
-  _addChildNodeTmplId = tmplId;
-  _addChildNodeParentId = parentNodeId;
-  const name = prompt('Название дочернего узла:');
-  if (!name) return;
-  const qty = parseInt(prompt('Количество:', '1')) || 1;
-  ERPStore.createTemplateNode(tmplId, { parentNodeId, name, qty, position: 0 })
-    .then(() => {
-      toast('Узел добавлен', 'success');
-      return ERPStore.getTemplate(tmplId);
-    })
-    .then(t => { selectedTemplate = t; renderDetail(); })
-    .catch(e => toast('Ошибка: ' + e.message, 'error'));
+  var name = prompt('Название дочернего узла:'); if (!name) return;
+  var qty = parseInt(prompt('Количество:','1'))||1;
+  ERPStore.createTemplateNode(tmplId,{parentNodeId:parentNodeId,name:name,qty:qty,position:0})
+    .then(function(){ ERP.toast('Узел добавлен','success'); return ERPStore.getTemplate(tmplId); })
+    .then(function(t){ selectedTemplate=t; renderDetail(); })
+    .catch(function(e){ ERP.toast('Ошибка: '+e.message,'error'); });
 }
-
 async function deleteNode(tmplId, nodeId) {
   if (!confirm('Удалить узел со всеми деталями?')) return;
-  try {
-    await ERPStore.deleteTemplateNode(tmplId, nodeId);
-    toast('Узел удалён', 'success');
-    selectedTemplate = await ERPStore.getTemplate(tmplId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  try { await ERPStore.deleteTemplateNode(tmplId,nodeId); ERP.toast('Узел удалён','success'); selectedTemplate=await ERPStore.getTemplate(tmplId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
 }
 
-// ─── Part modal ────────────────────────────────────────────────────────────────
-
+// Part modal
 function openAddPart(tmplId, nodeId) {
-  _partTemplateId = tmplId;
-  _partNodeId = nodeId;
-  _partEditId = null;
-  _partSelMat = null;
+  _partTemplateId=tmplId; _partNodeId=nodeId; _partEditId=null; _partSelMat=null;
   document.getElementById('part-modal-title').textContent = 'Добавить деталь';
   document.getElementById('part-save-btn').textContent = 'Добавить';
-  document.getElementById('pm-mat-inp').value = '';
-  document.getElementById('pm-mat-sel').style.display = 'none';
-  document.getElementById('pm-len').value = '';
-  document.getElementById('pm-qty').value = 1;
-  document.getElementById('pm-w').value = '';
-  document.getElementById('pm-h').value = '';
-  document.getElementById('pm-qty-a').value = 1;
-  document.getElementById('pm-qty-p').value = 1;
-  document.getElementById('pm-pw').value = '';
-  document.getElementById('pm-notes').value = '';
+  document.getElementById('pm-mat-inp').value='';
+  document.getElementById('pm-mat-sel').style.display='none';
+  ['pm-len','pm-w','pm-h','pm-pw','pm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('pm-qty').value=1;
+  document.getElementById('pm-qty-a').value=1;
+  document.getElementById('pm-qty-p').value=1;
   setPartMtype('LINEAR');
-  document.getElementById('part-modal-bg').style.display = 'flex';
-  setTimeout(() => document.getElementById('pm-mat-inp').focus(), 50);
+  document.getElementById('part-modal-bg').style.display='flex';
+  setTimeout(function(){ document.getElementById('pm-mat-inp').focus(); },50);
 }
-
-function closePartModal() {
-  document.getElementById('part-modal-bg').style.display = 'none';
-  document.getElementById('pm-mat-dd').classList.remove('open');
-}
-
+function closePartModal() { document.getElementById('part-modal-bg').style.display='none'; document.getElementById('pm-mat-dd').classList.remove('open'); }
 function setPartMtype(mt) {
-  _partMtype = mt;
-  ['LINEAR', 'AREA', 'PIECE'].forEach(m => {
-    document.getElementById('pm-dims-' + m.toLowerCase()).classList.toggle('visible', m === mt);
-    document.getElementById('pmt-' + m.toLowerCase()).classList.toggle('active', m === mt);
+  _partMtype=mt;
+  ['LINEAR','AREA','PIECE'].forEach(function(m){
+    document.getElementById('pm-dims-'+m.toLowerCase()).classList.toggle('visible',m===mt);
+    document.getElementById('pmt-'+m.toLowerCase()).classList.toggle('on',m===mt);
   });
 }
-
 function searchPartMat(q) {
-  let ms = materials;
-  if (_partMtype === 'AREA') ms = ms.filter(m => m.kgm2 != null);
-  else if (_partMtype === 'LINEAR') ms = ms.filter(m => m.kgm != null);
-  else if (_partMtype === 'PIECE') ms = ms.filter(m => m.mtype === 'PIECE');
-  if (q.trim()) {
-    const ql = q.toLowerCase();
-    ms = ms.filter(m => m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql));
-  }
-  const dd = document.getElementById('pm-mat-dd');
-  if (!ms.length) {
-    dd.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Ничего не найдено</div>';
-    dd.classList.add('open');
-    return;
-  }
-  dd.innerHTML = ms.slice(0, 40).map(m => {
-    const ks = m.kgm != null ? `${m.kgm} кг/м` : m.kgm2 != null ? `${m.kgm2} кг/м²` : 'штучно';
-    return `<div class="mat-opt" onclick="selectPartMat('${m.id}')">
-      <div class="mat-opt-code">${esc(m.code)}</div>
-      <div style="font-size:12.5px;font-weight:600">${esc(m.name)}</div>
-      <div class="mat-opt-meta">${ks}${m.gost ? ' · ' + esc(m.gost) : ''}</div>
-    </div>`;
+  var ms = materials;
+  if (_partMtype==='AREA') ms=ms.filter(function(m){ return m.kgm2!=null; });
+  else if (_partMtype==='LINEAR') ms=ms.filter(function(m){ return m.kgm!=null; });
+  else if (_partMtype==='PIECE') ms=ms.filter(function(m){ return m.mtype==='PIECE'; });
+  if (q.trim()) { var ql=q.toLowerCase(); ms=ms.filter(function(m){ return m.code.toLowerCase().includes(ql)||m.name.toLowerCase().includes(ql)||m.gost.includes(ql); }); }
+  var dd=document.getElementById('pm-mat-dd');
+  if (!ms.length) { dd.innerHTML='<div style="padding:10px;color:var(--txts);font-size:12px">Ничего не найдено</div>'; dd.classList.add('open'); return; }
+  dd.innerHTML=ms.slice(0,40).map(function(m){
+    var ks=m.kgm!=null?m.kgm+' кг/м':m.kgm2!=null?m.kgm2+' кг/м²':'штучно';
+    return '<div class="mat-opt" onclick="selectPartMat(\''+m.id+'\')"><div class="mat-opt-code">'+ERP.esc(m.code)+'</div><div style="font-size:12.5px;font-weight:600">'+ERP.esc(m.name)+'</div><div class="mat-opt-meta">'+ks+(m.gost?' · '+ERP.esc(m.gost):'')+'</div></div>';
   }).join('');
   dd.classList.add('open');
 }
-
 function selectPartMat(id) {
-  _partSelMat = materials.find(m => m.id === id);
-  document.getElementById('pm-mat-inp').value = _partSelMat.code;
+  _partSelMat=materials.find(function(m){ return m.id===id; });
+  document.getElementById('pm-mat-inp').value=_partSelMat.code;
   document.getElementById('pm-mat-dd').classList.remove('open');
-  const box = document.getElementById('pm-mat-sel');
-  box.style.display = 'block';
-  const ks = _partSelMat.kgm != null ? `${_partSelMat.kgm} кг/м` : _partSelMat.kgm2 != null ? `${_partSelMat.kgm2} кг/м²` : 'штучно';
-  box.innerHTML = `<strong>${esc(_partSelMat.name)}</strong> · ${ks}`;
-  if (_partSelMat.mtype === 'PIECE') setPartMtype('PIECE');
-  else if (_partSelMat.kgm2 != null && _partSelMat.kgm == null) setPartMtype('AREA');
-  if (_partSelMat.unitKg != null && _partMtype === 'PIECE') {
-    document.getElementById('pm-pw').value = _partSelMat.unitKg;
-  }
+  var box=document.getElementById('pm-mat-sel');
+  box.style.display='block';
+  var ks=_partSelMat.kgm!=null?_partSelMat.kgm+' кг/м':_partSelMat.kgm2!=null?_partSelMat.kgm2+' кг/м²':'штучно';
+  box.innerHTML='<strong>'+ERP.esc(_partSelMat.name)+'</strong> · '+ks;
+  if (_partSelMat.mtype==='PIECE') setPartMtype('PIECE');
+  else if (_partSelMat.kgm2!=null&&_partSelMat.kgm==null) setPartMtype('AREA');
+  if (_partSelMat.unitKg!=null&&_partMtype==='PIECE') document.getElementById('pm-pw').value=_partSelMat.unitKg;
 }
-
 async function savePart() {
-  if (!_partSelMat) { toast('Выберите материал', 'error'); return; }
-  const body = {
-    materialDefinitionId: _partSelMat.id,
-    measurementType: _partMtype,
-    notes: document.getElementById('pm-notes').value || null,
-    position: 0,
-  };
-  if (_partMtype === 'LINEAR') {
-    body.length = parseFloat(document.getElementById('pm-len').value) || null;
-    body.quantity = parseInt(document.getElementById('pm-qty').value) || 1;
-    if (!body.length) { toast('Введите длину', 'error'); return; }
-  } else if (_partMtype === 'AREA') {
-    body.sheetWidth = parseFloat(document.getElementById('pm-w').value) || null;
-    body.sheetHeight = parseFloat(document.getElementById('pm-h').value) || null;
-    body.quantity = parseInt(document.getElementById('pm-qty-a').value) || 1;
-    if (!body.sheetWidth || !body.sheetHeight) { toast('Введите ширину и высоту', 'error'); return; }
+  if (!_partSelMat) { ERP.toast('Выберите материал','error'); return; }
+  var body={ materialDefinitionId:_partSelMat.id, measurementType:_partMtype, notes:document.getElementById('pm-notes').value||null, position:0 };
+  if (_partMtype==='LINEAR') {
+    body.length=parseFloat(document.getElementById('pm-len').value)||null;
+    body.quantity=parseInt(document.getElementById('pm-qty').value)||1;
+    if (!body.length) { ERP.toast('Введите длину','error'); return; }
+  } else if (_partMtype==='AREA') {
+    body.sheetWidth=parseFloat(document.getElementById('pm-w').value)||null;
+    body.sheetHeight=parseFloat(document.getElementById('pm-h').value)||null;
+    body.quantity=parseInt(document.getElementById('pm-qty-a').value)||1;
+    if (!body.sheetWidth||!body.sheetHeight) { ERP.toast('Введите ширину и высоту','error'); return; }
   } else {
-    body.directWeightKg = parseFloat(document.getElementById('pm-pw').value) || null;
-    body.quantity = parseInt(document.getElementById('pm-qty-p').value) || 1;
+    body.directWeightKg=parseFloat(document.getElementById('pm-pw').value)||null;
+    body.quantity=parseInt(document.getElementById('pm-qty-p').value)||1;
   }
-  const btn = document.getElementById('part-save-btn');
-  btn.disabled = true; btn.textContent = 'Сохранение...';
-  try {
-    await ERPStore.createTemplateNodePart(_partTemplateId, _partNodeId, body);
-    toast('Деталь добавлена', 'success');
-    closePartModal();
-    selectedTemplate = await ERPStore.getTemplate(_partTemplateId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = 'Добавить'; }
+  var btn=document.getElementById('part-save-btn');
+  btn.disabled=true; btn.textContent='Сохранение...';
+  try { await ERPStore.createTemplateNodePart(_partTemplateId,_partNodeId,body); ERP.toast('Деталь добавлена','success'); closePartModal(); selectedTemplate=await ERPStore.getTemplate(_partTemplateId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='Добавить'; }
 }
-
 async function deletePart(tmplId, nodeId, partId) {
   if (!confirm('Удалить деталь из шаблона?')) return;
-  try {
-    await ERPStore.deleteTemplateNodePart(tmplId, nodeId, partId);
-    toast('Деталь удалена', 'success');
-    selectedTemplate = await ERPStore.getTemplate(tmplId);
-    renderDetail();
-  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  try { await ERPStore.deleteTemplateNodePart(tmplId,nodeId,partId); ERP.toast('Деталь удалена','success'); selectedTemplate=await ERPStore.getTemplate(tmplId); renderDetail(); }
+  catch(e) { ERP.toast('Ошибка: '+e.message,'error'); }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fm(n) { return Number(n).toLocaleString('ru-RU'); }
-
-let _tt;
-function toast(msg, type = 'success') {
-  const el = document.getElementById('toast');
-  el.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
-  el.className = 'toast ' + type + ' show';
-  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.mat-search-wrap')) {
-    document.getElementById('pm-mat-dd')?.classList.remove('open');
-  }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeTmplModal();
-    closePartModal();
-  }
-});
-
+document.addEventListener('click', function(e){ if (!e.target.closest('.mat-search-wrap')) document.getElementById('pm-mat-dd').classList.remove('open'); });
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeTmplModal(); closePartModal(); } });
 init();
 </script>
 </body>
