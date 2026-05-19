@@ -1,5 +1,6 @@
-const { verifyToken } = require('../utils/auth')
-const { json }        = require('../utils/response')
+const { verifyToken }  = require('../utils/auth')
+const { json }         = require('../utils/response')
+const { buildContext } = require('../utils/context')
 
 function authenticate(req, res) {
   const header = req.headers['authorization']
@@ -8,7 +9,8 @@ function authenticate(req, res) {
     return false
   }
   try {
-    req.user = verifyToken(header.slice(7))
+    req.user    = verifyToken(header.slice(7))
+    req.context = buildContext(req.user)
     return true
   } catch {
     json(res, { error: 'Invalid or expired token' }, 401)
