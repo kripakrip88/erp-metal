@@ -451,6 +451,7 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
             <div class="sr-tab on" onclick="setRpTab('nodes')">По узлам</div>
             <div class="sr-tab" onclick="setRpTab('profile')">Сортамент</div>
             <div class="sr-tab" onclick="setRpTab('revs')">Ревизии</div>
+            <div class="sr-tab" onclick="setRpTab('files')">📎 Файлы</div>
           </div>
           <div class="sr-body" id="sr-body"></div>
         </div>
@@ -884,7 +885,8 @@ let _asmCoatings = {};       // localAsmId → [{id,coatingMaterialId,...}]
 let _asmSections = {};       // localAsmId → {mat:bool, fas:bool, lkm:bool}
 let _curPartCategory = 'MATERIAL';
 let _lkmCurAsm = null, _lkmCurId = null;
-let _rpTab = 'nodes';        // 'nodes' | 'profile' | 'revs'
+let _rpTab = 'nodes';        // 'nodes' | 'profile' | 'revs' | 'files'
+let _rpFiles = [];
 const DRAFT_KEY = 'erp_draft';
 let _draftTimer = null;
 
@@ -1505,17 +1507,20 @@ function refresh() { renderAsms(); updSum(); }
 
 function setRpTab(tab) {
   _rpTab = tab;
-  document.querySelectorAll('.sr-tab').forEach((el, i) => {
-    el.classList.toggle('on', ['nodes', 'profile', 'revs'][i] === tab);
+  document.querySelectorAll('.sr-tab').forEach(el => {
+    const m = el.getAttribute('onclick')?.match(/setRpTab\('(\w+)'\)/);
+    el.classList.toggle('on', m?.[1] === tab);
   });
-  renderRightPanel();
+  if (tab === 'files') loadFiles();
+  else renderRightPanel();
 }
 
 function renderRightPanel() {
   const body = document.getElementById('sr-body');
   if (!body) return;
-  if (_rpTab === 'nodes') body.innerHTML = renderRpNodes();
+  if (_rpTab === 'nodes')  body.innerHTML = renderRpNodes();
   else if (_rpTab === 'profile') body.innerHTML = renderRpProfile();
+  else if (_rpTab === 'files')   body.innerHTML = renderRpFiles();
   else body.innerHTML = renderRpRevs();
 }
 
@@ -1580,6 +1585,38 @@ function renderRpRevs() {
       <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('revisions')">Все →</span>
     </div>
     ${rows}
+  </div>`;
+}
+
+function renderRpFiles() {
+  if (!_currentOrderId) return `<div class="sr-empty">Откройте заказ</div>`;
+  if (!_rpFiles.length) return `
+    <div class="sr-empty">Файлов нет</div>
+    <div style="padding:8px">
+      <button class="abtn" style="width:100%;text-align:center;font-size:11px" onclick="triggerFileUpload()">+ Загрузить файл</button>
+    </div>`;
+  const rows = _rpFiles.map(f => {
+    const icon = FILE_ICONS[f.fileType] || '📎';
+    const size = f.version ? formatFileSize(Number(f.version.sizeBytes)) : '';
+    const url  = f.version?.storageUrl;
+    return `<div class="sr-rev" style="display:flex;align-items:center;gap:7px;cursor:default">
+      <span style="font-size:15px;flex-shrink:0">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(f.title)}">${esc(f.title)}</div>
+        <div style="font-size:9.5px;color:var(--txtm)">${f.fileType}${size ? ' · ' + size : ''}</div>
+      </div>
+      ${url ? `<a href="${url}" target="_blank" style="color:var(--blue);font-size:13px;flex-shrink:0;text-decoration:none" title="Скачать">↓</a>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="sr-block" style="padding:0">
+    <div style="padding:6px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+      <div class="sr-block-title" style="margin:0">Документы (${_rpFiles.length})</div>
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="triggerFileUpload()">+ Добавить</span>
+    </div>
+    ${rows}
+    <div style="padding:6px 10px;border-top:1px solid var(--brd)">
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('files')">Все файлы →</span>
+    </div>
   </div>`;
 }
 
@@ -2045,7 +2082,9 @@ async function loadFiles() {
       return;
     }
     const files = await r.json();
+    _rpFiles = files;
     renderFiles(files);
+    if (_rpTab === 'files') renderRightPanel();
   } catch(e) {
     toast('Ошибка: ' + e.message, 'error');
   }
