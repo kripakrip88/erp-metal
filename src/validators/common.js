@@ -1,6 +1,6 @@
 function required(value, field) {
   if (value === undefined || value === null || value === '') {
-    throw new Error(`${field} обязательное поле`)
+    throw Object.assign(new Error(`${field} обязательное поле`), { status: 400 })
   }
   return value
 }

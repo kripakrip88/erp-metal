@@ -6,31 +6,31 @@ const VALID_COATING_TYPES = ['PRIMER', 'BASE_COAT', 'TOPCOAT', 'CLEAR', 'OTHER']
 
 function positiveInt(value, field) {
   const n = parseInt(value)
-  if (isNaN(n) || n <= 0) throw new Error(`${field} должен быть целым числом > 0`)
+  if (isNaN(n) || n <= 0) throw Object.assign(new Error(`${field} должен быть целым числом > 0`), { status: 400 })
   return n
 }
 
 function nonNegativeInt(value, field) {
   const n = parseInt(value)
-  if (isNaN(n) || n < 0) throw new Error(`${field} должен быть целым числом >= 0`)
+  if (isNaN(n) || n < 0) throw Object.assign(new Error(`${field} должен быть целым числом >= 0`), { status: 400 })
   return n
 }
 
 function positiveDecimal(value, field) {
   const n = Number(value)
-  if (isNaN(n) || n <= 0) throw new Error(`${field} должен быть числом > 0`)
+  if (isNaN(n) || n <= 0) throw Object.assign(new Error(`${field} должен быть числом > 0`), { status: 400 })
   return n
 }
 
 function nonNegativeDecimal(value, field) {
   const n = Number(value)
-  if (isNaN(n) || n < 0) throw new Error(`${field} должен быть числом >= 0`)
+  if (isNaN(n) || n < 0) throw Object.assign(new Error(`${field} должен быть числом >= 0`), { status: 400 })
   return n
 }
 
 function dilutionPercent(value, field) {
   const n = Number(value)
-  if (isNaN(n) || n < 0 || n > 100) throw new Error(`${field} должен быть числом от 0 до 100`)
+  if (isNaN(n) || n < 0 || n > 100) throw Object.assign(new Error(`${field} должен быть числом от 0 до 100`), { status: 400 })
   return n
 }
 
@@ -44,7 +44,7 @@ function validateCoatingMaterial(body) {
   required(body.referenceDftMkm, 'referenceDftMkm')
   required(body.densityKgL, 'densityKgL')
   if (!VALID_COATING_TYPES.includes(body.coatingType)) {
-    throw new Error(`coatingType должен быть одним из: ${VALID_COATING_TYPES.join(', ')}`)
+    throw Object.assign(new Error(`coatingType должен быть одним из: ${VALID_COATING_TYPES.join(', ')}`), { status: 400 })
   }
   return {
     code:                       body.code,
@@ -64,7 +64,7 @@ function validateCoatingMaterial(body) {
 // ─── Assembly coating (runtime instance) ────────────────────────────────────
 
 function validateAssemblyCoating(body) {
-  if (body.calculatedCost !== undefined) throw new Error('calculatedCost — derived field, cannot be set directly')
+  if (body.calculatedCost !== undefined) throw Object.assign(new Error('calculatedCost — derived field, cannot be set directly'), { status: 400 })
   required(body.coatingMaterialId, 'coatingMaterialId')
   return {
     coatingMaterialId:  body.coatingMaterialId,
