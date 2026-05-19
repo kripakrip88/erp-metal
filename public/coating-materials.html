@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Справочник ЛКМ</title>
+<script src="nav.js"></script>
+<style>
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.ctrl-search{position:relative;flex:1;min-width:200px;max-width:360px;}
+.ctrl-search input{padding-left:30px;}
+.ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
+.count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.hint{font-size:11px;color:var(--txts);margin-top:3px;}
+.b-primer{background:rgba(245,158,11,.12);color:var(--amber);}
+.b-base{background:rgba(59,130,246,.12);color:var(--blue);}
+.b-topcoat{background:rgba(16,185,129,.12);color:var(--green);}
+.b-clear{background:rgba(139,92,246,.12);color:var(--violet);}
+.b-other{background:rgba(139,154,176,.08);color:var(--txts);}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Справочник ЛКМ</div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" onclick="openCreate()">+ Добавить материал</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="controls">
+        <div class="ctrl-search">
+          <span class="ico">🔍</span>
+          <input type="text" id="search-inp" placeholder="Поиск по коду или названию..." oninput="onSearch(this.value)">
+        </div>
+        <span class="count-lbl" id="mat-count"></span>
+      </div>
+      <div class="filter-bar" id="type-filter"></div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Код</th>
+              <th>Название</th>
+              <th>Тип</th>
+              <th>Расход г/м²</th>
+              <th>ТСП эталон</th>
+              <th>Плотность кг/л</th>
+              <th>Разбавитель %</th>
+              <th>Цена за кг</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="mat-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Добавить ЛКМ</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="section-sep">Идентификация</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Код *</label>
+          <input type="text" id="f-code" placeholder="ГФ-021">
+        </div>
+        <div class="field">
+          <label>Тип *</label>
+          <select id="f-type">
+            <option value="PRIMER">Грунтовка (PRIMER)</option>
+            <option value="BASE_COAT">Промежуточный (BASE_COAT)</option>
+            <option value="TOPCOAT">Финишный (TOPCOAT)</option>
+            <option value="CLEAR">Лак (CLEAR)</option>
+            <option value="OTHER">Прочее (OTHER)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Название *</label>
+        <input type="text" id="f-name" placeholder="Грунтовка ГФ-021 алкидная">
+      </div>
+
+      <div class="section-sep">Технические характеристики</div>
+      <div class="grid3">
+        <div class="field">
+          <label>Расход г/м² *</label>
+          <input type="number" id="f-consumption" placeholder="90" step="0.1" min="0.1">
+          <span class="hint">При эталонной толщине</span>
+        </div>
+        <div class="field">
+          <label>ТСП эталон, мкм *</label>
+          <input type="number" id="f-dft" placeholder="20" step="1" min="1">
+          <span class="hint">Толщина сухой плёнки</span>
+        </div>
+        <div class="field">
+          <label>Плотность кг/л *</label>
+          <input type="number" id="f-density" placeholder="1.10" step="0.01" min="0.1">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Разбавитель, %</label>
+          <input type="number" id="f-dilution" placeholder="10" step="0.1" min="0" max="100">
+        </div>
+        <div class="field">
+          <label>Цена за кг, ₽</label>
+          <input type="number" id="f-price" placeholder="150.00" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="section-sep">Дополнительно</div>
+      <div class="field">
+        <label>Поставщик</label>
+        <input type="text" id="f-supplier" placeholder="Название поставщика">
+      </div>
+      <div class="field">
+        <label>Примечание</label>
+        <textarea id="f-notes" placeholder="ГОСТ, способ нанесения, разбавитель, время сушки..."></textarea>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="save-btn" onclick="submitForm()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+ERP.init('coating-materials');
+
+var TYPE_LABELS = {
+  PRIMER:    'Грунтовка',
+  BASE_COAT: 'Промежуточный',
+  TOPCOAT:   'Финишный',
+  CLEAR:     'Лак',
+  OTHER:     'Прочее',
+};
+var TYPE_BADGE = {
+  PRIMER:    'b-primer',
+  BASE_COAT: 'b-base',
+  TOPCOAT:   'b-topcoat',
+  CLEAR:     'b-clear',
+  OTHER:     'b-other',
+};
+
+var materials = [], curType = '', editingId = null, searchTimer = null;
+
+async function init() {
+  try {
+    materials = await ERP.authFetch('/api/coating-materials').then(function(r){ return r.json(); });
+    renderFilters();
+    renderTable();
+  } catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
+}
+
+function renderFilters() {
+  var el = document.getElementById('type-filter');
+  var types = Object.keys(TYPE_LABELS);
+  el.innerHTML = '<button class="filter-pill' + (curType ? '' : ' on') + '" onclick="setFilter(\'\')">Все</button>' +
+    types.map(function(t) {
+      return '<button class="filter-pill' + (curType === t ? ' on' : '') + '" onclick="setFilter(\'' + t + '\')">' + ERP.esc(TYPE_LABELS[t]) + '</button>';
+    }).join('');
+}
+
+function setFilter(type) { curType = type; renderFilters(); renderTable(); }
+
+function onSearch(q) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() { renderTable(q); }, 200);
+}
+
+function renderTable(search) {
+  if (search === undefined) search = document.getElementById('search-inp').value;
+  var q = (search || '').toLowerCase();
+  var list = materials.filter(function(m) {
+    if (curType && m.coatingType !== curType) return false;
+    if (q && m.code.toLowerCase().indexOf(q) === -1 && m.name.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+
+  document.getElementById('mat-count').textContent = list.length + ' позиций';
+  var el = document.getElementById('mat-tbody');
+  if (!list.length) {
+    el.innerHTML = '<tr><td colspan="9"><div class="empty">Позиций не найдено</div></td></tr>';
+    return;
+  }
+  el.innerHTML = list.map(function(m) {
+    var badge = TYPE_BADGE[m.coatingType] || 'b-other';
+    var label = TYPE_LABELS[m.coatingType] || m.coatingType;
+    var price = m.pricePerKg ? Number(m.pricePerKg).toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ₽' : '—';
+    var dilution = m.recommendedDilutionPercent != null ? Number(m.recommendedDilutionPercent) + '%' : '—';
+    return '<tr class="clickable" onclick="openEdit(\'' + m.id + '\')">' +
+      '<td><span class="mono" style="color:var(--blue);font-weight:700">' + ERP.esc(m.code) + '</span></td>' +
+      '<td>' + ERP.esc(m.name) + '</td>' +
+      '<td><span class="badge ' + badge + '">' + ERP.esc(label) + '</span></td>' +
+      '<td class="mono">' + Number(m.consumptionGm2) + '</td>' +
+      '<td class="mono">' + m.referenceDftMkm + ' мкм</td>' +
+      '<td class="mono">' + Number(m.densityKgL) + '</td>' +
+      '<td class="mono">' + dilution + '</td>' +
+      '<td class="mono">' + price + '</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button class="btn btn-secondary btn-xs" style="margin-right:4px" onclick="event.stopPropagation();openEdit(\'' + m.id + '\')">Ред.</button>' +
+        '<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();archiveMat(\'' + m.id + '\')">Архив.</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function openCreate() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Добавить ЛКМ';
+  resetForm();
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function openEdit(id) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Редактировать ЛКМ';
+  var m = materials.find(function(x){ return x.id === id; });
+  if (!m) return;
+  fillForm(m);
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function fillForm(m) {
+  document.getElementById('f-code').value        = m.code || '';
+  document.getElementById('f-name').value        = m.name || '';
+  document.getElementById('f-type').value        = m.coatingType || 'PRIMER';
+  document.getElementById('f-consumption').value = m.consumptionGm2 != null ? Number(m.consumptionGm2) : '';
+  document.getElementById('f-dft').value         = m.referenceDftMkm || '';
+  document.getElementById('f-density').value     = m.densityKgL != null ? Number(m.densityKgL) : '';
+  document.getElementById('f-dilution').value    = m.recommendedDilutionPercent != null ? Number(m.recommendedDilutionPercent) : '';
+  document.getElementById('f-price').value       = m.pricePerKg != null ? Number(m.pricePerKg) : '';
+  document.getElementById('f-supplier').value    = m.supplierName || '';
+  document.getElementById('f-notes').value       = m.notes || '';
+}
+
+function resetForm() {
+  ['f-code','f-name','f-consumption','f-dft','f-density','f-dilution','f-price','f-supplier','f-notes'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-type').value = 'PRIMER';
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+}
+
+async function submitForm() {
+  var code    = document.getElementById('f-code').value.trim();
+  var name    = document.getElementById('f-name').value.trim();
+  var type    = document.getElementById('f-type').value;
+  var cons    = document.getElementById('f-consumption').value;
+  var dft     = document.getElementById('f-dft').value;
+  var density = document.getElementById('f-density').value;
+  if (!code || !name || !type || !cons || !dft || !density) {
+    ERP.toast('Заполните обязательные поля (*)', 'error');
+    return;
+  }
+  var body = {
+    code, name,
+    coatingType:                type,
+    consumptionGm2:             Number(cons),
+    referenceDftMkm:            parseInt(dft),
+    densityKgL:                 Number(density),
+    recommendedDilutionPercent: document.getElementById('f-dilution').value !== '' ? Number(document.getElementById('f-dilution').value) : null,
+    pricePerKg:                 document.getElementById('f-price').value !== '' ? Number(document.getElementById('f-price').value) : null,
+    supplierName:               document.getElementById('f-supplier').value.trim() || null,
+    notes:                      document.getElementById('f-notes').value.trim() || null,
+  };
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Сохранение...';
+  try {
+    var url    = editingId ? '/api/coating-materials/' + editingId : '/api/coating-materials';
+    var method = editingId ? 'PUT' : 'POST';
+    var r = await ERP.authFetch(url, { method: method, body: JSON.stringify(body) });
+    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error || 'HTTP ' + r.status); }
+    var saved = await r.json();
+    if (editingId) {
+      materials = materials.map(function(m){ return m.id === editingId ? saved : m; });
+    } else {
+      materials.push(saved);
+    }
+    closeModal();
+    renderTable();
+    ERP.toast(editingId ? 'Материал обновлён' : 'Материал добавлен', 'success');
+  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Сохранить'; }
+}
+
+async function archiveMat(id) {
+  var m = materials.find(function(x){ return x.id === id; });
+  if (!confirm('Архивировать "' + (m ? m.code : id) + '"? Материал пропадёт из выбора в новых заказах.')) return;
+  try {
+    var r = await ERP.authFetch('/api/coating-materials/' + id, {
+      method: 'PUT',
+      body: JSON.stringify(Object.assign({}, m, { isActive: false })),
+    });
+    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error || 'HTTP ' + r.status); }
+    materials = materials.filter(function(x){ return x.id !== id; });
+    renderTable();
+    ERP.toast('Материал архивирован', 'success');
+  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+}
+
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+init();
+</script>
+</body>
+</html>
