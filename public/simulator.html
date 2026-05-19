@@ -1866,6 +1866,11 @@ function go(p) {
   if (p === 'compare') { updCmpSel(); document.getElementById('cmp-result').innerHTML = ''; }
   if (p === 'materials') renderMats();
   if (p === 'prices') renderPrices();
+  if (p === 'files') {
+    const el = document.getElementById('bc-order-files');
+    if (el) el.textContent = document.getElementById('bc-order')?.textContent || 'Заказ';
+    loadFiles();
+  }
 }
 
 function toggleDebug() {
@@ -2085,17 +2090,6 @@ function formatFileSize(bytes) {
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// Override go() to load files when navigating to files page
-const _goOrig = go;
-function go(p) {
-  _goOrig(p);
-  if (p === 'files') {
-    const el = document.getElementById('bc-order-files');
-    if (el && _currentOrderId) el.textContent = document.getElementById('bc-order').textContent || 'Заказ';
-    loadFiles();
-  }
 }
 
 // ─── KEYBOARD: login on Enter ─────────────────────────────────────────────────
