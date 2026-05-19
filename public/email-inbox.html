@@ -10,7 +10,7 @@
 .inbox-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - var(--topbarh));}
 
 /* ── LEFT PANEL: folders + list ──────────────────────────── */
-.list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);}
+.list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);overflow:hidden;min-height:0;}
 
 .folder-nav{padding:8px;border-bottom:1px solid var(--brd);flex-shrink:0;}
 .folder-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:12.5px;color:var(--txts);cursor:pointer;transition:background .1s;user-select:none;}
@@ -23,7 +23,7 @@
 
 .list-filters{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--brd);flex-wrap:wrap;flex-shrink:0;}
 
-.mail-list{flex:1;overflow-y:auto;}
+.mail-list{flex:1;overflow-y:auto;min-height:0;}
 .mail-list::-webkit-scrollbar{width:3px;}
 .mail-list::-webkit-scrollbar-thumb{background:var(--brdl);border-radius:3px;}
 .mail-item{padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .1s;position:relative;}
@@ -54,7 +54,7 @@
 .detail-hdr-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center;}
 
 /* Zone 2: scrollable content */
-.detail-scroll{flex:1;overflow-y:auto;padding:16px 20px;}
+.detail-scroll{flex:1;overflow-y:auto;padding:16px 20px;min-height:0;}
 .detail-scroll::-webkit-scrollbar{width:4px;}
 .detail-scroll::-webkit-scrollbar-thumb{background:var(--brdl);border-radius:4px;}
 
@@ -68,9 +68,14 @@
 .history-toggle:hover{color:var(--txt);}
 .history-toggle-icon{font-size:9px;transition:transform .15s;}
 .history-toggle.open .history-toggle-icon{transform:rotate(90deg);}
-.history-body{display:none;margin-top:8px;border-left:3px solid var(--brdl);padding:10px 12px;background:var(--card);border-radius:0 6px 6px 0;}
+.history-body{display:none;margin-top:8px;}
 .history-body.open{display:block;}
-.history-text{font-size:11.5px;color:var(--txts);white-space:pre-wrap;word-break:break-word;line-height:1.65;}
+.hist-msg{border:1px solid var(--brd);border-radius:6px;margin-top:8px;overflow:hidden;background:var(--bg);}
+.hist-msg-from{font-size:11px;font-weight:600;color:var(--txts);background:var(--card);padding:5px 12px;border-bottom:1px solid var(--brd);}
+.hist-msg-body{font-size:11.5px;color:var(--txts);white-space:pre-wrap;word-break:break-word;line-height:1.6;padding:8px 12px;max-height:100px;overflow:hidden;}
+.hist-msg-body.expanded{max-height:none;}
+.hist-msg-expand{font-size:11px;color:var(--blue);cursor:pointer;padding:3px 12px 5px;background:var(--card);border-top:1px solid var(--brd);display:block;user-select:none;}
+.hist-msg-expand:hover{background:var(--hov);}
 
 /* Attachments */
 .attach-list{display:flex;flex-direction:column;gap:5px;}
@@ -173,6 +178,7 @@ var currentIntent = '';
 var selectedId = null;
 var messages = [];
 var currentDrafts = [];
+var readIds = new Set();
 
 /* ── TIME FORMAT ────────────────────────────────────────── */
 function fmtTime(d) {
@@ -257,7 +263,7 @@ function renderList() {
     return;
   }
   list.innerHTML = messages.map(function(m) {
-    var isNew = m.status === 'pending';
+    var isNew = m.status === 'pending' && !readIds.has(m.id);
     var preview = (m.bodyText || '').replace(/\s+/g, ' ').slice(0, 80);
     return '<div class="mail-item'+(m.id===selectedId?' on':'')+'" onclick="selectMessage(\''+m.id+'\')">' +
       (isNew ? '<div class="mail-unread-dot"></div>' : '') +
@@ -287,6 +293,7 @@ async function updateFolderCounts() {
 /* ── SELECT MESSAGE ─────────────────────────────────────── */
 function selectMessage(id) {
   selectedId = id;
+  readIds.add(id);
   renderList();
   var msg = messages.find(function(m){ return m.id === id; });
   if (msg) renderDetail(msg);
@@ -310,6 +317,31 @@ function splitBody(text) {
     main:   lines.slice(0, splitAt).join('\n').trim(),
     quoted: lines.slice(splitAt).join('\n').trim()
   };
+}
+
+/* ── PARSE HISTORY INTO MESSAGE BLOCKS ─────────────────── */
+function parseHistoryBlocks(quoted) {
+  if (!quoted) return [];
+  var HEADER = /^(From:|От:|On .+ wrote:|.{0,40}\d{2}\.\d{2}\.\d{4}.{0,40}написал)/i;
+  var SEP    = /^[_\-]{5,}$/;
+  var lines  = quoted.split('\n');
+  var blocks = [], cur = null;
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (SEP.test(l)) {
+      if (cur) blocks.push(cur);
+      cur = { header: '', bodyLines: [] };
+    } else if (HEADER.test(l)) {
+      if (cur) blocks.push(cur);
+      cur = { header: l, bodyLines: [] };
+    } else if (cur) {
+      cur.bodyLines.push(lines[i]);
+    } else {
+      cur = { header: '', bodyLines: [lines[i]] };
+    }
+  }
+  if (cur && (cur.header || cur.bodyLines.some(function(ll){ return ll.trim(); }))) blocks.push(cur);
+  return blocks;
 }
 
 /* ── RENDER DETAIL ──────────────────────────────────────── */
@@ -387,15 +419,23 @@ function renderDetail(msg) {
   /* -- history block -- */
   var historyHtml = '';
   if (body.quoted) {
-    var lineCount = body.quoted.split('\n').filter(function(l){ return l.trim(); }).length;
+    var hblocks = parseHistoryBlocks(body.quoted);
+    var blocksHtml = hblocks.map(function(b, idx) {
+      var bodyText = b.bodyLines.join('\n').trim();
+      var needExpand = bodyText.split('\n').filter(function(l){ return l.trim(); }).length > 5;
+      return '<div class="hist-msg">' +
+        (b.header ? '<div class="hist-msg-from">'+ERP.esc(b.header)+'</div>' : '') +
+        '<div class="hist-msg-body" id="hb-'+idx+'">'+(bodyText ? ERP.esc(bodyText) : '')+'</div>' +
+        (needExpand ? '<span class="hist-msg-expand" onclick="toggleHistBlock('+idx+')">Показать полностью ▾</span>' : '') +
+      '</div>';
+    }).join('');
+    var msgCount = hblocks.filter(function(b){ return b.header; }).length;
     historyHtml =
       '<div class="history-toggle" id="hist-toggle" onclick="toggleHistory()">' +
         '<span class="history-toggle-icon">▶</span>' +
-        '<span>История переписки · '+lineCount+' строк</span>' +
+        '<span>История переписки' + (msgCount > 0 ? ' · ' + msgCount + ' сообщ.' : '') + '</span>' +
       '</div>' +
-      '<div class="history-body" id="hist-body">' +
-        '<div class="history-text">'+ERP.esc(body.quoted)+'</div>' +
-      '</div>';
+      '<div class="history-body" id="hist-body">' + blocksHtml + '</div>';
   }
 
   /* -- assemble panel -- */
@@ -463,6 +503,14 @@ function toggleHistory() {
   if (!toggle || !body) return;
   var open = body.classList.toggle('open');
   toggle.classList.toggle('open', open);
+}
+
+function toggleHistBlock(idx) {
+  var el  = document.getElementById('hb-' + idx);
+  var btn = el ? el.nextElementSibling : null;
+  if (!el) return;
+  el.classList.toggle('expanded');
+  if (btn) btn.textContent = el.classList.contains('expanded') ? 'Свернуть ▴' : 'Показать полностью ▾';
 }
 
 function clearReply() {
