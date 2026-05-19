@@ -431,6 +431,8 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
               <div class="absep"></div>
               <button class="abtn" onclick="resetQuote()">↺ Сбросить</button>
               <div class="absep"></div>
+              <button class="abtn" onclick="go('files')" title="Документы и чертежи по заказу">📎 Документы <span id="files-count-badge" style="display:none;background:var(--blue);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px"></span></button>
+              <div class="absep"></div>
               <input class="ai" id="new-asm-name" placeholder="Название узла (Ферма Ф-1...)" onkeydown="if(event.key==='Enter')addAsm()">
               <input class="ai-qty" id="new-asm-qty" type="number" value="1" min="1" title="Кол-во">
               <span style="font-size:10px;color:var(--txtm)">шт</span>
@@ -510,6 +512,55 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
             <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена, руб/т</th><th>С</th><th>По</th><th>Статус</th></tr></thead>
             <tbody id="prices-tbody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- === FILES PAGE === -->
+    <div class="page" id="page-files">
+      <div class="topbar">
+        <div class="bc">
+          <a href="orders.html" style="color:var(--txts);text-decoration:none">Заказы</a>
+          <span class="bc-sep">›</span>
+          <span id="bc-order-files">Заказ</span>
+          <span class="bc-sep">›</span>
+          <span class="bcc">Документы</span>
+        </div>
+        <div class="topbar-right">
+          <button class="abtn pr" onclick="triggerFileUpload()">+ Загрузить файл</button>
+          <button class="abtn" onclick="go('quote')" style="margin-left:4px">← Назад к КП</button>
+        </div>
+      </div>
+      <div class="page-content">
+        <input type="file" id="file-input" style="display:none" onchange="uploadFile(this)" accept=".pdf,.dwg,.dxf,.step,.stp,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg">
+
+        <div id="files-upload-hint" class="info-box mb-16" style="display:none">
+          Загружайте чертежи (DXF, DWG, STEP), спецификации (PDF, XLSX), фотографии и другие документы по заказу.
+        </div>
+
+        <div id="files-uploading" style="display:none;padding:12px;color:var(--txts);font-size:12px">
+          ⏳ Загрузка файла…
+        </div>
+
+        <div id="files-list-wrap">
+          <div id="files-empty" style="display:none;padding:32px;text-align:center;color:var(--txtm);font-size:13px">
+            Документы не прикреплены.<br>Нажмите «+ Загрузить файл» чтобы добавить.
+          </div>
+          <div class="card" id="files-table-wrap" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:36px"></th>
+                  <th>Название</th>
+                  <th>Тип</th>
+                  <th>Размер</th>
+                  <th>Дата</th>
+                  <th style="width:80px"></th>
+                </tr>
+              </thead>
+              <tbody id="files-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1943,6 +1994,109 @@ function _apiAsmsToSim(apiAsms) {
 document.addEventListener('click', e => {
   if (!e.target.closest('.mat-search-wrap')) document.getElementById('mat-dd').classList.remove('open');
 });
+
+// ─── FILES ────────────────────────────────────────────────────────────────────
+
+const FILE_ICONS = { PDF: '📄', DWG: '📐', DXF: '📐', STEP: '📦', IMAGE: '🖼', OTHER: '📎' };
+
+function triggerFileUpload() {
+  document.getElementById('file-input').click();
+}
+
+async function uploadFile(input) {
+  if (!input.files.length) return;
+  if (!_currentOrderId) return toast('Сначала сохраните заказ', 'error');
+  const file = input.files[0];
+  input.value = '';
+  document.getElementById('files-uploading').style.display = 'block';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', file.name);
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/files`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: fd,
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
+    toast('Файл загружен', 'success');
+    await loadFiles();
+  } catch(e) {
+    toast('Ошибка загрузки: ' + e.message, 'error');
+  } finally {
+    document.getElementById('files-uploading').style.display = 'none';
+  }
+}
+
+async function loadFiles() {
+  if (!_currentOrderId) return;
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/files`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    const files = await r.json();
+    renderFiles(files);
+  } catch(e) { /* ignore */ }
+}
+
+function renderFiles(files) {
+  const badge = document.getElementById('files-count-badge');
+  if (files.length > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = files.length;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  document.getElementById('files-empty').style.display        = files.length === 0 ? 'block' : 'none';
+  document.getElementById('files-upload-hint').style.display  = files.length === 0 ? 'block' : 'none';
+  document.getElementById('files-table-wrap').style.display   = files.length > 0   ? 'block' : 'none';
+
+  document.getElementById('files-tbody').innerHTML = files.map(f => {
+    const v    = f.version;
+    const icon = FILE_ICONS[f.fileType] || '📎';
+    const size = v ? formatFileSize(Number(v.sizeBytes)) : '—';
+    const date = f.attachedAt ? new Date(f.attachedAt).toLocaleDateString('ru-RU') : '—';
+    const url  = v ? v.storageUrl : null;
+    return `<tr>
+      <td style="text-align:center;font-size:16px">${icon}</td>
+      <td>
+        <div style="font-weight:500;font-size:12px">${esc(f.title)}</div>
+        ${f.description ? `<div style="font-size:10px;color:var(--txts)">${esc(f.description)}</div>` : ''}
+        ${v ? `<div style="font-size:10px;color:var(--txtm)">${esc(v.originalName)}</div>` : ''}
+      </td>
+      <td><span class="tg">${f.fileType}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txts)">${size}</td>
+      <td style="font-size:11px;color:var(--txts)">${date}</td>
+      <td style="text-align:right">
+        ${url ? `<a href="${url}" target="_blank" class="abtn" style="text-decoration:none;padding:2px 8px;font-size:10px">↓ Скачать</a>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Override go() to load files when navigating to files page
+const _goOrig = go;
+function go(p) {
+  _goOrig(p);
+  if (p === 'files') {
+    const el = document.getElementById('bc-order-files');
+    if (el && _currentOrderId) el.textContent = document.getElementById('bc-order').textContent || 'Заказ';
+    loadFiles();
+  }
+}
 
 // ─── KEYBOARD: login on Enter ─────────────────────────────────────────────────
 

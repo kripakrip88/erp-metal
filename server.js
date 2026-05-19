@@ -7,6 +7,7 @@ const { matchRoute }        = require('./src/utils/router')
 const { json }              = require('./src/utils/response')
 const { authenticate }      = require('./src/middleware/authenticate')
 const { startOutboxWorker } = require('./src/workers/outboxWorker')
+const { ensureUploadsDir }  = require('./src/services/storageService')
 
 const PUBLIC_PATHS = new Set(['/api/health', '/api/auth/login'])
 
@@ -33,6 +34,7 @@ const routes = [
   ...require('./src/routes/inventory'),
   ...require('./src/routes/templates'),
   ...require('./src/routes/customers'),
+  ...require('./src/routes/files'),
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
@@ -76,6 +78,18 @@ const server = http.createServer(async (req, res) => {
 
   // Serve static files first (no auth required for HTML/JS/CSS)
   if (req.method === 'GET' && !pathname.startsWith('/api/')) {
+    // Serve uploaded files from /uploads/ — auth not required (URLs are UUID-keyed)
+    if (pathname.startsWith('/uploads/')) {
+      const UPLOADS_DIR = require('./src/services/storageService').UPLOADS_DIR
+      const filePath = path.join(UPLOADS_DIR, pathname.slice('/uploads/'.length))
+      if (!filePath.startsWith(UPLOADS_DIR)) { res.writeHead(403); res.end(); return }
+      try {
+        const data = fs.readFileSync(filePath)
+        res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Cache-Control': 'private, max-age=86400' })
+        res.end(data)
+        return
+      } catch { res.writeHead(404); res.end(); return }
+    }
     if (serveStatic(req, res)) return
   }
 
@@ -98,5 +112,6 @@ const server = http.createServer(async (req, res) => {
 const PORT = process.env.PORT || 3000
 server.listen(PORT, () => {
   console.log(`МеталлПро ERP запущен на порту ${PORT}`)
+  ensureUploadsDir()
   startOutboxWorker()
 })
