@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Клиенты</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--surface:#fff;--border:#e2e5ea;--border2:#c8cdd6;--text:#1a1d23;--muted:#6b7280;--accent:#2563eb;--accent-h:#1d4ed8;--green:#16a34a;--red:#dc2626;--yellow:#d97706;--purple:#7c3aed;--orange:#c2410c;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Manrope',sans-serif;font-size:13px;background:var(--bg);color:var(--text);line-height:1.5;}
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:204px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;color:var(--accent);}
+.logo span{display:block;font-size:10px;font-weight:500;color:var(--muted);margin-top:2px;}
+nav{padding:8px;flex:1;}
+.nav-group{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 8px 4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-weight:500;font-size:12.5px;transition:all .1s;margin-bottom:1px;text-decoration:none;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:#eff6ff;color:var(--accent);font-weight:600;}
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+.main{margin-left:204px;flex:1;}
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20;}
+.topbar-title{font-weight:700;font-size:14px;}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.content{padding:20px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Manrope';font-size:12.5px;font-weight:600;transition:all .12s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent-h);}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:360px;}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px;}
+.search-input{width:100%;height:34px;padding:0 10px 0 30px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:'Manrope';font-size:13px;outline:none;transition:border-color .12s;}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.search-input::placeholder{color:var(--muted);}
+.count-label{font-size:12px;color:var(--muted);margin-left:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f8faff;}
+td{padding:9px 12px;vertical-align:middle;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.b-vip{background:#f5f3ff;color:var(--purple);}
+.b-high{background:#eff6ff;color:#1d4ed8;}
+.b-normal{background:#f0fdf4;color:#15803d;}
+.b-low{background:#f9fafb;color:var(--muted);}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty .icon{font-size:32px;margin-bottom:8px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border-radius:10px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-title{font-weight:700;font-size:15px;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px;line-height:1;border-radius:4px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);}
+input[type=text],input[type=email],input[type=tel],input[type=url],select{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-family:'Manrope';font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s,box-shadow .12s;width:100%;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;border-radius:7px;padding:12px 16px;font-size:13px;font-weight:500;z-index:1000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:340px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#15803d;}.toast.error{background:var(--red);}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">МеталлПро ERP <span>Рабочий стенд v1.0</span></div>
+  <nav>
+    <div class="nav-group">Workflow</div>
+    <a class="nav-item" href="orders.html"><span>📋</span> Журнал заказов</a>
+    <a class="nav-item" href="simulator.html"><span>🧮</span> Расчёт КП</a>
+    <div class="nav-group">CRM</div>
+    <a class="nav-item active" href="crm.html"><span>👥</span> Клиенты</a>
+    <a class="nav-item" href="email-inbox.html"><span>📧</span> Входящие письма</a>
+    <div class="nav-group">Справочники</div>
+    <a class="nav-item" href="materials.html"><span>🔩</span> Материалы</a>
+    <a class="nav-item" href="templates.html"><span>📦</span> Шаблоны</a>
+  </nav>
+  <div class="sidebar-bottom">МеталлПро ERP · v1.0</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Клиенты</div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="openCreate()">+ Новый клиент</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="controls">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search-inp" placeholder="Поиск по названию..." oninput="onSearch(this.value)">
+      </div>
+      <span class="count-label" id="crm-count"></span>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Компания</th>
+            <th>ИНН</th>
+            <th>Email</th>
+            <th>Телефон</th>
+            <th>Заказов</th>
+            <th>Приоритет</th>
+          </tr>
+        </thead>
+        <tbody id="crm-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Modal create customer -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Новый клиент</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Название компании *</label>
+        <input type="text" id="f-name" placeholder="ООО Металлконструкция">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>ИНН</label>
+          <input type="text" id="f-inn" placeholder="7700000000">
+        </div>
+        <div class="field">
+          <label>Приоритет</label>
+          <select id="f-priority">
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="VIP">VIP</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="f-email" placeholder="info@company.ru">
+        </div>
+        <div class="field">
+          <label>Телефон</label>
+          <input type="tel" id="f-phone" placeholder="+7 (999) 000-00-00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Сайт</label>
+        <input type="url" id="f-website" placeholder="https://company.ru">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveCustomer()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const TOKEN = localStorage.getItem('erp_token') || ''
+const API = ''
+let searchTimer = null
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN }
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast')
+  t.textContent = msg
+  t.className = 'toast show' + (type ? ' ' + type : '')
+  setTimeout(() => { t.className = 'toast' }, 3000)
+}
+
+function priorityBadge(p) {
+  const map = { VIP: 'b-vip', HIGH: 'b-high', NORMAL: 'b-normal', LOW: 'b-low' }
+  return `<span class="badge ${map[p] || 'b-normal'}">${p}</span>`
+}
+
+async function loadCustomers(search = '') {
+  try {
+    const url = API + '/api/customers' + (search ? '?search=' + encodeURIComponent(search) : '')
+    const r = await fetch(url, { headers: authHeaders() })
+    const data = await r.json()
+    renderTable(Array.isArray(data) ? data : [])
+  } catch (e) {
+    showToast('Ошибка загрузки', 'error')
+  }
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('crm-tbody')
+  document.getElementById('crm-count').textContent = list.length + ' клиент' + (list.length === 1 ? '' : list.length < 5 ? 'а' : 'ов')
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">👥</div>Клиентов пока нет</div></td></tr>'
+    return
+  }
+  tbody.innerHTML = list.map(c => `
+    <tr onclick="window.location.href='customer.html?id=${c.id}'">
+      <td><strong>${esc(c.name)}</strong></td>
+      <td>${esc(c.inn || '—')}</td>
+      <td>${esc(c.email || '—')}</td>
+      <td>${esc(c.phone || '—')}</td>
+      <td>${c._count?.orders ?? 0}</td>
+      <td>${priorityBadge(c.priority)}</td>
+    </tr>
+  `).join('')
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => loadCustomers(val), 300)
+}
+
+function openCreate() {
+  document.getElementById('f-name').value = ''
+  document.getElementById('f-inn').value = ''
+  document.getElementById('f-email').value = ''
+  document.getElementById('f-phone').value = ''
+  document.getElementById('f-website').value = ''
+  document.getElementById('f-priority').value = 'NORMAL'
+  document.getElementById('modal-bg').style.display = 'flex'
+  setTimeout(() => document.getElementById('f-name').focus(), 50)
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none'
+}
+
+async function saveCustomer() {
+  const name = document.getElementById('f-name').value.trim()
+  if (!name) { showToast('Введите название компании', 'error'); return }
+  const btn = document.getElementById('save-btn')
+  btn.disabled = true
+  try {
+    const r = await fetch(API + '/api/customers', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        name,
+        inn:      document.getElementById('f-inn').value.trim() || null,
+        email:    document.getElementById('f-email').value.trim() || null,
+        phone:    document.getElementById('f-phone').value.trim() || null,
+        website:  document.getElementById('f-website').value.trim() || null,
+        priority: document.getElementById('f-priority').value,
+      }),
+    })
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.error || 'Ошибка')
+    closeModal()
+    showToast('Клиент создан', 'success')
+    loadCustomers()
+  } catch (e) {
+    showToast(e.message, 'error')
+  } finally {
+    btn.disabled = false
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal() })
+loadCustomers()
+</script>
+</body>
+</html>
