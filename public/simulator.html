@@ -384,13 +384,16 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
             <div class="omt">
               <div class="om-num-wrap">
                 <input class="onum-in" id="order-num" placeholder="КП-2026-001" oninput="saveDraft()">
-                <span class="tg bl" id="order-status-tag">В работе</span>
+                <select class="tg bl" id="order-status-tag" style="cursor:pointer;font-family:var(--ff);background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--blue);font-size:9.5px;padding:2px 4px;border-radius:6px;border:1px solid;outline:none" onchange="changeOrderStatus(this.value)" title="Изменить статус заказа">
+                  <option value="">— статус —</option>
+                </select>
                 <span class="tg gr" id="order-rev-tag" style="display:none"></span>
               </div>
               <div class="om-fields">
-                <div class="om-field">
+                <div class="om-field" style="position:relative">
                   <div class="om-flbl">Клиент / Юрлицо</div>
-                  <input class="om-fin" id="order-customer" placeholder="ООО Клиент" oninput="saveDraft()">
+                  <input class="om-fin" id="order-customer" placeholder="ООО Клиент" autocomplete="off" oninput="_simAcSearch(this.value);saveDraft()">
+                  <div id="sim-ac-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brdl);border-radius:6px;z-index:300;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.4);"></div>
                 </div>
                 <div class="om-field">
                   <div class="om-flbl">Объект</div>
@@ -810,6 +813,7 @@ async function initApp() {
       document.getElementById('order-customer').value = order.customerName || '';
       document.getElementById('order-title').value = order.title || '';
       document.getElementById('bc-order').textContent = order.orderNumber || orderId;
+      _fillStatusDropdown(order.status);
       const revTag = document.getElementById('order-rev-tag');
       let draftRestored = false;
       try {
@@ -880,6 +884,28 @@ const REMS = [];
 let dbg = false, asms = [], revs = [], nA = 10, nP = 100;
 let curA = null, curEP = null, curMT = 'linear', curC = 'all', selM = null;
 let _currentOrderId = null;
+const SIM_STATUS_LABELS = {DRAFT:'Новый запрос',QUOTATION:'На рассмотрении',AWAITING_APPROVAL:'Расчёт цены',APPROVED:'КП отправлено',PRODUCTION:'В производстве',COMPLETED:'Готово',DELIVERED:'Сдан',CANCELLED:'Отменён'};
+const SIM_ALLOWED_NEXT  = {DRAFT:['QUOTATION','CANCELLED'],QUOTATION:['AWAITING_APPROVAL','DRAFT','CANCELLED'],AWAITING_APPROVAL:['APPROVED','QUOTATION','CANCELLED'],APPROVED:['PRODUCTION','QUOTATION','CANCELLED'],PRODUCTION:['COMPLETED'],COMPLETED:['DELIVERED'],DELIVERED:[],CANCELLED:[]};
+function _fillStatusDropdown(status) {
+  const sel = document.getElementById('order-status-tag');
+  if (!sel) return;
+  const next = SIM_ALLOWED_NEXT[status] || [];
+  sel.innerHTML = '<option value="'+status+'" selected>'+(SIM_STATUS_LABELS[status]||status)+'</option>' +
+    next.map(s=>'<option value="'+s+'">→ '+(SIM_STATUS_LABELS[s]||s)+'</option>').join('');
+}
+async function changeOrderStatus(newStatus) {
+  if (!_currentOrderId || !newStatus) return;
+  try {
+    const r = await fetch('/api/orders/'+_currentOrderId+'/status', {
+      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('erp_token')||'')},
+      body: JSON.stringify({status:newStatus})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error||'Ошибка');
+    _fillStatusDropdown(newStatus);
+    toast('Статус: '+(SIM_STATUS_LABELS[newStatus]||newStatus),'success');
+  } catch(e) { toast(e.message,'error'); }
+}
 let COATINGS_CATALOG = [];
 let _asmCoatings = {};       // localAsmId → [{id,coatingMaterialId,...}]
 let _asmSections = {};       // localAsmId → {mat:bool, fas:bool, lkm:bool}
@@ -887,6 +913,39 @@ let _curPartCategory = 'MATERIAL';
 let _lkmCurAsm = null, _lkmCurId = null;
 let _rpTab = 'nodes';        // 'nodes' | 'profile' | 'revs' | 'files'
 let _rpFiles = [];
+let _simAcTimer = null;
+let _simCustomerId = null;
+function _simAcSearch(q) {
+  clearTimeout(_simAcTimer);
+  const dd = document.getElementById('sim-ac-dd');
+  if (!dd || !q || q.length < 1) { if(dd) dd.style.display='none'; return; }
+  _simAcTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/customers?search='+encodeURIComponent(q),{headers:{Authorization:'Bearer '+(localStorage.getItem('erp_token')||'')}});
+      const list = await r.json();
+      if (!Array.isArray(list)||!list.length){dd.style.display='none';return;}
+      dd.innerHTML = list.slice(0,6).map(c=>`<div style="padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600" onmousedown="event.preventDefault();_simAcPick('${c.id}','${(c.name||'').replace(/'/g,'\\\'')}')">${c.name}</div>`).join('');
+      dd.style.display='block';
+    } catch(_){dd.style.display='none';}
+  }, 200);
+}
+function _simAcPick(id, name) {
+  _simCustomerId = id;
+  const inp = document.getElementById('order-customer');
+  if(inp) inp.value = name;
+  const dd = document.getElementById('sim-ac-dd');
+  if(dd) dd.style.display='none';
+  // Link customer to order if order is already saved
+  if (_currentOrderId) {
+    fetch('/api/orders/'+_currentOrderId,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('erp_token')||'')},body:JSON.stringify({customerId:id,customerName:name})}).catch(()=>{});
+  }
+  saveDraft();
+}
+document.addEventListener('click', function(e){
+  const dd=document.getElementById('sim-ac-dd');
+  const inp=document.getElementById('order-customer');
+  if(dd&&!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+});
 const DRAFT_KEY = 'erp_draft';
 let _draftTimer = null;
 

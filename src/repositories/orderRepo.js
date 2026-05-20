@@ -40,4 +40,12 @@ async function create(data) {
   return prisma.order.create({ data })
 }
 
-module.exports = { findAll, findById, findWithParts, create }
+async function update(id, data) {
+  return prisma.order.update({ where: { id }, data })
+}
+
+async function softDelete(id) {
+  return prisma.order.update({ where: { id }, data: { deletedAt: new Date() } })
+}
+
+module.exports = { findAll, findById, findWithParts, create, update, softDelete }

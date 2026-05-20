@@ -32,12 +32,28 @@ async function createOrder(data, context) {
     resolvedCompanyId = company.id
   }
   const createdById = actorId || (await prisma.user.findFirst({ where: { companyId: resolvedCompanyId }, select: { id: true } }))?.id || resolvedCompanyId
+
+  // Auto-generate sequential order number if not provided
+  let orderNumber = data.orderNumber
+  if (!orderNumber) {
+    const count = await prisma.order.count({ where: { companyId: resolvedCompanyId } })
+    orderNumber = String(count + 1).padStart(4, '0')
+  }
+
+  // Resolve customerName from customerId if not explicitly provided
+  let customerName = data.customerName || ''
+  if (data.customerId && !customerName) {
+    const customer = await prisma.customer.findUnique({ where: { id: data.customerId }, select: { name: true } })
+    if (customer) customerName = customer.name
+  }
+
   return orderRepo.create({
     companyId:    resolvedCompanyId,
     createdById,
-    orderNumber:  data.orderNumber,
-    customerName: data.customerName,
-    title:        data.title,
+    orderNumber,
+    customerName,
+    customerId:   data.customerId || null,
+    title:        data.title || null,
     description:  data.description || null,
     status:       'DRAFT',
     mode:         data.mode || 'STANDARD',
