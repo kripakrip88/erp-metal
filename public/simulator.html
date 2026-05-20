@@ -1028,7 +1028,7 @@ async function loadMats() {
       const kgm2 = geo.weightPerSquareMeter ? parseFloat(geo.weightPerSquareMeter) : null;
       const pm = geo.paintSurfacePerMeter ? parseFloat(geo.paintSurfacePerMeter) : null;
       const stdLen = prof[0]?.standardLength ? [parseFloat(prof[0].standardLength) * 1000] : null;
-      return { id: m.id, cat, code: m.code, name: m.name, kgm, kgm2, pm, sl: stdLen, sf: null, gost: m.standard || '', steelGrade: m.steelGrade || null, mtype: geo.measurementType || 'LINEAR', unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null };
+      return { id: m.id, cat, code: m.code, name: m.name, kgm, kgm2, pm, sl: stdLen, sf: null, gost: m.standard || '', steelGrade: m.steelGrade || null, mtype: geo.measurementType || 'LINEAR', unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null, domain: m.materialDomain || 'STRUCTURAL' };
     });
     PRICES = [];
     for (const m of matsData) {
@@ -1181,8 +1181,8 @@ function doAsmSearch(inp, asmId, category) {
   const dd = document.getElementById(ddId);
   if (!dd) return;
   let ms = MATS;
-  if (category === 'FASTENER') ms = ms.filter(m => m.mtype === 'PIECE');
-  else ms = ms.filter(m => m.kgm != null || m.kgm2 != null);
+  if (category === 'FASTENER') ms = ms.filter(m => m.domain === 'FASTENER' || (m.domain === 'STRUCTURAL' && m.mtype === 'PIECE'));
+  else ms = ms.filter(m => m.domain !== 'FASTENER' && (m.kgm != null || m.kgm2 != null));
   if (q) ms = ms.filter(m => m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q));
   if (!ms.length) {
     dd.innerHTML = `<div class="sd-empty">Ничего не найдено</div>`;
@@ -1463,8 +1463,10 @@ function renderLKMTab(a) {
     const { cKg, cL, tKg, tCost } = calcLKMRow(layer, mat, areaM2);
     const typeCls = { PRIMER: 'lkm-primer', BASE_COAT: 'lkm-base', TOPCOAT: 'lkm-top', CLEAR: 'lkm-clear', OTHER: 'lkm-other' }[mat.coatingType] || 'lkm-other';
     const typeLabel = { PRIMER: 'Грунт', BASE_COAT: 'Пром.', TOPCOAT: 'Финиш', CLEAR: 'Лак', OTHER: 'Прочее' }[mat.coatingType] || mat.coatingType;
-    rows += `<tr>
-      <td><span class="lkm-type-badge ${typeCls}">${typeLabel}</span></td>
+    rows += `<tr draggable="true" data-partid="${layer.id}" data-asmid="${a.id}" data-lkm="1"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="lkmDrop(event)" ondragend="rowDragEnd(event)">
+      <td><span class="drag-handle">⠿</span><span class="lkm-type-badge ${typeCls}">${typeLabel}</span></td>
       <td><span class="mc">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
       <td>${layer.autoAreaLink ? `<span class="chip-p">${autoArea.toFixed(2)} м² <span class="text-xs" style="opacity:.6">авто</span></span>` : `<span class="chip-p">${Number(layer.manualAreaM2 || 0).toFixed(2)} м² <span class="text-xs" style="opacity:.6">ручн</span></span>`}</td>
       <td class="mv">${layer.selectedDftMkm ?? mat.referenceDftMkm} мкм</td>
@@ -2158,14 +2160,12 @@ async function rowDrop(e) {
   const tbody = _dragSrcRow.closest('tbody');
   if (!tbody || tgt.closest('tbody') !== tbody) return;
 
-  // Move row in DOM immediately for instant feedback
   if (above) tgt.before(_dragSrcRow);
   else tgt.after(_dragSrcRow);
 
   const asmId = _dragSrcRow.dataset.asmid;
   const ids = [...tbody.querySelectorAll('tr[data-partid]')].map(r => r.dataset.partid);
 
-  // Optimistically update local part positions
   const asm = asms.find(a => a.id === asmId);
   if (asm) ids.forEach((id, idx) => { const p = asm.parts.find(p => p.id === id); if (p) p.position = idx; });
 
@@ -2179,7 +2179,42 @@ async function rowDrop(e) {
     if (!r.ok) throw new Error('Ошибка сохранения');
   } catch(ex) {
     toast(ex.message, 'error');
-    renderAsms(); // restore from local state on failure
+    renderAsms();
+  }
+}
+
+async function lkmDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  const above = tgt.classList.contains('drag-above');
+  tgt.classList.remove('drag-above', 'drag-below');
+  if (!_dragSrcRow || tgt === _dragSrcRow) return;
+  const tbody = _dragSrcRow.closest('tbody');
+  if (!tbody || tgt.closest('tbody') !== tbody) return;
+
+  if (above) tgt.before(_dragSrcRow);
+  else tgt.after(_dragSrcRow);
+
+  const asmId = _dragSrcRow.dataset.asmid;
+  const ids = [...tbody.querySelectorAll('tr[data-partid]')].map(r => r.dataset.partid);
+
+  // Update local _asmCoatings order
+  if (_asmCoatings[asmId]) {
+    const reordered = ids.map(id => _asmCoatings[asmId].find(c => c.id === id)).filter(Boolean);
+    _asmCoatings[asmId] = reordered;
+  }
+
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/assemblies/${asmId}/coatings/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ ids }),
+    });
+    if (!r.ok) throw new Error('Ошибка сохранения');
+  } catch(ex) {
+    toast(ex.message, 'error');
+    renderAsms();
   }
 }
 

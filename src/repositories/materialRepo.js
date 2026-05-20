@@ -28,7 +28,7 @@ async function findById(id) {
   })
 }
 
-async function create({ companyId, code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function create({ companyId, code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const geo = await tx.materialGeometry.create({
       data: {
@@ -42,6 +42,7 @@ async function create({ companyId, code, name, materialType, profileType, steelG
     return tx.materialDefinition.create({
       data: {
         companyId, code, name, materialType, profileType,
+        materialDomain: materialDomain ?? 'STRUCTURAL',
         steelGrade: steelGrade ?? null,
         categoryId: categoryId ?? null,
         standard:   standard   ?? null,
@@ -53,7 +54,7 @@ async function create({ companyId, code, name, materialType, profileType, steelG
   })
 }
 
-async function update(id, { code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function update(id, { code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const mat = await tx.materialDefinition.findUnique({ where: { id }, select: { geometryId: true } })
     if (!mat) throw new Error('Material not found')
@@ -73,6 +74,7 @@ async function update(id, { code, name, materialType, profileType, steelGrade, c
       where: { id },
       data: {
         code, name, materialType, profileType,
+        materialDomain: materialDomain ?? undefined,
         steelGrade: steelGrade ?? null,
         categoryId: categoryId ?? null,
         standard:   standard   ?? null,

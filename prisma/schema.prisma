@@ -24,6 +24,7 @@ enum ProfileType {
   PLATE
   FLAT_BAR
   ROUND_BAR
+  FASTENER
 }
 
 enum CurrencyCode {

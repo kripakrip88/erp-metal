@@ -75,56 +75,75 @@
       </div>
       <div class="field"><label>Название *</label><input type="text" id="f-name" placeholder="Труба профильная 100×100×5"></div>
 
-      <div class="section-sep">Классификация</div>
-      <div class="grid2">
-        <div class="field">
-          <label>Тип профиля *</label>
-          <select id="f-profile">
-            <option value="">— выберите —</option>
-            <option value="RECTANGULAR_TUBE">Труба профильная</option>
-            <option value="ROUND_TUBE">Труба круглая</option>
-            <option value="ANGLE">Уголок</option>
-            <option value="CHANNEL">Швеллер</option>
-            <option value="BEAM">Балка</option>
-            <option value="SHEET">Лист</option>
-            <option value="PLATE">Плита</option>
-            <option value="FLAT_BAR">Полоса</option>
-            <option value="ROUND_BAR">Круг</option>
-          </select>
+      <!-- Structural-only fields (hidden for fasteners) -->
+      <div id="struct-fields">
+        <div class="section-sep">Классификация</div>
+        <div class="grid2">
+          <div class="field">
+            <label>Тип профиля *</label>
+            <select id="f-profile">
+              <option value="">— выберите —</option>
+              <option value="RECTANGULAR_TUBE">Труба профильная</option>
+              <option value="ROUND_TUBE">Труба круглая</option>
+              <option value="ANGLE">Уголок</option>
+              <option value="CHANNEL">Швеллер</option>
+              <option value="BEAM">Балка</option>
+              <option value="SHEET">Лист</option>
+              <option value="PLATE">Плита</option>
+              <option value="FLAT_BAR">Полоса</option>
+              <option value="ROUND_BAR">Круг</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Тип материала *</label>
+            <select id="f-mattype">
+              <option value="STEEL">Сталь</option>
+              <option value="STAINLESS">Нержавеющая</option>
+              <option value="ALUMINUM">Алюминий</option>
+              <option value="GALVANIZED">Оцинкованная</option>
+            </select>
+          </div>
         </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Марка стали</label>
+            <select id="f-grade">
+              <option value="">— не указана —</option>
+              <option value="S235">S235</option><option value="S245">S245</option>
+              <option value="S345">S345</option><option value="S355">S355</option>
+              <option value="S09G2S">09Г2С</option><option value="AISI304">AISI 304</option>
+              <option value="AISI316">AISI 316</option><option value="OTHER">Другая</option>
+            </select>
+          </div>
+          <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard" placeholder="ГОСТ 8639-82"></div>
+        </div>
+        <div class="section-sep">Параметры измерения</div>
         <div class="field">
-          <label>Тип материала *</label>
-          <select id="f-mattype">
-            <option value="STEEL">Сталь (STEEL)</option>
-            <option value="STAINLESS">Нержавеющая (STAINLESS)</option>
-            <option value="ALUMINUM">Алюминий (ALUMINUM)</option>
-            <option value="GALVANIZED">Оцинкованная (GALVANIZED)</option>
+          <label>Единица измерения *</label>
+          <select id="f-mtype" onchange="onMtypeChange()">
+            <option value="LINEAR">LINEAR — погонные метры</option>
+            <option value="AREA">AREA — площадь (листы)</option>
+            <option value="PIECE">PIECE — штучные</option>
           </select>
+          <div id="f-mtype-ro" class="mtype-ro" style="display:none"></div>
         </div>
       </div>
-      <div class="grid2">
+      <!-- Fastener-only fields -->
+      <div id="fastener-fields" style="display:none">
+        <div class="section-sep">Параметры метиза</div>
+        <div class="grid2">
+          <div class="field"><label>Вес, кг/шт *</label><input type="number" id="f-unitkg-f" placeholder="0.0320" step="0.0001" min="0"></div>
+          <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard-f" placeholder="ГОСТ 7798-70 (болт М8)"></div>
+        </div>
         <div class="field">
-          <label>Марка стали</label>
-          <select id="f-grade">
-            <option value="">— не указана —</option>
-            <option value="S235">S235</option><option value="S245">S245</option>
-            <option value="S345">S345</option><option value="S355">S355</option>
-            <option value="S09G2S">09Г2С</option><option value="AISI304">AISI 304</option>
-            <option value="AISI316">AISI 316</option><option value="OTHER">Другая</option>
+          <label>Единица учёта</label>
+          <select id="f-pieceunit-f">
+            <option value="pcs">шт — штука</option>
+            <option value="set">компл. — комплект</option>
+            <option value="pack">упак. — упаковка</option>
+            <option value="pair">пара</option>
           </select>
         </div>
-        <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard" placeholder="ГОСТ 8639-82"></div>
-      </div>
-
-      <div class="section-sep">Параметры измерения</div>
-      <div class="field">
-        <label>Единица измерения *</label>
-        <select id="f-mtype" onchange="onMtypeChange()">
-          <option value="LINEAR">LINEAR — погонные метры</option>
-          <option value="AREA">AREA — площадь (листы)</option>
-          <option value="PIECE">PIECE — штучные</option>
-        </select>
-        <div id="f-mtype-ro" class="mtype-ro" style="display:none"></div>
       </div>
       <div class="geo-section" id="fields-linear">
         <div class="grid2">
@@ -163,7 +182,15 @@ ERP.init('materials');
 var PROFILE_LABELS = {
   RECTANGULAR_TUBE:'Труба пр.',ROUND_TUBE:'Труба кр.',ANGLE:'Уголок',
   CHANNEL:'Швеллер',BEAM:'Балка',SHEET:'Лист',PLATE:'Плита',FLAT_BAR:'Полоса',ROUND_BAR:'Круг',
+  FASTENER:'Метиз',
 };
+
+function isFastenerMode() { return curDomain === 'FASTENER'; }
+
+function setFastenerFormMode(enabled) {
+  document.getElementById('struct-fields').style.display   = enabled ? 'none' : '';
+  document.getElementById('fastener-fields').style.display = enabled ? ''     : 'none';
+}
 
 var materials = [], categories = [], curCatId = '', curDomain = '', editingId = null, searchTimer = null;
 
@@ -276,9 +303,10 @@ function populateCategorySelect() {
 
 function openCreate() {
   editingId = null;
-  document.getElementById('modal-title').textContent = 'Создать материал';
+  document.getElementById('modal-title').textContent = isFastenerMode() ? 'Добавить метиз' : 'Создать материал';
   resetForm();
   populateCategorySelect();
+  setFastenerFormMode(isFastenerMode());
   document.getElementById('f-mtype').style.display = '';
   document.getElementById('f-mtype-ro').style.display = 'none';
   document.getElementById('modal-bg').style.display = 'flex';
@@ -303,20 +331,28 @@ async function openEdit(id) {
 
 function fillForm(m) {
   var geo = m.geometry || {};
+  var isFastener = m.materialDomain === 'FASTENER';
+  setFastenerFormMode(isFastener);
   document.getElementById('f-code').value     = m.code||'';
   document.getElementById('f-name').value     = m.name||'';
   document.getElementById('f-category').value = m.categoryId||'';
-  document.getElementById('f-profile').value  = m.profileType||'';
-  document.getElementById('f-mattype').value  = m.materialType||'STEEL';
-  document.getElementById('f-grade').value    = m.steelGrade||'';
-  document.getElementById('f-standard').value = m.standard||'';
-  document.getElementById('f-mtype').value    = geo.measurementType||'LINEAR';
-  document.getElementById('f-kgm').value      = geo.theoreticalWeightPerMeter||'';
-  document.getElementById('f-paint').value    = geo.paintSurfacePerMeter||'';
-  document.getElementById('f-kgm2').value     = geo.weightPerSquareMeter||'';
-  document.getElementById('f-unitkg').value   = geo.unitWeightKg||'';
-  document.getElementById('f-pieceunit').value= m.pieceUnit||'pcs';
-  onMtypeChange();
+  if (!isFastener) {
+    document.getElementById('f-profile').value  = m.profileType||'';
+    document.getElementById('f-mattype').value  = m.materialType||'STEEL';
+    document.getElementById('f-grade').value    = m.steelGrade||'';
+    document.getElementById('f-standard').value = m.standard||'';
+    document.getElementById('f-mtype').value    = geo.measurementType||'LINEAR';
+    document.getElementById('f-kgm').value      = geo.theoreticalWeightPerMeter||'';
+    document.getElementById('f-paint').value    = geo.paintSurfacePerMeter||'';
+    document.getElementById('f-kgm2').value     = geo.weightPerSquareMeter||'';
+    document.getElementById('f-unitkg').value   = geo.unitWeightKg||'';
+    document.getElementById('f-pieceunit').value= m.pieceUnit||'pcs';
+    onMtypeChange();
+  } else {
+    document.getElementById('f-unitkg-f').value   = geo.unitWeightKg||'';
+    document.getElementById('f-standard-f').value = m.standard||'';
+    document.getElementById('f-pieceunit-f').value = m.pieceUnit||'pcs';
+  }
 }
 
 function resetForm() {
@@ -346,21 +382,35 @@ function closeModal() {
 async function submitForm() {
   var code = document.getElementById('f-code').value.trim();
   var name = document.getElementById('f-name').value.trim();
-  var profileType = document.getElementById('f-profile').value;
-  var materialType = document.getElementById('f-mattype').value;
-  var measurementType = document.getElementById('f-mtype').value;
-  if (!code||!name||!profileType||!materialType||!measurementType) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
-  var body = {
-    code,name,profileType,materialType,measurementType,
-    categoryId:document.getElementById('f-category').value||null,
-    steelGrade:document.getElementById('f-grade').value||null,
-    standard:document.getElementById('f-standard').value||null,
-    theoreticalWeightPerMeter:document.getElementById('f-kgm').value||null,
-    paintSurfacePerMeter:document.getElementById('f-paint').value||null,
-    weightPerSquareMeter:document.getElementById('f-kgm2').value||null,
-    unitWeightKg:document.getElementById('f-unitkg').value||null,
-    pieceUnit:document.getElementById('f-pieceunit').value||null,
-  };
+  if (!code || !name) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
+  var body;
+  if (isFastenerMode()) {
+    body = {
+      code, name,
+      materialDomain: 'FASTENER',
+      categoryId:  document.getElementById('f-category').value || null,
+      unitWeightKg:document.getElementById('f-unitkg-f').value || null,
+      standard:    document.getElementById('f-standard-f').value || null,
+      pieceUnit:   document.getElementById('f-pieceunit-f').value || 'pcs',
+    };
+  } else {
+    var profileType     = document.getElementById('f-profile').value;
+    var materialType    = document.getElementById('f-mattype').value;
+    var measurementType = document.getElementById('f-mtype').value;
+    if (!profileType||!materialType||!measurementType) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
+    body = {
+      code, name, profileType, materialType, measurementType,
+      materialDomain: 'STRUCTURAL',
+      categoryId:   document.getElementById('f-category').value||null,
+      steelGrade:   document.getElementById('f-grade').value||null,
+      standard:     document.getElementById('f-standard').value||null,
+      theoreticalWeightPerMeter: document.getElementById('f-kgm').value||null,
+      paintSurfacePerMeter:      document.getElementById('f-paint').value||null,
+      weightPerSquareMeter:      document.getElementById('f-kgm2').value||null,
+      unitWeightKg:              document.getElementById('f-unitkg').value||null,
+      pieceUnit:                 document.getElementById('f-pieceunit').value||null,
+    };
+  }
   var btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = 'Сохранение...';
   try {
