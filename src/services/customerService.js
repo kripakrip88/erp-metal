@@ -18,15 +18,10 @@ async function listCustomers({ search, email } = {}) {
 }
 
 async function getCustomer(id) {
-  return prisma.customer.findFirst({
+  const customer = await prisma.customer.findFirst({
     where: { id, deletedAt: null },
     include: {
       contacts: true,
-      orders: {
-        take: 20,
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, orderNumber: true, title: true, status: true, createdAt: true },
-      },
       interactions: {
         take: 20,
         orderBy: { createdAt: 'desc' },
@@ -37,6 +32,23 @@ async function getCustomer(id) {
       },
     },
   })
+  if (!customer) return null
+
+  // Include orders linked by FK *or* matching by name (for phone-created orders without customerId)
+  const orders = await prisma.order.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { customerId: id },
+        { customerId: null, customerName: { equals: customer.name, mode: 'insensitive' } },
+      ],
+    },
+    take: 30,
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, orderNumber: true, title: true, status: true, createdAt: true, customerId: true },
+  })
+
+  return { ...customer, orders }
 }
 
 async function createCustomer(data) {

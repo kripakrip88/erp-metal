@@ -19,9 +19,15 @@
 .filter-sel{height:34px;padding:0 8px;background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--txts);font-family:var(--ff);font-size:12.5px;outline:none;cursor:pointer;width:auto;}
 .filter-sel:focus{border-color:var(--blue);}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
-thead th.sortable{cursor:pointer;user-select:none;}
+thead th{position:relative;white-space:nowrap;user-select:none;}
+thead th.sortable{cursor:pointer;}
 thead th.sortable:hover{color:var(--txt);}
 thead th.sort-on{color:var(--blue);}
+/* Column resize handle */
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;}
+.col-resizer:hover,.col-resizer.dragging{background:var(--blue);opacity:.5;}
+/* Order number readability */
+.order-num-cell{font-family:var(--ffm);font-size:13px;font-weight:700;color:var(--blue);letter-spacing:.5px;padding:0 4px;background:rgba(59,130,246,.06);border-radius:4px;display:inline-block;}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
 .detail-field{background:var(--card);border-radius:6px;padding:10px 12px;}
 .detail-field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:3px;}
@@ -42,7 +48,7 @@ thead th.sort-on{color:var(--blue);}
 .ac-sub{font-size:10.5px;color:var(--txts);}
 .ac-new{color:var(--blue);font-style:italic;}
 /* Status select in detail */
-.status-sel{background:var(--card);border:1px solid var(--brd);border-radius:5px;color:var(--txt);font-family:var(--ff);font-size:12.5px;padding:4px 8px;outline:none;width:100%;cursor:pointer;}
+.status-sel{background:var(--card);border:1px solid var(--brd);border-radius:5px;color:var(--txt);font-family:var(--ff);font-size:12px;padding:3px 6px;outline:none;cursor:pointer;max-width:220px;}
 .status-sel:focus{border-color:var(--blue);}
 .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);}
 .btn-danger:hover{background:rgba(239,68,68,.1);}
@@ -79,15 +85,23 @@ thead th.sort-on{color:var(--blue);}
         <span class="count-lbl" id="count-lbl"></span>
       </div>
       <div class="card">
-        <table>
+        <table id="orders-table" style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col id="col-num"    style="width:130px">
+            <col id="col-client" style="width:200px">
+            <col id="col-obj"    style="width:auto">
+            <col id="col-revs"   style="width:80px">
+            <col id="col-date"   style="width:110px">
+            <col id="col-status" style="width:160px">
+          </colgroup>
           <thead>
             <tr>
-              <th class="sortable" onclick="setSort('num')">№ заказа <span id="si-num"></span></th>
-              <th>Заказчик</th>
-              <th>Объект</th>
-              <th>Ревизии</th>
-              <th class="sortable" onclick="setSort('date')">Дата <span id="si-date"></span></th>
-              <th>Статус</th>
+              <th class="sortable" onclick="setSort('num')" data-col="col-num">№ заказа <span id="si-num"></span><div class="col-resizer" onmousedown="startResize(event,'col-num')"></div></th>
+              <th data-col="col-client">Заказчик<div class="col-resizer" onmousedown="startResize(event,'col-client')"></div></th>
+              <th data-col="col-obj">Объект<div class="col-resizer" onmousedown="startResize(event,'col-obj')"></div></th>
+              <th data-col="col-revs">Рев.<div class="col-resizer" onmousedown="startResize(event,'col-revs')"></div></th>
+              <th class="sortable" onclick="setSort('date')" data-col="col-date">Дата <span id="si-date"></span><div class="col-resizer" onmousedown="startResize(event,'col-date')"></div></th>
+              <th data-col="col-status">Статус</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -186,7 +200,7 @@ function render() {
       CANCELLED:'<span class="badge b-cancelled">Отменён</span>',
     }[o.status] || '<span class="badge b-draft">'+ERP.esc(o.status)+'</span>';
     return '<tr class="clickable" onclick="openDetail(\''+o.id+'\')">' +
-      '<td><span class="mono" style="color:var(--blue);font-weight:700">'+ERP.esc(o.orderNumber||'—')+'</span></td>' +
+      '<td><span class="order-num-cell">'+ERP.esc(o.orderNumber||'—')+'</span></td>' +
       '<td><span style="font-weight:600">'+ERP.esc(o.customerName||'—')+'</span></td>' +
       '<td style="color:var(--txts)">'+ERP.esc(o.title||'—')+'</td>' +
       '<td><span class="mono" style="color:var(--txts)">'+(o._count&&o._count.revisions||0)+' рев.</span></td>' +
@@ -370,7 +384,43 @@ function closeModal() {
 function handleBgClick(e) { if (e.target === document.getElementById('modal-bg')) closeModal(); }
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 
+/* ── Column resize ─────────────────────────────────────────────────────────── */
+var _rszCol = null, _rszX0 = 0, _rszW0 = 0;
+function startResize(e, colId) {
+  e.stopPropagation(); e.preventDefault();
+  _rszCol = document.getElementById(colId);
+  _rszX0  = e.clientX;
+  _rszW0  = _rszCol.offsetWidth;
+  e.target.classList.add('dragging');
+  var el = e.target;
+  function onMove(ev) {
+    var w = Math.max(60, _rszW0 + ev.clientX - _rszX0);
+    _rszCol.style.width = w + 'px';
+  }
+  function onUp() {
+    el.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    saveColWidths();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+function saveColWidths() {
+  var cols = ['col-num','col-client','col-obj','col-revs','col-date','col-status'];
+  var w = {};
+  cols.forEach(function(id){ var el=document.getElementById(id); if(el) w[id]=el.style.width; });
+  localStorage.setItem('erp_orders_cols', JSON.stringify(w));
+}
+function loadColWidths() {
+  try {
+    var w = JSON.parse(localStorage.getItem('erp_orders_cols')||'{}');
+    Object.keys(w).forEach(function(id){ var el=document.getElementById(id); if(el&&w[id]) el.style.width=w[id]; });
+  } catch(_) {}
+}
+
 async function init() {
+  loadColWidths();
   document.getElementById('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--txts);padding:28px">Загрузка заказов...</td></tr>';
   try { await ERPStore.loadOrders(); }
   catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
