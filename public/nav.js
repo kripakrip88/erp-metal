@@ -153,6 +153,7 @@
       { id: 'simulator', href: 'simulator.html',    ico: '◈',  label: 'Расчёт КП' },
     ]},
     { group: 'CRM', items: [
+      { id: 'pipeline',  href: 'pipeline.html',     ico: '⬛',  label: 'Pipeline' },
       { id: 'crm',       href: 'crm.html',          ico: '◉',  label: 'Клиенты' },
       { id: 'email',     href: 'email-inbox.html',  ico: '✉',  label: 'Входящие' },
     ]},
