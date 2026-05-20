@@ -28,7 +28,7 @@ async function findById(id) {
   })
 }
 
-async function create({ companyId, code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function create({ companyId, code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, strengthClass, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const geo = await tx.materialGeometry.create({
       data: {
@@ -45,16 +45,17 @@ async function create({ companyId, code, name, materialType, profileType, materi
         materialDomain: materialDomain ?? 'STRUCTURAL',
         steelGrade: steelGrade ?? null,
         categoryId: categoryId ?? null,
-        standard:   standard   ?? null,
-        pieceUnit:  pieceUnit  ?? null,
-        geometryId: geo.id,
+        standard:      standard      ?? null,
+        strengthClass: strengthClass ?? null,
+        pieceUnit:     pieceUnit     ?? null,
+        geometryId:    geo.id,
       },
       include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
     })
   })
 }
 
-async function update(id, { code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function update(id, { code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, strengthClass, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const mat = await tx.materialDefinition.findUnique({ where: { id }, select: { geometryId: true } })
     if (!mat) throw new Error('Material not found')
@@ -75,10 +76,11 @@ async function update(id, { code, name, materialType, profileType, materialDomai
       data: {
         code, name, materialType, profileType,
         materialDomain: materialDomain ?? undefined,
-        steelGrade: steelGrade ?? null,
-        categoryId: categoryId ?? null,
-        standard:   standard   ?? null,
-        pieceUnit:  pieceUnit  ?? null,
+        steelGrade:    steelGrade    ?? null,
+        categoryId:    categoryId    ?? null,
+        standard:      standard      ?? null,
+        strengthClass: strengthClass ?? null,
+        pieceUnit:     pieceUnit     ?? null,
       },
       include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
     })

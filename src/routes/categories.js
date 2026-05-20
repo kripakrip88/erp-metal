@@ -1,19 +1,15 @@
 const { json }       = require('../utils/response')
 const { parseBody }  = require('../utils/parseBody')
-const {
-  listCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} = require('../services/categoryService')
+const { listCategories, createCategory, updateCategory, deleteCategory } = require('../services/categoryService')
 
 module.exports = [
   {
     method: 'GET',
     pathname: '/api/material-categories',
     handler: async (req, res) => {
-      const data = await listCategories()
-      json(res, data)
+      const q = new URL(req.url, 'http://x').searchParams
+      const domain = q.get('domain') || undefined
+      json(res, await listCategories({ domain }))
     },
   },
   {
@@ -22,8 +18,7 @@ module.exports = [
     handler: async (req, res) => {
       const body = await parseBody(req)
       if (!body.slug || !body.name) return json(res, { error: 'slug and name are required' }, 400)
-      const data = await createCategory(body)
-      json(res, data, 201)
+      json(res, await createCategory(body), 201)
     },
   },
   {
@@ -31,8 +26,7 @@ module.exports = [
     pathname: '/api/material-categories/:id',
     handler: async (req, res, params) => {
       const body = await parseBody(req)
-      const data = await updateCategory(params.id, body)
-      json(res, data)
+      json(res, await updateCategory(params.id, body))
     },
   },
   {

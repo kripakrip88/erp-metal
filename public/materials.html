@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>МеталлПро ERP — Материалы</title>
+<title>МеталлПро ERP — Металлопрокат</title>
 <script src="nav.js"></script>
 <style>
 .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
@@ -11,14 +11,12 @@
 .ctrl-search input{padding-left:30px;}
 .ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
-.domain-tabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid var(--brd);padding-bottom:0;}
-.dtab{padding:7px 16px;font-size:12.5px;font-weight:500;color:var(--txts);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;user-select:none;}
-.dtab:hover{color:var(--txt);}
-.dtab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
 .filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
 .geo-section{display:none;}
 .geo-section.visible{display:block;}
 .mtype-ro{border:1px solid var(--brd);border-radius:6px;padding:7px 10px;background:var(--bg);color:var(--txts);font-size:13px;}
+.cat-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--brd);}
+.cat-row:last-child{border-bottom:none;}
 </style>
 </head>
 <body>
@@ -26,18 +24,13 @@
   <aside class="sb" id="erp-nav"></aside>
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title">Материалы</div>
+      <div class="topbar-title">Металлопрокат</div>
       <div class="topbar-right">
-        <button class="btn btn-primary" onclick="openCreate()">+ Создать материал</button>
+        <button class="btn btn-secondary" onclick="openCatsModal()">⚙ Категории</button>
+        <button class="btn btn-primary" onclick="openCreate()">+ Создать</button>
       </div>
     </div>
     <div class="content">
-      <div class="domain-tabs">
-        <div class="dtab on" onclick="setDomain('',this)">Все</div>
-        <div class="dtab" onclick="setDomain('STRUCTURAL',this)">⬡ Металлопрокат</div>
-        <div class="dtab" onclick="setDomain('FASTENER',this)">🔩 Метизы</div>
-        <div class="dtab" onclick="setDomain('PAINT,COATING',this)">🎨 ЛКМ</div>
-      </div>
       <div class="controls">
         <div class="ctrl-search">
           <span class="ico">🔍</span>
@@ -58,6 +51,7 @@
   </div>
 </div>
 
+<!-- Material form modal -->
 <div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal" style="max-width:560px">
     <div class="modal-header">
@@ -75,75 +69,55 @@
       </div>
       <div class="field"><label>Название *</label><input type="text" id="f-name" placeholder="Труба профильная 100×100×5"></div>
 
-      <!-- Structural-only fields (hidden for fasteners) -->
-      <div id="struct-fields">
-        <div class="section-sep">Классификация</div>
-        <div class="grid2">
-          <div class="field">
-            <label>Тип профиля *</label>
-            <select id="f-profile">
-              <option value="">— выберите —</option>
-              <option value="RECTANGULAR_TUBE">Труба профильная</option>
-              <option value="ROUND_TUBE">Труба круглая</option>
-              <option value="ANGLE">Уголок</option>
-              <option value="CHANNEL">Швеллер</option>
-              <option value="BEAM">Балка</option>
-              <option value="SHEET">Лист</option>
-              <option value="PLATE">Плита</option>
-              <option value="FLAT_BAR">Полоса</option>
-              <option value="ROUND_BAR">Круг</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Тип материала *</label>
-            <select id="f-mattype">
-              <option value="STEEL">Сталь</option>
-              <option value="STAINLESS">Нержавеющая</option>
-              <option value="ALUMINUM">Алюминий</option>
-              <option value="GALVANIZED">Оцинкованная</option>
-            </select>
-          </div>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label>Марка стали</label>
-            <select id="f-grade">
-              <option value="">— не указана —</option>
-              <option value="S235">S235</option><option value="S245">S245</option>
-              <option value="S345">S345</option><option value="S355">S355</option>
-              <option value="S09G2S">09Г2С</option><option value="AISI304">AISI 304</option>
-              <option value="AISI316">AISI 316</option><option value="OTHER">Другая</option>
-            </select>
-          </div>
-          <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard" placeholder="ГОСТ 8639-82"></div>
-        </div>
-        <div class="section-sep">Параметры измерения</div>
+      <div class="section-sep">Классификация</div>
+      <div class="grid2">
         <div class="field">
-          <label>Единица измерения *</label>
-          <select id="f-mtype" onchange="onMtypeChange()">
-            <option value="LINEAR">LINEAR — погонные метры</option>
-            <option value="AREA">AREA — площадь (листы)</option>
-            <option value="PIECE">PIECE — штучные</option>
+          <label>Тип профиля *</label>
+          <select id="f-profile">
+            <option value="">— выберите —</option>
+            <option value="RECTANGULAR_TUBE">Труба профильная</option>
+            <option value="ROUND_TUBE">Труба круглая</option>
+            <option value="ANGLE">Уголок</option>
+            <option value="CHANNEL">Швеллер</option>
+            <option value="BEAM">Балка</option>
+            <option value="SHEET">Лист</option>
+            <option value="PLATE">Плита</option>
+            <option value="FLAT_BAR">Полоса</option>
+            <option value="ROUND_BAR">Круг</option>
           </select>
-          <div id="f-mtype-ro" class="mtype-ro" style="display:none"></div>
+        </div>
+        <div class="field">
+          <label>Тип материала *</label>
+          <select id="f-mattype">
+            <option value="STEEL">Сталь</option>
+            <option value="STAINLESS">Нержавеющая</option>
+            <option value="ALUMINUM">Алюминий</option>
+            <option value="GALVANIZED">Оцинкованная</option>
+          </select>
         </div>
       </div>
-      <!-- Fastener-only fields -->
-      <div id="fastener-fields" style="display:none">
-        <div class="section-sep">Параметры метиза</div>
-        <div class="grid2">
-          <div class="field"><label>Вес, кг/шт *</label><input type="number" id="f-unitkg-f" placeholder="0.0320" step="0.0001" min="0"></div>
-          <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard-f" placeholder="ГОСТ 7798-70 (болт М8)"></div>
-        </div>
+      <div class="grid2">
         <div class="field">
-          <label>Единица учёта</label>
-          <select id="f-pieceunit-f">
-            <option value="pcs">шт — штука</option>
-            <option value="set">компл. — комплект</option>
-            <option value="pack">упак. — упаковка</option>
-            <option value="pair">пара</option>
+          <label>Марка стали</label>
+          <select id="f-grade">
+            <option value="">— не указана —</option>
+            <option value="S235">S235</option><option value="S245">S245</option>
+            <option value="S345">S345</option><option value="S355">S355</option>
+            <option value="S09G2S">09Г2С</option><option value="AISI304">AISI 304</option>
+            <option value="AISI316">AISI 316</option><option value="OTHER">Другая</option>
           </select>
         </div>
+        <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard" placeholder="ГОСТ 8639-82"></div>
+      </div>
+      <div class="section-sep">Параметры измерения</div>
+      <div class="field">
+        <label>Единица измерения *</label>
+        <select id="f-mtype" onchange="onMtypeChange()">
+          <option value="LINEAR">LINEAR — погонные метры</option>
+          <option value="AREA">AREA — площадь (листы)</option>
+          <option value="PIECE">PIECE — штучные</option>
+        </select>
+        <div id="f-mtype-ro" class="mtype-ro" style="display:none"></div>
       </div>
       <div class="geo-section" id="fields-linear">
         <div class="grid2">
@@ -176,29 +150,38 @@
   </div>
 </div>
 
+<!-- Category manager modal -->
+<div id="modal-cats-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeCatsModal()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Управление категориями</div>
+      <button class="modal-close" onclick="closeCatsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cats-list"></div>
+      <div style="margin-top:14px;display:flex;gap:6px">
+        <input type="text" id="new-cat-name" placeholder="Название новой категории...">
+        <button class="btn btn-primary btn-sm" style="white-space:nowrap" onclick="addCategory()">+ Добавить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 ERP.init('materials');
 
 var PROFILE_LABELS = {
   RECTANGULAR_TUBE:'Труба пр.',ROUND_TUBE:'Труба кр.',ANGLE:'Уголок',
   CHANNEL:'Швеллер',BEAM:'Балка',SHEET:'Лист',PLATE:'Плита',FLAT_BAR:'Полоса',ROUND_BAR:'Круг',
-  FASTENER:'Метиз',
 };
 
-function isFastenerMode() { return curDomain === 'FASTENER'; }
-
-function setFastenerFormMode(enabled) {
-  document.getElementById('struct-fields').style.display   = enabled ? 'none' : '';
-  document.getElementById('fastener-fields').style.display = enabled ? ''     : 'none';
-}
-
-var materials = [], categories = [], curCatId = '', curDomain = '', editingId = null, searchTimer = null;
+var materials = [], categories = [], curCatId = '', editingId = null, searchTimer = null;
 
 async function init() {
   try {
     var results = await Promise.all([
-      ERP.authFetch('/api/material-categories').then(function(r){ return r.json(); }),
-      ERP.authFetch('/api/materials').then(function(r){ return r.json(); }),
+      ERP.authFetch('/api/material-categories?domain=STRUCTURAL').then(function(r){ return r.json(); }),
+      ERP.authFetch('/api/materials?materialDomain=STRUCTURAL').then(function(r){ return r.json(); }),
     ]);
     categories = results[0];
     materials  = results[1];
@@ -215,14 +198,6 @@ function renderCats() {
     }).join('');
 }
 
-function setDomain(domain, el) {
-  curDomain = domain; curCatId = '';
-  document.querySelectorAll('.dtab').forEach(function(t){ t.classList.remove('on'); });
-  el.classList.add('on');
-  renderCats();
-  loadMaterials();
-}
-
 function setFilter(catId) { curCatId = catId; renderCats(); loadMaterials(); }
 
 function onSearch(q) {
@@ -232,10 +207,9 @@ function onSearch(q) {
 
 async function loadMaterials(search) {
   if (search === undefined) search = document.getElementById('search-inp').value;
-  var p = new URLSearchParams();
-  if (search)     p.set('search', search);
-  if (curCatId)   p.set('categoryId', curCatId);
-  if (curDomain)  p.set('materialDomain', curDomain);
+  var p = new URLSearchParams({ materialDomain: 'STRUCTURAL' });
+  if (search)   p.set('search', search);
+  if (curCatId) p.set('categoryId', curCatId);
   try {
     var r = await ERP.authFetch('/api/materials?' + p);
     materials = await r.json();
@@ -245,7 +219,7 @@ async function loadMaterials(search) {
 
 function renderTable() {
   var el = document.getElementById('mat-tbody');
-  document.getElementById('mat-count').textContent = materials.length + ' материалов';
+  document.getElementById('mat-count').textContent = materials.length + ' позиций';
   if (!materials.length) {
     el.innerHTML = '<tr><td colspan="7"><div class="empty">Материалов не найдено</div></td></tr>';
     return;
@@ -303,10 +277,9 @@ function populateCategorySelect() {
 
 function openCreate() {
   editingId = null;
-  document.getElementById('modal-title').textContent = isFastenerMode() ? 'Добавить метиз' : 'Создать материал';
+  document.getElementById('modal-title').textContent = 'Создать материал';
   resetForm();
   populateCategorySelect();
-  setFastenerFormMode(isFastenerMode());
   document.getElementById('f-mtype').style.display = '';
   document.getElementById('f-mtype-ro').style.display = 'none';
   document.getElementById('modal-bg').style.display = 'flex';
@@ -331,28 +304,20 @@ async function openEdit(id) {
 
 function fillForm(m) {
   var geo = m.geometry || {};
-  var isFastener = m.materialDomain === 'FASTENER';
-  setFastenerFormMode(isFastener);
   document.getElementById('f-code').value     = m.code||'';
   document.getElementById('f-name').value     = m.name||'';
   document.getElementById('f-category').value = m.categoryId||'';
-  if (!isFastener) {
-    document.getElementById('f-profile').value  = m.profileType||'';
-    document.getElementById('f-mattype').value  = m.materialType||'STEEL';
-    document.getElementById('f-grade').value    = m.steelGrade||'';
-    document.getElementById('f-standard').value = m.standard||'';
-    document.getElementById('f-mtype').value    = geo.measurementType||'LINEAR';
-    document.getElementById('f-kgm').value      = geo.theoreticalWeightPerMeter||'';
-    document.getElementById('f-paint').value    = geo.paintSurfacePerMeter||'';
-    document.getElementById('f-kgm2').value     = geo.weightPerSquareMeter||'';
-    document.getElementById('f-unitkg').value   = geo.unitWeightKg||'';
-    document.getElementById('f-pieceunit').value= m.pieceUnit||'pcs';
-    onMtypeChange();
-  } else {
-    document.getElementById('f-unitkg-f').value   = geo.unitWeightKg||'';
-    document.getElementById('f-standard-f').value = m.standard||'';
-    document.getElementById('f-pieceunit-f').value = m.pieceUnit||'pcs';
-  }
+  document.getElementById('f-profile').value  = m.profileType||'';
+  document.getElementById('f-mattype').value  = m.materialType||'STEEL';
+  document.getElementById('f-grade').value    = m.steelGrade||'';
+  document.getElementById('f-standard').value = m.standard||'';
+  document.getElementById('f-mtype').value    = geo.measurementType||'LINEAR';
+  document.getElementById('f-kgm').value      = geo.theoreticalWeightPerMeter||'';
+  document.getElementById('f-paint').value    = geo.paintSurfacePerMeter||'';
+  document.getElementById('f-kgm2').value     = geo.weightPerSquareMeter||'';
+  document.getElementById('f-unitkg').value   = geo.unitWeightKg||'';
+  document.getElementById('f-pieceunit').value= m.pieceUnit||'pcs';
+  onMtypeChange();
 }
 
 function resetForm() {
@@ -382,35 +347,24 @@ function closeModal() {
 async function submitForm() {
   var code = document.getElementById('f-code').value.trim();
   var name = document.getElementById('f-name').value.trim();
-  if (!code || !name) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
-  var body;
-  if (isFastenerMode()) {
-    body = {
-      code, name,
-      materialDomain: 'FASTENER',
-      categoryId:  document.getElementById('f-category').value || null,
-      unitWeightKg:document.getElementById('f-unitkg-f').value || null,
-      standard:    document.getElementById('f-standard-f').value || null,
-      pieceUnit:   document.getElementById('f-pieceunit-f').value || 'pcs',
-    };
-  } else {
-    var profileType     = document.getElementById('f-profile').value;
-    var materialType    = document.getElementById('f-mattype').value;
-    var measurementType = document.getElementById('f-mtype').value;
-    if (!profileType||!materialType||!measurementType) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
-    body = {
-      code, name, profileType, materialType, measurementType,
-      materialDomain: 'STRUCTURAL',
-      categoryId:   document.getElementById('f-category').value||null,
-      steelGrade:   document.getElementById('f-grade').value||null,
-      standard:     document.getElementById('f-standard').value||null,
-      theoreticalWeightPerMeter: document.getElementById('f-kgm').value||null,
-      paintSurfacePerMeter:      document.getElementById('f-paint').value||null,
-      weightPerSquareMeter:      document.getElementById('f-kgm2').value||null,
-      unitWeightKg:              document.getElementById('f-unitkg').value||null,
-      pieceUnit:                 document.getElementById('f-pieceunit').value||null,
-    };
+  var profileType     = document.getElementById('f-profile').value;
+  var materialType    = document.getElementById('f-mattype').value;
+  var measurementType = document.getElementById('f-mtype').value;
+  if (!code || !name || !profileType || !materialType || !measurementType) {
+    ERP.toast('Заполните обязательные поля (*)','error'); return;
   }
+  var body = {
+    code, name, profileType, materialType, measurementType,
+    materialDomain: 'STRUCTURAL',
+    categoryId:   document.getElementById('f-category').value||null,
+    steelGrade:   document.getElementById('f-grade').value||null,
+    standard:     document.getElementById('f-standard').value||null,
+    theoreticalWeightPerMeter: document.getElementById('f-kgm').value||null,
+    paintSurfacePerMeter:      document.getElementById('f-paint').value||null,
+    weightPerSquareMeter:      document.getElementById('f-kgm2').value||null,
+    unitWeightKg:              document.getElementById('f-unitkg').value||null,
+    pieceUnit:                 document.getElementById('f-pieceunit').value||null,
+  };
   var btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = 'Сохранение...';
   try {
@@ -436,7 +390,78 @@ async function archiveMat(id) {
   } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
 }
 
-document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeModal(); });
+// ── Category manager ──────────────────────────────────────────────────────────
+function openCatsModal() {
+  renderCatsList();
+  document.getElementById('new-cat-name').value = '';
+  document.getElementById('modal-cats-bg').style.display = 'flex';
+}
+
+function closeCatsModal() {
+  document.getElementById('modal-cats-bg').style.display = 'none';
+}
+
+function renderCatsList() {
+  var el = document.getElementById('cats-list');
+  if (!categories.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px 0">Категорий нет. Создайте первую ниже.</div>';
+    return;
+  }
+  el.innerHTML = categories.map(function(c) {
+    var safeName = c.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<div class="cat-row">' +
+      '<span style="flex:1;font-size:13px">' + ERP.esc(c.name) + '</span>' +
+      '<button class="btn btn-secondary btn-xs" onclick="renameCat(\'' + c.id + '\',\'' + safeName + '\')">Ред.</button>' +
+      '<button class="btn btn-danger btn-xs" onclick="deleteCat(\'' + c.id + '\')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function addCategory() {
+  var name = document.getElementById('new-cat-name').value.trim();
+  if (!name) return;
+  var slug = name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
+  try {
+    var r = await ERP.authFetch('/api/material-categories', {
+      method: 'POST', body: JSON.stringify({ slug, name, domain: 'STRUCTURAL' }),
+    });
+    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error||'Ошибка'); }
+    var c = await r.json();
+    categories.push(c);
+    document.getElementById('new-cat-name').value = '';
+    renderCatsList(); renderCats(); populateCategorySelect();
+    ERP.toast('Категория создана', 'success');
+  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+}
+
+async function renameCat(id, currentName) {
+  var name = prompt('Переименовать категорию:', currentName);
+  if (!name || name === currentName) return;
+  try {
+    var r = await ERP.authFetch('/api/material-categories/' + id, {
+      method: 'PUT', body: JSON.stringify({ name }),
+    });
+    if (!r.ok) throw new Error('Ошибка');
+    categories = categories.map(function(c){ return c.id===id ? Object.assign({},c,{name:name}) : c; });
+    renderCatsList(); renderCats(); populateCategorySelect();
+    ERP.toast('Переименовано', 'success');
+  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+}
+
+async function deleteCat(id) {
+  if (!confirm('Удалить категорию? Материалы останутся без категории.')) return;
+  try {
+    var r = await ERP.authFetch('/api/material-categories/' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Ошибка');
+    categories = categories.filter(function(c){ return c.id!==id; });
+    if (curCatId === id) curCatId = '';
+    renderCatsList(); renderCats(); populateCategorySelect();
+    ERP.toast('Категория удалена', 'success');
+  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+}
+
+document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeModal(); closeCatsModal(); } });
+document.getElementById('new-cat-name').addEventListener('keydown', function(e){ if(e.key==='Enter') addCategory(); });
 init();
 </script>
 </body>

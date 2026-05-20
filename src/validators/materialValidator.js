@@ -39,6 +39,7 @@ function validateMaterial(body) {
     steelGrade:   STEEL_GRADES.includes(body.steelGrade) ? body.steelGrade : null,
     categoryId:   body.categoryId || null,
     standard:     body.standard   || null,
+    strengthClass: body.strengthClass || null,
     pieceUnit:    PIECE_UNITS.includes(body.pieceUnit) ? body.pieceUnit : 'pcs',
     theoreticalWeightPerMeter: num(body.theoreticalWeightPerMeter),
     weightPerSquareMeter:      num(body.weightPerSquareMeter),
