@@ -74,7 +74,7 @@
 <div class="toast-wrap" id="toasts"></div>
 
 <script>
-ERP.requireAuth()
+ERP.init('pipeline')
 
 var COLS = [
   { status: 'DRAFT',             label: 'Новый запрос',    hint: 'RFQ получен, не рассмотрен' },
@@ -93,7 +93,8 @@ var draggingFromStatus = null
 /* ── Load ─────────────────────────────────────────────────────────────────── */
 async function load() {
   try {
-    var data = await ERP.authFetch('/api/orders')
+    var r = await ERP.authFetch('/api/orders')
+    var data = await r.json()
     allOrders = (Array.isArray(data) ? data : []).filter(function(o){
       return o.status !== 'COMPLETED' && o.status !== 'DELIVERED'
     })
@@ -201,11 +202,12 @@ async function onDrop(e, targetStatus) {
   if (!draggingId || targetStatus === draggingFromStatus) return
 
   try {
-    await ERP.authFetch('/api/orders/' + draggingId + '/status', {
+    var resp = await ERP.authFetch('/api/orders/' + draggingId + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: targetStatus }),
     })
+    if (!resp.ok) { var err = await resp.json(); throw new Error(err.error || 'Ошибка') }
     var colLabel = COLS.find(function(c){ return c.status === targetStatus })
     toast('Сделка переведена: ' + (colLabel ? colLabel.label : targetStatus), 'ok')
     // Optimistic update
