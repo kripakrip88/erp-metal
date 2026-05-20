@@ -40,9 +40,9 @@ module.exports = [
     const allowed = {}
     if (body.customerName !== undefined) allowed.customerName = body.customerName || ''
     if (body.customerId   !== undefined) allowed.customerId   = body.customerId   || null
-    if (body.title        !== undefined) allowed.title        = body.title        || null
+    if (body.title        !== undefined) allowed.title        = body.title        || ''
     if (body.description  !== undefined) allowed.description  = body.description  || null
-    if (body.orderNumber  !== undefined) allowed.orderNumber  = body.orderNumber  || null
+    if (body.orderNumber  !== undefined && body.orderNumber)  allowed.orderNumber = body.orderNumber
     // If customerId given but no customerName, resolve from DB
     if (allowed.customerId && !allowed.customerName) {
       const c = await prisma.customer.findUnique({ where: { id: allowed.customerId }, select: { name: true } })

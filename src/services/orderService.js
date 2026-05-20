@@ -47,17 +47,20 @@ async function createOrder(data, context) {
     if (customer) customerName = customer.name
   }
 
-  return orderRepo.create({
+  const createData = {
     companyId:    resolvedCompanyId,
     createdById,
     orderNumber,
     customerName,
-    customerId:   data.customerId || null,
-    title:        data.title || null,
+    title:        data.title || '',
     description:  data.description || null,
     status:       'DRAFT',
     mode:         data.mode || 'STANDARD',
-  })
+  }
+  // Only pass customerId if it's a real value — passing null breaks Prisma relation validation
+  if (data.customerId) createData.customerId = data.customerId
+
+  return orderRepo.create(createData)
 }
 
 async function createAssembly(orderId, data) {
