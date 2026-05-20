@@ -10,7 +10,10 @@
 .inbox-layout{position:fixed;top:var(--topbarh);left:var(--sbw);right:0;bottom:0;display:flex;overflow:hidden;}
 
 /* ── LEFT PANEL: folders + list ──────────────────────────── */
-.list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);overflow:hidden;min-height:0;}
+.list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--brd);display:flex;flex-direction:column;background:var(--panel);overflow:hidden;min-height:0;position:relative;}
+/* Panel resize handle */
+.list-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:20;background:transparent;transition:background .15s;}
+.list-resizer:hover,.list-resizer.dragging{background:rgba(59,130,246,.35);}
 
 .folder-nav{padding:8px;border-bottom:1px solid var(--brd);flex-shrink:0;}
 .folder-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:12.5px;color:var(--txts);cursor:pointer;transition:background .1s;user-select:none;}
@@ -26,11 +29,15 @@
 .mail-list{flex:1;overflow-y:auto;min-height:0;}
 .mail-list::-webkit-scrollbar{width:3px;}
 .mail-list::-webkit-scrollbar-thumb{background:var(--brdl);border-radius:3px;}
-.mail-item{padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .1s;position:relative;}
+.mail-item{padding:10px 12px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .1s;position:relative;}
 .mail-item:hover{background:var(--hov);}
 .mail-item.on{background:rgba(59,130,246,.07);border-left:3px solid var(--blue);}
 .mail-item.on .mail-from-name{color:var(--txt);}
-.mail-unread-dot{position:absolute;left:5px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--blue);}
+.mail-unread-dot{position:absolute;left:3px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--blue);}
+/* Avatar + content row */
+.mail-item-inner{display:flex;align-items:flex-start;gap:9px;}
+.mail-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:.3px;margin-top:1px;}
+.mail-item-content{flex:1;min-width:0;}
 .mail-from{font-weight:600;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:4px;}
 .mail-from-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt);}
 .mail-time{font-size:10.5px;color:var(--txts);flex-shrink:0;}
@@ -167,6 +174,8 @@
         </div>
         <!-- Mail list -->
         <div class="mail-list" id="mail-list"><div class="empty-list">Загрузка...</div></div>
+        <!-- Panel resize handle -->
+        <div class="list-resizer" onmousedown="startPanelResize(event)"></div>
       </div>
 
       <!-- ── DETAIL PANEL ───────────────────────────── -->
@@ -186,7 +195,18 @@ var currentIntent = '';
 var selectedId = null;
 var messages = [];
 var currentDrafts = [];
-var readIds = new Set();
+
+/* Read IDs — persisted to localStorage so they survive page reload */
+var readIds = (function() {
+  try { return new Set(JSON.parse(localStorage.getItem('erp_mail_read') || '[]')); } catch(_) { return new Set(); }
+})();
+function markRead(id) {
+  readIds.add(id);
+  var arr = Array.from(readIds);
+  if (arr.length > 1000) arr = arr.slice(arr.length - 1000);
+  readIds = new Set(arr);
+  try { localStorage.setItem('erp_mail_read', JSON.stringify(arr)); } catch(_) {}
+}
 
 /* ── TIME FORMAT ────────────────────────────────────────── */
 function fmtTime(d) {
@@ -273,15 +293,22 @@ function renderList() {
   list.innerHTML = messages.map(function(m) {
     var isNew = m.status === 'pending' && !readIds.has(m.id);
     var preview = (m.bodyText || '').replace(/\s+/g, ' ').slice(0, 80);
+    var initials = senderInitials(m.fromName, m.fromAddress);
+    var bgColor  = avatarColor(m.fromAddress || m.fromName || m.id);
     return '<div class="mail-item'+(m.id===selectedId?' on':'')+'" onclick="selectMessage(\''+m.id+'\')">' +
       (isNew ? '<div class="mail-unread-dot"></div>' : '') +
-      '<div class="mail-from">' +
-        '<span class="mail-from-name">'+ERP.esc(m.fromName || m.fromAddress || '—')+'</span>' +
-        '<span class="mail-time">'+fmtTime(m.receivedAt)+'</span>' +
+      '<div class="mail-item-inner">' +
+        '<div class="mail-avatar" style="background:'+bgColor+'">'+ERP.esc(initials)+'</div>' +
+        '<div class="mail-item-content">' +
+          '<div class="mail-from">' +
+            '<span class="mail-from-name">'+ERP.esc(m.fromName || m.fromAddress || '—')+'</span>' +
+            '<span class="mail-time">'+fmtTime(m.receivedAt)+'</span>' +
+          '</div>' +
+          '<div class="mail-subject">'+ERP.esc(m.subject||'(без темы)')+'</div>' +
+          (preview ? '<div class="mail-preview">'+ERP.esc(preview)+'</div>' : '') +
+          '<div class="mail-badges">'+intentBadge(m.aiIntent)+priorityBadge(m.aiPriority)+'</div>' +
+        '</div>' +
       '</div>' +
-      '<div class="mail-subject">'+ERP.esc(m.subject||'(без темы)')+'</div>' +
-      (preview ? '<div class="mail-preview">'+ERP.esc(preview)+'</div>' : '') +
-      '<div class="mail-badges">'+intentBadge(m.aiIntent)+priorityBadge(m.aiPriority)+'</div>' +
     '</div>';
   }).join('');
 }
@@ -301,10 +328,24 @@ async function updateFolderCounts() {
 /* ── SELECT MESSAGE ─────────────────────────────────────── */
 function selectMessage(id) {
   selectedId = id;
-  readIds.add(id);
+  markRead(id);
   renderList();
   var msg = messages.find(function(m){ return m.id === id; });
   if (msg) renderDetail(msg);
+}
+
+/* ── SENDER AVATAR ──────────────────────────────────────── */
+var AVATAR_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16','#f97316','#14b8a6'];
+function avatarColor(str) {
+  var h = 0;
+  for (var i = 0; i < (str||'').length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function senderInitials(name, email) {
+  var src = name || email || '?';
+  var parts = src.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
 }
 
 /* ── HTML email sanitizer ───────────────────────────────────── */
@@ -689,6 +730,36 @@ function updateLastUpdate() {
   var el = document.getElementById('last-update');
   if (el) el.textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
 }
+
+/* ── LEFT PANEL RESIZE ──────────────────────────────────── */
+function startPanelResize(e) {
+  e.preventDefault();
+  var panel = document.querySelector('.list-panel');
+  var handle = e.currentTarget;
+  var x0 = e.clientX;
+  var w0 = panel.offsetWidth;
+  handle.classList.add('dragging');
+  function onMove(ev) {
+    var w = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
+    panel.style.width = w + 'px';
+  }
+  function onUp() {
+    handle.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    try { localStorage.setItem('erp_mail_panel_w', panel.offsetWidth); } catch(_) {}
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+/* ── INIT ───────────────────────────────────────────────── */
+(function restorePanelWidth() {
+  try {
+    var w = parseInt(localStorage.getItem('erp_mail_panel_w'));
+    if (w >= 200 && w <= 560) document.querySelector('.list-panel').style.width = w + 'px';
+  } catch(_) {}
+})();
 
 loadMessages();
 </script>
