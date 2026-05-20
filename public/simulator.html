@@ -133,9 +133,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 .sd-empty{padding:10px;text-align:center;color:var(--txtm);font-size:11px}
 
 /* PARTS TABLE */
-.pt{width:100%;border-collapse:collapse}
-.pt th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txts);padding:5px 8px;text-align:left;background:var(--card);border-bottom:1px solid var(--brd);white-space:nowrap}
-.pt td{padding:6px 8px;font-size:12px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.pt{width:100%;border-collapse:collapse;table-layout:fixed}
+.pt th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txts);padding:5px 8px;text-align:left;background:var(--card);border-bottom:1px solid var(--brd);white-space:nowrap;overflow:hidden}
+.pt td{padding:6px 8px;font-size:12px;border-bottom:1px solid var(--brd);vertical-align:middle;overflow:hidden}
 .pt tr:last-child td{border-bottom:none}
 .pt tr:hover td{background:var(--hov)}
 /* Name is PRIMARY — larger, bold. Code is secondary — small, muted */
@@ -887,6 +887,7 @@ async function initApp() {
 
 let CATS = [], _catSlugMap = {};
 let MATS = [], PRICES = [], matsLoaded = false;
+let _archivedMats = {};
 let _matsChangedAt = localStorage.getItem('materials_changed') || '0';
 const REMS = [];
 let dbg = false, asms = [], revs = [], nA = 10, nP = 100;
@@ -1264,7 +1265,8 @@ function renderBomRows(a) {
 }
 
 function renderPR(p, a) {
-  const mat = MATS.find(m => m.id === p.mid); if (!mat) return '';
+  const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) return '';
+  const archivedBadge = mat.archived ? '<span style="color:var(--amber);font-size:9px;font-weight:700;display:block">⚠ архив</span>' : '';
   const { wpu, tot, pm2, lmm, dbg: d } = cPW(p, mat); const mu = a.qty;
   const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
   const { cost, d: cd } = cCost(wT, pr);
@@ -1280,7 +1282,7 @@ function renderPR(p, a) {
   return `<tr draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
       ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
       ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
-    <td><span class="drag-handle">⠿</span><span class="mn">${mat.name}</span><span class="mc">${mat.code}</span></td>
+    <td style="overflow:hidden"><span class="drag-handle">⠿</span><span class="mn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%">${mat.name}</span><span class="mc">${mat.code}</span>${archivedBadge}</td>
     <td style="font-size:11.5px;color:var(--txts)">${p.name || '—'}</td>
     <td class="text-xs">${tl}</td>
     <td class="mv" style="white-space:nowrap">${dimsCell}</td>
@@ -1363,6 +1365,7 @@ function renderAsms() {
             </div>
           </div>
           <table class="pt">
+            <colgroup><col><col style="width:112px"><col style="width:36px"><col style="width:176px"><col style="width:82px"><col style="width:70px"><col style="width:88px"><col style="width:78px"><col style="width:90px"></colgroup>
             <thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>кг/шт</th><th>кг×узел</th><th>₽/т</th><th>Сумма</th></tr></thead>
             <tbody>${renderBomRows({ ...a, parts: materialParts })}</tbody>
           </table>` : ''}
@@ -1413,7 +1416,7 @@ function toggleAsmBody(asmId) {
 function renderFastenersTab(a, fasteners) {
   if (!fasteners.length) return `<div style="padding:14px;text-align:center;color:var(--txtm);font-size:11px">Метизов нет — используйте поиск выше</div>`;
   const mu = a.qty || 1;
-  let html = `<table class="pt"><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
+  let html = `<table class="pt"><colgroup><col style="width:100px"><col><col style="width:70px"><col style="width:82px"><col style="width:88px"><col style="width:78px"><col style="width:90px"><col style="width:52px"></colgroup><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
   let totW = 0, totC = 0;
   for (const p of fasteners) {
     const mat = MATS.find(m => m.id === p.mid);
@@ -2101,7 +2104,22 @@ function _apiRevToSim(rev, orderNum, customerName) {
 
 function _apiAsmsToSim(apiAsms) {
   const MTYPE = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
-  return (apiAsms || []).map(a => ({ id: a.id, name: a.name, qty: a.qty || 1, parts: (a.parts || []).map(p => ({ id: p.id, mid: p.materialDefinitionId, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL' })) }));
+  return (apiAsms || []).map(a => ({ id: a.id, name: a.name, qty: a.qty || 1, parts: (a.parts || []).map(p => {
+    const md = p.materialDefinition;
+    if (md && !_archivedMats[md.id]) {
+      const geo = md.geometry || {};
+      _archivedMats[md.id] = { id: md.id, code: md.code, name: md.name, cat: 'uncategorized',
+        kgm: geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null,
+        kgm2: geo.weightPerSquareMeter ? parseFloat(geo.weightPerSquareMeter) : null,
+        pm: geo.paintSurfacePerMeter ? parseFloat(geo.paintSurfacePerMeter) : null,
+        sl: null, sf: null, mtype: (geo.measurementType || 'LINEAR').toLowerCase(),
+        unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null,
+        domain: md.materialDomain || 'STRUCTURAL',
+        archived: !md.isActive || !!md.deletedAt,
+      };
+    }
+    return { id: p.id, mid: p.materialDefinitionId, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL' };
+  }) }));
 }
 
 // ─── CLOSE DROPDOWNS ON CLICK OUTSIDE ────────────────────────────────────────

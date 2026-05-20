@@ -34,10 +34,10 @@ async function updateCategory(id, { slug, name, parentId, position, isActive }) 
 }
 
 async function deleteCategory(id) {
-  return prisma.materialCategory.update({
-    where: { id },
-    data: { deletedAt: new Date(), isActive: false },
-  })
+  return prisma.$transaction([
+    prisma.materialDefinition.updateMany({ where: { categoryId: id }, data: { categoryId: null } }),
+    prisma.materialCategory.update({ where: { id }, data: { deletedAt: new Date(), isActive: false } }),
+  ])
 }
 
 module.exports = { listCategories, createCategory, updateCategory, deleteCategory }
