@@ -151,12 +151,12 @@ function render() {
   empty.style.display = 'none';
   tbody.innerHTML = orders.map(function(o){
     var statusBadge = {
-      DRAFT:'<span class="badge b-draft">Draft</span>',
-      QUOTATION:'<span class="badge b-quotation">Quote</span>',
-      AWAITING_APPROVAL:'<span class="badge b-awaiting">На согл.</span>',
-      APPROVED:'<span class="badge b-approved">Одобрен</span>',
-      PRODUCTION:'<span class="badge b-production">Произв.</span>',
-      COMPLETED:'<span class="badge b-completed">Готов</span>',
+      DRAFT:'<span class="badge b-draft">Новый запрос</span>',
+      QUOTATION:'<span class="badge b-quotation">На рассмотрении</span>',
+      AWAITING_APPROVAL:'<span class="badge b-awaiting">Расчёт цены</span>',
+      APPROVED:'<span class="badge b-approved">КП отправлено</span>',
+      PRODUCTION:'<span class="badge b-production">В производстве</span>',
+      COMPLETED:'<span class="badge b-completed">Готово</span>',
       DELIVERED:'<span class="badge b-delivered">Сдан</span>',
       CANCELLED:'<span class="badge b-cancelled">Отменён</span>',
     }[o.status] || '<span class="badge b-draft">'+ERP.esc(o.status)+'</span>';
@@ -225,7 +225,7 @@ async function openDetail(id) {
         '<div class="detail-grid">' +
           '<div class="detail-field"><div class="detail-field-label">Заказчик</div><div class="detail-field-value">'+ERP.esc(o.customerName||'—')+'</div></div>' +
           '<div class="detail-field"><div class="detail-field-label">Объект</div><div class="detail-field-value">'+ERP.esc(o.title||'—')+'</div></div>' +
-          '<div class="detail-field"><div class="detail-field-label">Статус</div><div class="detail-field-value">'+ERP.esc(o.status)+'</div></div>' +
+          '<div class="detail-field"><div class="detail-field-label">Статус</div><div class="detail-field-value">'+ERP.esc({DRAFT:'Новый запрос',QUOTATION:'На рассмотрении',AWAITING_APPROVAL:'Расчёт цены',APPROVED:'КП отправлено',PRODUCTION:'В производстве',COMPLETED:'Готово',DELIVERED:'Сдан',CANCELLED:'Отменён'}[o.status]||o.status)+'</div></div>' +
           '<div class="detail-field"><div class="detail-field-label">Создан</div><div class="detail-field-value">'+ERPStore.formatDate(o.createdAt)+'</div></div>' +
         '</div>' +
         '<div class="section-lbl">История ревизий</div>' +
