@@ -150,6 +150,13 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 .ibe{color:var(--blue);border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.1)}.ibe:hover{background:rgba(59,130,246,.25)}
 .ibd{color:var(--red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}.ibd:hover{background:rgba(239,68,68,.25)}
 .pt-empty{padding:14px;text-align:center;color:var(--txtm);font-size:11px}
+/* Drag-and-drop row reordering */
+.pt tr[draggable]{cursor:grab;}
+.pt tr[draggable].row-dragging{opacity:.35;background:var(--hov);}
+.pt tr.drag-above td{border-top:2px solid var(--blue);}
+.pt tr.drag-below td{border-bottom:2px solid var(--blue);}
+.drag-handle{display:inline-block;color:var(--txts);font-size:11px;cursor:grab;padding:0 4px;opacity:0;transition:opacity .15s;user-select:none;}
+.pt tr:hover .drag-handle{opacity:1;}
 .mono{font-family:'DM Mono',monospace}
 
 /* LKM TABLE */
@@ -1270,8 +1277,10 @@ function renderPR(p, a) {
     ? `<input class="ii" type="number" value="${p.w||0}" min="1" title="Ширина, мм" onchange="inlineEdit('${a.id}','${p.id}','w',+this.value)"><span class="ii-sep">×</span><input class="ii" type="number" value="${p.h||0}" min="1" title="Высота, мм" onchange="inlineEdit('${a.id}','${p.id}','h',+this.value)"><span class="ii-unit">мм</span>`
     : fmtD(p);
   const qtyCell = `<input class="ii ii-sm" type="number" value="${p.qty}" min="1" title="Количество" onchange="inlineEdit('${a.id}','${p.id}','qty',+this.value)"><span class="ii-unit">шт</span>`;
-  return `<tr>
-    <td><span class="mn">${mat.name}</span><span class="mc">${mat.code}</span></td>
+  return `<tr draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+      ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+      ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+    <td><span class="drag-handle">⠿</span><span class="mn">${mat.name}</span><span class="mc">${mat.code}</span></td>
     <td style="font-size:11.5px;color:var(--txts)">${p.name || '—'}</td>
     <td class="text-xs">${tl}</td>
     <td class="mv" style="white-space:nowrap">${dimsCell}</td>
@@ -1414,8 +1423,10 @@ function renderFastenersTab(a, fasteners) {
     const ppp = pr?.ppp != null ? pr.ppp : null;
     const cost = ppp != null ? r4(ppp * (p.qty || 1) * mu) : calcMaterialCostSimple(wT, pr?.price);
     totW += wT; totC += cost;
-    html += `<tr>
-      <td class="mc">${mat ? mat.code : '?'}</td>
+    html += `<tr draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+      <td class="mc"><span class="drag-handle">⠿</span>${mat ? mat.code : '?'}</td>
       <td class="text-sm">${p.name || mat?.name || ''}</td>
       <td class="mv">${pw ? pw.toFixed(4) + ' кг' : '—'}</td>
       <td class="mv">${p.qty || 1}</td>
@@ -2103,6 +2114,73 @@ const FILE_ICONS = { PDF: '📄', DWG: '📐', DXF: '📐', STEP: '📦', IMAGE:
 
 function triggerFileUpload() {
   document.getElementById('file-input').click();
+}
+
+// ─── DRAG-AND-DROP ROW REORDERING ─────────────────────────────────────────────
+
+let _dragSrcRow = null;
+
+function rowDragStart(e) {
+  _dragSrcRow = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', ''); // required for Firefox
+  setTimeout(() => _dragSrcRow && _dragSrcRow.classList.add('row-dragging'), 0);
+}
+
+function rowDragOver(e) {
+  if (!_dragSrcRow) return;
+  const tgt = e.currentTarget;
+  if (tgt === _dragSrcRow) return;
+  if (tgt.closest('tbody') !== _dragSrcRow.closest('tbody')) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const mid = tgt.getBoundingClientRect().top + tgt.getBoundingClientRect().height / 2;
+  tgt.classList.remove('drag-above', 'drag-below');
+  tgt.classList.add(e.clientY < mid ? 'drag-above' : 'drag-below');
+}
+
+function rowDragLeave(e) {
+  e.currentTarget.classList.remove('drag-above', 'drag-below');
+}
+
+function rowDragEnd() {
+  if (_dragSrcRow) _dragSrcRow.classList.remove('row-dragging');
+  document.querySelectorAll('.drag-above,.drag-below').forEach(r => r.classList.remove('drag-above','drag-below'));
+  _dragSrcRow = null;
+}
+
+async function rowDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  const above = tgt.classList.contains('drag-above');
+  tgt.classList.remove('drag-above', 'drag-below');
+  if (!_dragSrcRow || tgt === _dragSrcRow) return;
+  const tbody = _dragSrcRow.closest('tbody');
+  if (!tbody || tgt.closest('tbody') !== tbody) return;
+
+  // Move row in DOM immediately for instant feedback
+  if (above) tgt.before(_dragSrcRow);
+  else tgt.after(_dragSrcRow);
+
+  const asmId = _dragSrcRow.dataset.asmid;
+  const ids = [...tbody.querySelectorAll('tr[data-partid]')].map(r => r.dataset.partid);
+
+  // Optimistically update local part positions
+  const asm = asms.find(a => a.id === asmId);
+  if (asm) ids.forEach((id, idx) => { const p = asm.parts.find(p => p.id === id); if (p) p.position = idx; });
+
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/assemblies/${asmId}/parts/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ ids }),
+    });
+    if (!r.ok) throw new Error('Ошибка сохранения');
+  } catch(ex) {
+    toast(ex.message, 'error');
+    renderAsms(); // restore from local state on failure
+  }
 }
 
 async function deleteFile(fileId, title) {

@@ -26,7 +26,7 @@ async function findById(id) {
 async function findWithParts(id) {
   return prisma.order.findUnique({
     where: { id },
-    include: { assemblies: { include: { parts: { include: {
+    include: { assemblies: { orderBy: { position: 'asc' }, include: { parts: { orderBy: { position: 'asc' }, include: {
       materialDefinition: { include: { geometry: true,
         procurementProfiles: { include: {
           prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 }
