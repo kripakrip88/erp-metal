@@ -64,6 +64,14 @@
 
 /* Email body: main text vs history */
 .body-main{font-size:12.5px;line-height:1.75;color:var(--txt);white-space:pre-wrap;word-break:break-word;}
+/* HTML email body (tables, rich text) */
+.body-html{white-space:normal;}
+.body-html table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px;}
+.body-html td,.body-html th{border:1px solid var(--brd);padding:6px 10px;text-align:left;vertical-align:top;}
+.body-html th{background:var(--panel);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--txts);}
+.body-html tr:hover td{background:var(--hov);}
+.body-html p{margin:0 0 8px;}
+.body-html br{display:block;margin:2px 0;}
 .history-toggle{display:flex;align-items:center;gap:6px;margin-top:12px;padding:6px 0;cursor:pointer;color:var(--txts);font-size:11.5px;border-top:1px dashed var(--brd);user-select:none;transition:color .12s;}
 .history-toggle:hover{color:var(--txt);}
 .history-toggle-icon{font-size:9px;transition:transform .15s;}
@@ -299,6 +307,25 @@ function selectMessage(id) {
   if (msg) renderDetail(msg);
 }
 
+/* ── HTML email sanitizer ───────────────────────────────────── */
+function hasHtmlContent(text) {
+  return /<(table|thead|tbody|tr|td|th|div|p|ul|ol|li|br|b|strong|i|em|h[1-6])\b/i.test(text || '');
+}
+function sanitizeEmailHtml(html) {
+  // Remove dangerous tags entirely
+  html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+  html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+  html = html.replace(/<iframe[\s\S]*?<\/iframe>/gi, '');
+  html = html.replace(/<(object|embed|form|input|button|select|textarea)[^>]*>[\s\S]*?<\/\1>/gi, '');
+  // Remove event handler attributes
+  html = html.replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+  // Neutralise javascript: hrefs
+  html = html.replace(/(href\s*=\s*)["']javascript:[^"']*["']/gi, '$1"#"');
+  // Remove src="data:..." (can be used for tracking)
+  html = html.replace(/\s+src\s*=\s*["']data:[^"']*["']/gi, '');
+  return html;
+}
+
 /* ── FORMAT BODY: split main text from quoted history ────── */
 function splitBody(text) {
   if (!text) return { main: '', quoted: '' };
@@ -349,7 +376,9 @@ function renderDetail(msg) {
   currentDrafts = msg.aiDrafts || [];
   var panel = document.getElementById('detail-panel');
   var confidence = msg.aiConfidence != null ? Math.round(msg.aiConfidence * 100) : 0;
-  var body = splitBody(msg.bodyText);
+  // Prefer HTML body if available (richer formatting)
+  var rawBody = msg.bodyHtml || msg.bodyText || '';
+  var body = splitBody(rawBody);
 
   /* -- attachments -- */
   var attachHtml = '';
@@ -469,7 +498,11 @@ function renderDetail(msg) {
         : '') +
       '<div class="section-block">' +
         '<div class="section-title">Текст письма</div>' +
-        (body.main ? '<div class="body-main">'+ERP.esc(body.main)+'</div>' : '<div class="body-main" style="color:var(--txts)">(текст не извлечён)</div>') +
+        (body.main
+          ? (hasHtmlContent(body.main)
+              ? '<div class="body-main body-html">'+sanitizeEmailHtml(body.main)+'</div>'
+              : '<div class="body-main">'+ERP.esc(body.main)+'</div>')
+          : '<div class="body-main" style="color:var(--txts)">(текст не извлечён)</div>') +
         historyHtml +
       '</div>' +
       attachHtml + itemsHtml + counterpartHtml + draftsHtml +

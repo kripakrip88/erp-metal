@@ -19,15 +19,34 @@
 .filter-sel{height:34px;padding:0 8px;background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--txts);font-family:var(--ff);font-size:12.5px;outline:none;cursor:pointer;width:auto;}
 .filter-sel:focus{border-color:var(--blue);}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
-thead th{position:relative;white-space:nowrap;user-select:none;}
+/* Table container — scrollable when table is wider than content */
+.table-scroll{overflow-x:auto;}
+#orders-table{table-layout:fixed;border-collapse:collapse;}
+/* Column visibility — hide by nth-child so CSS applies to dynamically rendered rows */
+#orders-table.hide-col-num    th:nth-child(1),#orders-table.hide-col-num    td:nth-child(1){display:none;}
+#orders-table.hide-col-client th:nth-child(2),#orders-table.hide-col-client td:nth-child(2){display:none;}
+#orders-table.hide-col-obj    th:nth-child(3),#orders-table.hide-col-obj    td:nth-child(3){display:none;}
+#orders-table.hide-col-revs   th:nth-child(4),#orders-table.hide-col-revs   td:nth-child(4){display:none;}
+#orders-table.hide-col-date   th:nth-child(5),#orders-table.hide-col-date   td:nth-child(5){display:none;}
+#orders-table.hide-col-status th:nth-child(6),#orders-table.hide-col-status td:nth-child(6){display:none;}
+thead th{position:relative;white-space:nowrap;user-select:none;overflow:hidden;text-overflow:ellipsis;}
 thead th.sortable{cursor:pointer;}
 thead th.sortable:hover{color:var(--txt);}
 thead th.sort-on{color:var(--blue);}
 /* Column resize handle */
-.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;}
-.col-resizer:hover,.col-resizer.dragging{background:var(--blue);opacity:.5;}
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;z-index:10;background:transparent;}
+.col-resizer:hover{background:rgba(59,130,246,.4);}
 /* Order number readability */
-.order-num-cell{font-family:var(--ffm);font-size:13px;font-weight:700;color:var(--blue);letter-spacing:.5px;padding:0 4px;background:rgba(59,130,246,.06);border-radius:4px;display:inline-block;}
+.order-num-cell{font-family:var(--ffm);font-size:13px;font-weight:700;color:var(--blue);letter-spacing:.5px;padding:1px 5px;background:rgba(59,130,246,.07);border-radius:4px;display:inline-block;}
+/* Column visibility toggle */
+.col-picker-wrap{position:relative;}
+.col-picker-btn{background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--txts);font-family:var(--ff);font-size:12px;padding:0 10px;height:34px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.col-picker-btn:hover{border-color:var(--brdl);color:var(--txt);}
+.col-picker-dd{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--card);border:1px solid var(--brdl);border-radius:8px;z-index:100;min-width:180px;padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.col-picker-dd.open{display:block;}
+.col-picker-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12.5px;}
+.col-picker-item:hover{background:var(--hov);}
+.col-picker-item input{accent-color:var(--blue);width:14px;height:14px;cursor:pointer;}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
 .detail-field{background:var(--card);border-radius:6px;padding:10px 12px;}
 .detail-field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:3px;}
@@ -82,14 +101,19 @@ thead th.sort-on{color:var(--blue);}
           <option value="all">Все</option>
           <option value="archived">Архив</option>
         </select>
+        <div class="col-picker-wrap">
+          <button class="col-picker-btn" onclick="toggleColPicker(event)">⚙ Столбцы ▾</button>
+          <div class="col-picker-dd" id="col-picker-dd"></div>
+        </div>
         <span class="count-lbl" id="count-lbl"></span>
       </div>
       <div class="card">
-        <table id="orders-table" style="table-layout:fixed;width:100%">
+        <div class="table-scroll">
+        <table id="orders-table">
           <colgroup>
             <col id="col-num"    style="width:130px">
             <col id="col-client" style="width:200px">
-            <col id="col-obj"    style="width:auto">
+            <col id="col-obj"    style="width:300px">
             <col id="col-revs"   style="width:80px">
             <col id="col-date"   style="width:110px">
             <col id="col-status" style="width:160px">
@@ -106,6 +130,7 @@ thead th.sort-on{color:var(--blue);}
           </thead>
           <tbody id="tbody"></tbody>
         </table>
+        </div>
         <div id="empty-state" style="display:none"></div>
       </div>
     </div>
@@ -384,21 +409,34 @@ function closeModal() {
 function handleBgClick(e) { if (e.target === document.getElementById('modal-bg')) closeModal(); }
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 
+/* ── Column definitions (for resize + visibility) ──────────────────────────── */
+var COL_DEFS = [
+  { id:'col-num',    label:'№ заказа',  canHide:false },
+  { id:'col-client', label:'Заказчик',  canHide:true  },
+  { id:'col-obj',    label:'Объект',    canHide:true  },
+  { id:'col-revs',   label:'Ревизии',   canHide:true  },
+  { id:'col-date',   label:'Дата',      canHide:true  },
+  { id:'col-status', label:'Статус',    canHide:true  },
+];
+var _hiddenCols = {};
+
 /* ── Column resize ─────────────────────────────────────────────────────────── */
-var _rszCol = null, _rszX0 = 0, _rszW0 = 0;
+var _rszCol = null, _rszX0 = 0, _rszW0 = 0, _rszTblW = 0;
 function startResize(e, colId) {
   e.stopPropagation(); e.preventDefault();
-  _rszCol = document.getElementById(colId);
-  _rszX0  = e.clientX;
-  _rszW0  = _rszCol.offsetWidth;
-  e.target.classList.add('dragging');
-  var el = e.target;
+  var tbl = document.getElementById('orders-table');
+  _rszCol  = document.getElementById(colId);
+  _rszX0   = e.clientX;
+  _rszW0   = parseInt(_rszCol.style.width) || _rszCol.offsetWidth || 100;
+  _rszTblW = tbl.offsetWidth;
   function onMove(ev) {
-    var w = Math.max(60, _rszW0 + ev.clientX - _rszX0);
+    var delta = ev.clientX - _rszX0;
+    var w = Math.max(60, _rszW0 + delta);
     _rszCol.style.width = w + 'px';
+    // Grow/shrink table by same delta so other columns don't shift
+    tbl.style.width = Math.max(400, _rszTblW + delta) + 'px';
   }
   function onUp() {
-    el.classList.remove('dragging');
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     saveColWidths();
@@ -406,21 +444,67 @@ function startResize(e, colId) {
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
 }
+function syncTableWidth() {
+  var total = COL_DEFS.reduce(function(s, c) {
+    var el = document.getElementById(c.id);
+    return s + (parseInt(el && el.style.width) || 100);
+  }, 0);
+  document.getElementById('orders-table').style.width = Math.max(total, 500) + 'px';
+}
 function saveColWidths() {
-  var cols = ['col-num','col-client','col-obj','col-revs','col-date','col-status'];
-  var w = {};
-  cols.forEach(function(id){ var el=document.getElementById(id); if(el) w[id]=el.style.width; });
-  localStorage.setItem('erp_orders_cols', JSON.stringify(w));
+  var w = {}, h = {};
+  COL_DEFS.forEach(function(c){
+    var el = document.getElementById(c.id);
+    if (el) w[c.id] = el.style.width;
+    h[c.id] = !!_hiddenCols[c.id];
+  });
+  localStorage.setItem('erp_orders_cols',    JSON.stringify(w));
+  localStorage.setItem('erp_orders_hidden',  JSON.stringify(h));
 }
 function loadColWidths() {
   try {
     var w = JSON.parse(localStorage.getItem('erp_orders_cols')||'{}');
-    Object.keys(w).forEach(function(id){ var el=document.getElementById(id); if(el&&w[id]) el.style.width=w[id]; });
+    COL_DEFS.forEach(function(c){ var el=document.getElementById(c.id); if(el&&w[c.id]) el.style.width=w[c.id]; });
+    var h = JSON.parse(localStorage.getItem('erp_orders_hidden')||'{}');
+    COL_DEFS.forEach(function(c){ _hiddenCols[c.id] = !!h[c.id]; });
+    applyColVisibility();
+    syncTableWidth();
   } catch(_) {}
 }
 
+/* ── Column visibility toggle ──────────────────────────────────────────────── */
+function toggleColPicker(e) {
+  e.stopPropagation();
+  var dd = document.getElementById('col-picker-dd');
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+  dd.innerHTML = COL_DEFS.map(function(c) {
+    var checked = !_hiddenCols[c.id] ? 'checked' : '';
+    var disabled = !c.canHide ? 'disabled style="opacity:.4"' : '';
+    return '<label class="col-picker-item" '+disabled+'>' +
+      '<input type="checkbox" id="chk-'+c.id+'" '+checked+' '+disabled+
+        ' onchange="toggleColumn(\''+c.id+'\')" onclick="event.stopPropagation()">' +
+      c.label +
+    '</label>';
+  }).join('');
+  dd.classList.add('open');
+  setTimeout(function(){
+    document.addEventListener('click', function closePicker(ev) {
+      if (!dd.contains(ev.target)) { dd.classList.remove('open'); document.removeEventListener('click', closePicker); }
+    });
+  }, 0);
+}
+function toggleColumn(colId) {
+  _hiddenCols[colId] = !_hiddenCols[colId];
+  applyColVisibility();
+  saveColWidths();
+}
+function applyColVisibility() {
+  var tbl = document.getElementById('orders-table');
+  COL_DEFS.forEach(function(c) { tbl.classList.toggle('hide-'+c.id, !!_hiddenCols[c.id]); });
+}
+
 async function init() {
-  loadColWidths();
+  loadColWidths(); // also calls syncTableWidth + applyColVisibility
   document.getElementById('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--txts);padding:28px">Загрузка заказов...</td></tr>';
   try { await ERPStore.loadOrders(); }
   catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
