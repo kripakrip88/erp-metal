@@ -88,7 +88,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 .aadd:hover{background:rgba(59,130,246,.2)}
 
 /* ASSEMBLY CARD */
-.ac{background:var(--panel);border:1px solid var(--brd);border-radius:8px;overflow:visible;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.ac{background:var(--panel);border:1px solid var(--brd);border-radius:8px;overflow:visible;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);margin-bottom:10px}
 .ah{padding:7px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .atog{font-size:9px;color:var(--txtm);cursor:pointer;width:11px;user-select:none;flex-shrink:0;transition:.1s}
 .aname{font-size:12.5px;font-weight:600;color:var(--txt);white-space:nowrap}
@@ -158,6 +158,17 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 .drag-handle{display:inline-block;color:var(--txts);font-size:11px;cursor:grab;padding:0 4px;opacity:0;transition:opacity .15s;user-select:none;}
 .pt tr:hover .drag-handle{opacity:1;}
 .mono{font-family:'DM Mono',monospace}
+.pt-wrap{overflow-x:auto}
+.pt th{position:relative}
+.pt-rszr{position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:2;border-radius:3px}
+.pt-rszr:hover,.pt-rszr.dragging{background:rgba(59,130,246,.5)}
+.pt-col-btn{background:none;border:1px solid var(--brd);border-radius:4px;color:var(--txts);cursor:pointer;font-size:10px;padding:1px 5px;margin-left:4px;font-family:inherit;transition:.12s;vertical-align:middle}
+.pt-col-btn:hover{border-color:var(--blue);color:var(--blue)}
+#pt-col-picker{position:fixed;background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:6px 0;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:150px;display:none}
+#pt-col-picker.open{display:block}
+.ptcp-item{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12.5px;user-select:none}
+.ptcp-item:hover{background:var(--hov)}
+.ptcp-item input{width:14px;height:14px;cursor:pointer;accent-color:var(--blue)}
 
 /* LKM TABLE */
 .lkm-table{width:100%;border-collapse:collapse}
@@ -338,6 +349,7 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
 .ii-sep{font-size:10px;color:var(--txts);margin:0 2px}
 .ii-unit{font-size:10px;color:var(--txts);margin-left:2px}
 </style>
+<style id="pt-col-style"></style>
 </head>
 <body>
 <!-- LOGIN MODAL -->
@@ -857,6 +869,7 @@ async function initApp() {
   } catch(e) { console.warn('initApp error', e); loadDraft(); }
 
   refresh();
+  loadPtCols();
   await loadMats();
   try { if (typeof ERPStore !== 'undefined') { COATINGS_CATALOG = await ERPStore.listCoatingMaterials(); } } catch(e) { console.warn('coatings load failed', e); }
 
@@ -888,6 +901,93 @@ async function initApp() {
 let CATS = [], _catSlugMap = {};
 let MATS = [], PRICES = [], matsLoaded = false;
 let _archivedMats = {};
+const PT_COL_DEFS = [
+  { id:'mat',    label:'Материал',  w:200, minW:100, canHide:false },
+  { id:'detail', label:'Деталь',    w:110, minW:60,  canHide:true  },
+  { id:'type',   label:'Тип',       w:36,  minW:28,  canHide:true  },
+  { id:'dims',   label:'Размеры',   w:175, minW:100, canHide:false },
+  { id:'qty',    label:'Кол.',      w:82,  minW:50,  canHide:false },
+  { id:'kgpu',   label:'кг/шт',     w:70,  minW:46,  canHide:true  },
+  { id:'kgnode', label:'кг×узел',   w:88,  minW:60,  canHide:true  },
+  { id:'price',  label:'₽/т',       w:76,  minW:46,  canHide:true  },
+  { id:'sum',    label:'Сумма',     w:90,  minW:60,  canHide:false },
+];
+let _ptColW = PT_COL_DEFS.map(c => c.w);
+let _ptHidden = {};
+let _ptRsz = null;
+
+function applyPtCols() {
+  let css = '', total = 0;
+  PT_COL_DEFS.forEach(function(col, i) {
+    const n = i + 1;
+    if (_ptHidden[col.id]) {
+      css += '.pt col:nth-child('+n+'){width:0}.pt th:nth-child('+n+'),.pt td:nth-child('+n+'){display:none}';
+    } else {
+      css += '.pt col:nth-child('+n+'){width:'+_ptColW[i]+'px}';
+      total += _ptColW[i];
+    }
+  });
+  css += '.pt{width:'+total+'px}';
+  const s = document.getElementById('pt-col-style');
+  if (s) s.textContent = css;
+}
+
+function savePtCols() {
+  localStorage.setItem('erp_pt_cols', JSON.stringify({ w: _ptColW, h: _ptHidden }));
+}
+
+function loadPtCols() {
+  try {
+    const d = JSON.parse(localStorage.getItem('erp_pt_cols') || '{}');
+    if (Array.isArray(d.w) && d.w.length === PT_COL_DEFS.length) _ptColW = d.w;
+    if (d.h && typeof d.h === 'object') _ptHidden = d.h;
+  } catch(e) {}
+  applyPtCols();
+}
+
+function ptRszStart(e, idx) {
+  e.preventDefault(); e.stopPropagation();
+  _ptRsz = { idx, startX: e.clientX, startW: _ptColW[idx] };
+  e.currentTarget.classList.add('dragging');
+}
+
+document.addEventListener('mousemove', function(e) {
+  if (!_ptRsz) return;
+  const delta = e.clientX - _ptRsz.startX;
+  _ptColW[_ptRsz.idx] = Math.max(PT_COL_DEFS[_ptRsz.idx].minW, _ptRsz.startW + delta);
+  applyPtCols();
+});
+
+document.addEventListener('mouseup', function() {
+  if (!_ptRsz) return;
+  document.querySelectorAll('.pt-rszr.dragging').forEach(function(el){ el.classList.remove('dragging'); });
+  savePtCols();
+  _ptRsz = null;
+});
+
+function openPtColPicker(e) {
+  e.stopPropagation();
+  const picker = document.getElementById('pt-col-picker');
+  const r = e.currentTarget.getBoundingClientRect();
+  picker.style.top  = (r.bottom + 4) + 'px';
+  picker.style.left = Math.min(r.left, window.innerWidth - 180) + 'px';
+  picker.innerHTML = PT_COL_DEFS.filter(function(c){ return c.canHide; }).map(function(c) {
+    return '<label class="ptcp-item"><input type="checkbox"' + (_ptHidden[c.id] ? '' : ' checked') +
+      ' onchange="togglePtCol(\'' + c.id + '\',this.checked)">' + c.label + '</label>';
+  }).join('');
+  picker.classList.toggle('open');
+}
+
+function togglePtCol(colId, visible) {
+  if (visible) delete _ptHidden[colId]; else _ptHidden[colId] = true;
+  applyPtCols(); savePtCols();
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#pt-col-picker') && !e.target.closest('.pt-col-btn')) {
+    const p = document.getElementById('pt-col-picker'); if (p) p.classList.remove('open');
+  }
+});
 let _matsChangedAt = localStorage.getItem('materials_changed') || '0';
 const REMS = [];
 let dbg = false, asms = [], revs = [], nA = 10, nP = 100;
@@ -1364,11 +1464,11 @@ function renderAsms() {
               <div class="search-dropdown" id="sd-material-${a.id}"></div>
             </div>
           </div>
-          <table class="pt">
-            <colgroup><col><col style="width:112px"><col style="width:36px"><col style="width:176px"><col style="width:82px"><col style="width:70px"><col style="width:88px"><col style="width:78px"><col style="width:90px"></colgroup>
-            <thead><tr><th>Материал</th><th>Деталь</th><th>Тип</th><th>Размеры</th><th>Кол.</th><th>кг/шт</th><th>кг×узел</th><th>₽/т</th><th>Сумма</th></tr></thead>
+          <div class="pt-wrap"><table class="pt">
+            <colgroup><col><col><col><col><col><col><col><col><col></colgroup>
+            <thead><tr><th>Материал<span class="pt-rszr" onmousedown="ptRszStart(event,0)"></span></th><th>Деталь<span class="pt-rszr" onmousedown="ptRszStart(event,1)"></span></th><th>Тип<span class="pt-rszr" onmousedown="ptRszStart(event,2)"></span></th><th>Размеры<span class="pt-rszr" onmousedown="ptRszStart(event,3)"></span></th><th>Кол.<span class="pt-rszr" onmousedown="ptRszStart(event,4)"></span></th><th>кг/шт<span class="pt-rszr" onmousedown="ptRszStart(event,5)"></span></th><th>кг×узел<span class="pt-rszr" onmousedown="ptRszStart(event,6)"></span></th><th>₽/т<span class="pt-rszr" onmousedown="ptRszStart(event,7)"></span></th><th>Сумма<button class="pt-col-btn" onclick="openPtColPicker(event)" title="Настройка столбцов">⚙</button></th></tr></thead>
             <tbody>${renderBomRows({ ...a, parts: materialParts })}</tbody>
-          </table>` : ''}
+          </table></div>` : ''}
         </div>
 
         <!-- РњР•РўИР—Р« -->
@@ -1416,7 +1516,7 @@ function toggleAsmBody(asmId) {
 function renderFastenersTab(a, fasteners) {
   if (!fasteners.length) return `<div style="padding:14px;text-align:center;color:var(--txtm);font-size:11px">Метизов нет — используйте поиск выше</div>`;
   const mu = a.qty || 1;
-  let html = `<table class="pt"><colgroup><col style="width:100px"><col><col style="width:70px"><col style="width:82px"><col style="width:88px"><col style="width:78px"><col style="width:90px"><col style="width:52px"></colgroup><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
+  let html = `<table class="pt"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
   let totW = 0, totC = 0;
   for (const p of fasteners) {
     const mat = MATS.find(m => m.id === p.mid);
@@ -2350,3 +2450,4 @@ function esc(s) {
 
 refresh();
 </script>
+<div id="pt-col-picker"></div>
