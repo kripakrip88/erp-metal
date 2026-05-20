@@ -917,17 +917,17 @@ let _ptHidden = {};
 let _ptRsz = null;
 
 function applyPtCols() {
-  let css = '', total = 0;
+  let total = 0;
+  PT_COL_DEFS.forEach(function(col, i) { if (!_ptHidden[col.id]) total += _ptColW[i]; });
+  let css = '';
   PT_COL_DEFS.forEach(function(col, i) {
     const n = i + 1;
     if (_ptHidden[col.id]) {
-      css += '.pt col:nth-child('+n+'){width:0}.pt th:nth-child('+n+'),.pt td:nth-child('+n+'){display:none}';
+      css += '.pt th:nth-child('+n+'),.pt td:nth-child('+n+'){display:none;padding:0;border:0}';
     } else {
-      css += '.pt col:nth-child('+n+'){width:'+_ptColW[i]+'px}';
-      total += _ptColW[i];
+      css += '.pt th:nth-child('+n+'){width:'+(_ptColW[i]/total*100).toFixed(2)+'%}';
     }
   });
-  css += '.pt{width:'+total+'px}';
   const s = document.getElementById('pt-col-style');
   if (s) s.textContent = css;
 }
@@ -1465,7 +1465,6 @@ function renderAsms() {
             </div>
           </div>
           <div class="pt-wrap"><table class="pt">
-            <colgroup><col><col><col><col><col><col><col><col><col></colgroup>
             <thead><tr><th>Материал<span class="pt-rszr" onmousedown="ptRszStart(event,0)"></span></th><th>Деталь<span class="pt-rszr" onmousedown="ptRszStart(event,1)"></span></th><th>Тип<span class="pt-rszr" onmousedown="ptRszStart(event,2)"></span></th><th>Размеры<span class="pt-rszr" onmousedown="ptRszStart(event,3)"></span></th><th>Кол.<span class="pt-rszr" onmousedown="ptRszStart(event,4)"></span></th><th>кг/шт<span class="pt-rszr" onmousedown="ptRszStart(event,5)"></span></th><th>кг×узел<span class="pt-rszr" onmousedown="ptRszStart(event,6)"></span></th><th>₽/т<span class="pt-rszr" onmousedown="ptRszStart(event,7)"></span></th><th>Сумма<button class="pt-col-btn" onclick="openPtColPicker(event)" title="Настройка столбцов">⚙</button></th></tr></thead>
             <tbody>${renderBomRows({ ...a, parts: materialParts })}</tbody>
           </table></div>` : ''}
