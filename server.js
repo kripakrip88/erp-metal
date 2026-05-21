@@ -32,6 +32,7 @@ const routes = [
   ...require('./src/routes/inventory'),
   ...require('./src/routes/templates'),
   ...require('./src/routes/customers'),
+  ...require('./src/routes/aiProxy'),
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
@@ -78,7 +79,9 @@ const server = http.createServer(async (req, res) => {
     if (serveStatic(req, res)) return
   }
 
-  if (!PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
+  // /proxy/ai/* — open on ERP side; auth to AI service is handled via system token
+  const isAiProxy = pathname.startsWith('/proxy/ai/')
+  if (!isAiProxy && !PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
 
   const match = matchRoute(routes, req.method, req.url)
   if (match) {

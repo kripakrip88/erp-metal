@@ -86,7 +86,7 @@
 <script>
 ERP.init('email');
 
-var AI_API = (window.AI_API_URL || (location.protocol + '//' + location.hostname + ':4000'));
+var AI_API = '';  // requests go through ERP proxy: /proxy/ai/*
 var currentFilter = { status: 'pending', intent: '' };
 var selectedId = null;
 var messages = [];
@@ -128,7 +128,7 @@ async function loadMessages() {
   var list = document.getElementById('mail-list');
   list.innerHTML = '<div class="empty-list">Загрузка...</div>';
   try {
-    var url = AI_API + '/api/email-copilot/inbox';
+    var url = '/proxy/ai/inbox';
     var qs = [];
     if (currentFilter.status) qs.push('status=' + currentFilter.status);
     if (currentFilter.intent) qs.push('intent=' + currentFilter.intent);
@@ -272,7 +272,7 @@ async function reanalyzeEmail(id) {
   var btn = document.getElementById('reanalyze-btn');
   if (btn) { btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Анализ...'; }
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/analyze/'+id, { method:'POST' });
+    var r = await fetch('/proxy/ai/analyze/'+id, { method:'POST' });
     if (!r.ok) throw new Error('Ошибка анализа: ' + r.status);
     ERP.toast('Анализ завершён', 'success');
     await loadMessages();
@@ -289,7 +289,7 @@ async function sendReply(id, messageId) {
   var body = ta ? ta.value.trim() : '';
   if (!body) { ERP.toast('Введите текст ответа', 'error'); return; }
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/reply', {
+    var r = await fetch('/proxy/ai/reply', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ messageId:messageId, replyBody:body, sentBy:'manager' }),
@@ -302,7 +302,7 @@ async function sendReply(id, messageId) {
 
 async function archiveMail(id) {
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/archive/'+id, { method:'POST' });
+    var r = await fetch('/proxy/ai/archive/'+id, { method:'POST' });
     if (!r.ok) throw new Error('Ошибка');
     ERP.toast('Письмо в архиве', 'success');
     selectedId = null;
@@ -315,7 +315,7 @@ async function createRfqFromEmail(id) {
   var title = prompt('Название объекта для КП:');
   if (!title) return;
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/create-rfq', {
+    var r = await fetch('/proxy/ai/create-rfq', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ messageId:id, title:title }),
@@ -330,7 +330,7 @@ async function createRfqFromEmail(id) {
 
 async function pollMail() {
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/poll', { method:'POST' });
+    var r = await fetch('/proxy/ai/poll', { method:'POST' });
     var data = await r.json();
     var n = data.received != null ? data.received : (data.newCount != null ? data.newCount : (data.count || 0));
     ERP.toast('Получено: ' + n + ' новых', n>0 ? 'success' : '');
