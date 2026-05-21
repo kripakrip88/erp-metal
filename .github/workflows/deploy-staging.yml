@@ -17,3 +17,4 @@ jobs:
           script: |
             cd /var/www/erp-metal-staging
             bash deploy.sh
+            node scripts/emergency-reset-staging.js
