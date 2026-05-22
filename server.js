@@ -34,7 +34,7 @@ const routes = [
   ...require('./src/routes/customers'),
   ...require('./src/routes/users'),
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
-    json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
+    json(res, { status: 'ok', db: 'connected', version: '1.1.0' })
   }},
 ]
 
