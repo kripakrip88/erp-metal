@@ -1,14 +1,18 @@
 const { json }        = require('../utils/response')
 const { getCompanyId } = require('../utils/company')
+const { requireRole }  = require('../middleware/requireRole')
 const {
   calculateInventoryAvailability,
   getInventoryAvailability,
   validateReservationAvailability,
 } = require('../services/inventoryCompatibilityService')
 
+const adminOnly = requireRole('ADMIN')
+
 module.exports = [
   // Rebuild availability balances for the company from active reservations
   { method: 'POST', pathname: '/api/inventory/rebuild', handler: async (req, res) => {
+    if (!adminOnly(req, res)) return
     const companyId = await getCompanyId()
     json(res, await calculateInventoryAvailability(companyId))
   }},

@@ -8,7 +8,9 @@ function authenticate(req, res) {
     return false
   }
   try {
-    req.user = verifyToken(header.slice(7))
+    const payload = verifyToken(header.slice(7))
+    req.user    = payload
+    req.context = { userId: payload.userId, companyId: payload.companyId, role: payload.role }
     return true
   } catch {
     json(res, { error: 'Invalid or expired token' }, 401)

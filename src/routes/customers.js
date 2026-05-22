@@ -1,5 +1,8 @@
-const { json }      = require('../utils/response')
-const { parseBody } = require('../utils/parseBody')
+const { json }        = require('../utils/response')
+const { parseBody }   = require('../utils/parseBody')
+const { requireRole } = require('../middleware/requireRole')
+
+const canManage = requireRole('MANAGER', 'ADMIN')
 const {
   listCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer,
 } = require('../services/customerService')
@@ -12,6 +15,7 @@ module.exports = [
     json(res, await listCustomers({ search: q.get('search') || '', email: q.get('email') || '' }))
   }},
   { method: 'POST', pathname: '/api/customers', handler: async (req, res) => {
+    if (!canManage(req, res)) return
     const body = await parseBody(req)
     if (!body.name) return json(res, { error: 'name is required' }, 400)
     json(res, await createCustomer(body), 201)
@@ -22,10 +26,12 @@ module.exports = [
     json(res, data)
   }},
   { method: 'PUT', pathname: '/api/customers/:id', handler: async (req, res, params) => {
+    if (!canManage(req, res)) return
     const body = await parseBody(req)
     json(res, await updateCustomer(params.id, body))
   }},
   { method: 'DELETE', pathname: '/api/customers/:id', handler: async (req, res, params) => {
+    if (!canManage(req, res)) return
     json(res, await deleteCustomer(params.id))
   }},
 
@@ -33,15 +39,18 @@ module.exports = [
     json(res, await listContacts(params.id))
   }},
   { method: 'POST', pathname: '/api/customers/:id/contacts', handler: async (req, res, params) => {
+    if (!canManage(req, res)) return
     const body = await parseBody(req)
     if (!body.name) return json(res, { error: 'name is required' }, 400)
     json(res, await createContact(params.id, body), 201)
   }},
   { method: 'PUT', pathname: '/api/contacts/:id', handler: async (req, res, params) => {
+    if (!canManage(req, res)) return
     const body = await parseBody(req)
     json(res, await updateContact(params.id, body))
   }},
   { method: 'DELETE', pathname: '/api/contacts/:id', handler: async (req, res, params) => {
+    if (!canManage(req, res)) return
     json(res, await deleteContact(params.id))
   }},
 
@@ -50,6 +59,7 @@ module.exports = [
     json(res, await listInteractions(params.id, { limit: q.get('limit') || 50 }))
   }},
   { method: 'POST', pathname: '/api/interactions', handler: async (req, res) => {
+    if (!canManage(req, res)) return
     const body = await parseBody(req)
     if (!body.customerId) return json(res, { error: 'customerId is required' }, 400)
     if (!body.type)       return json(res, { error: 'type is required' }, 400)
