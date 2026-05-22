@@ -1,7 +1,9 @@
 const prisma = require('../repositories/prisma')
 
 async function getCompany() {
-  return prisma.company.findFirst()
+  const c = await prisma.company.findFirst()
+  if (!c) throw Object.assign(new Error('Company not found'), { status: 500 })
+  return c
 }
 
 async function getCompanyId() {

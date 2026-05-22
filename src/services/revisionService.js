@@ -1,4 +1,6 @@
-const prisma = require('../repositories/prisma')
+const prisma          = require('../repositories/prisma')
+const { getCompany }  = require('../utils/company')
+const { Prisma }      = require('@prisma/client')
 const { calcLinearWeight, calcAreaWeight } = require('../calculations/weightCalc')
 const { calcLinearPaint, calcAreaPaint }   = require('../calculations/paintCalc')
 const { calcMaterialCost }                 = require('../calculations/costCalc')
@@ -122,13 +124,15 @@ async function getRevisions(orderId) {
   })
 }
 
-async function createRevision(orderId, notes) {
-  const company = await prisma.company.findFirst()
+async function createRevision(orderId, notes, _attempt = 0) {
+  const company = await getCompany()
   const user    = await prisma.user.findFirst({ where: { companyId: company.id } })
 
   let previousActiveQuoteRevisionId = null
 
-  const quoteRevision = await prisma.$transaction(async (tx) => {
+  let quoteRevision
+  try {
+  quoteRevision = await prisma.$transaction(async (tx) => {
     // ── Load assemblies ───────────────────────────────────────────────────────
     const order = await tx.order.findUnique({
       where:  { id: orderId },
@@ -315,6 +319,13 @@ async function createRevision(orderId, notes) {
 
     return quoteRevision
   })
+  } catch (err) {
+    // Retry once on unique constraint race (two concurrent revision creates)
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' && _attempt < 2) {
+      return createRevision(orderId, notes, _attempt + 1)
+    }
+    throw err
+  }
 
   safeAudit({
     eventType:       AUDIT_EVENTS.QUOTE_REVISION_CREATED,

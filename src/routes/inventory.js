@@ -1,5 +1,5 @@
-const { json } = require('../utils/response')
-const prisma   = require('../repositories/prisma')
+const { json }        = require('../utils/response')
+const { getCompanyId } = require('../utils/company')
 const {
   calculateInventoryAvailability,
   getInventoryAvailability,
@@ -9,9 +9,8 @@ const {
 module.exports = [
   // Rebuild availability balances for the company from active reservations
   { method: 'POST', pathname: '/api/inventory/rebuild', handler: async (req, res) => {
-    const company = await prisma.company.findFirst({ select: { id: true } })
-    if (!company) return json(res, { error: 'Company not found' }, 404)
-    json(res, await calculateInventoryAvailability(company.id))
+    const companyId = await getCompanyId()
+    json(res, await calculateInventoryAvailability(companyId))
   }},
 
   // Get current balance for a single coating material

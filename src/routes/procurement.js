@@ -1,5 +1,5 @@
-const { json }   = require('../utils/response')
-const prisma     = require('../repositories/prisma')
+const { json }         = require('../utils/response')
+const { getCompanyId } = require('../utils/company')
 const {
   getReleasedProcurementSnapshot,
   getAssemblyProcurementSnapshot,
@@ -27,9 +27,8 @@ module.exports = [
     json(res, await getOrderReservations(params.orderId))
   }},
   { method: 'GET', pathname: '/api/reservations/totals', handler: async (req, res) => {
-    const company = await prisma.company.findFirst({ select: { id: true } })
-    if (!company) return json(res, { error: 'Company not found' }, 404)
-    json(res, await getReservedMaterialTotals(company.id))
+    const companyId = await getCompanyId()
+    json(res, await getReservedMaterialTotals(companyId))
   }},
   { method: 'DELETE', pathname: '/api/reservations/:reservationId', handler: async (req, res, params) => {
     json(res, await cancelReservation(params.reservationId))
