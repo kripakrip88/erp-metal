@@ -18,6 +18,7 @@ const MIME = {
 }
 
 const routes = [
+  ...require('./src/routes/aiProxy'),
   ...require('./src/routes/auth'),
   ...require('./src/routes/categories'),
   ...require('./src/routes/materials'),
@@ -79,7 +80,8 @@ const server = http.createServer(async (req, res) => {
     if (serveStatic(req, res)) return
   }
 
-  if (!PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
+  const isAiProxy = pathname.startsWith('/proxy/ai/')
+  if (!isAiProxy && !PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
 
   const match = matchRoute(routes, req.method, req.url)
   if (match) {
