@@ -83,36 +83,38 @@ jobs:
             echo "IMAP_USER = $AI_IMAP_USER"
             echo "IMAP_HOST = imap.mail.ru"
 
-            echo "====== ПЕРЕЗАПУСК ======"
+            echo "====== ОСВОБОЖДАЕМ ПОРТ 4000 ======"
+            # PM2 мог захватить порт 4000 со старым кодом — убиваем его
+            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon; do
+              if pm2 describe "$pname" > /dev/null 2>&1; then
+                echo "Удаляем PM2 процесс: $pname (он занимал порт 4000)"
+                pm2 delete "$pname" 2>/dev/null || true
+              fi
+            done
+            # На всякий случай убиваем всё на порту 4000
+            fuser -k 4000/tcp 2>/dev/null || true
+            sleep 2
 
-            # Docker имеет ПРИОРИТЕТ — проверяем его первым
+            echo "====== ПЕРЕЗАПУСК ЧЕРЕЗ DOCKER ======"
             if [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
               cd "$POLYGON_DIR"
 
-              echo "====== GIT PULL (свежий исходник) ======"
-              git pull origin main 2>&1 || git pull origin master 2>&1 || echo "git pull не удался (продолжаем с текущим кодом)"
-
-              echo "====== ТЕКУЩИЙ КОММИТ ======"
-              git log --oneline -3 2>/dev/null || echo "git log недоступен"
+              echo "====== GIT PULL ======"
+              git pull origin main 2>&1 || git pull origin master 2>&1 || echo "git pull не удался"
+              git log --oneline -3 2>/dev/null || true
 
               echo "====== Docker compose --build --force-recreate ======"
               docker compose up -d --build --force-recreate backend
-              echo "Образ пересобран из свежего исходника, контейнер пересоздан ✓"
+              echo "Контейнер пересобран и запущен ✓"
 
-              echo "Ожидаем запуск приложения (20 сек)..."
+              echo "Ожидаем запуск (20 сек)..."
               sleep 20
-              echo "Статус контейнера:"
+              echo "Статус:"
               docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
 
             else
-              echo "docker-compose.yml не найден, пробуем PM2..."
-              for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon; do
-                if pm2 describe "$pname" > /dev/null 2>&1; then
-                  echo "Перезапускаю PM2: $pname"
-                  pm2 restart "$pname"
-                  break
-                fi
-              done
+              echo "ОШИБКА: docker-compose.yml не найден в $POLYGON_DIR"
+              exit 1
             fi
 
             echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
