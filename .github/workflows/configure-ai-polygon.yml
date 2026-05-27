@@ -1,0 +1,70 @@
+name: Configure AI Polygon
+
+# Запускается:
+# 1. Автоматически после каждого деплоя на staging или prod
+# 2. Вручную из GitHub → Actions → "Configure AI Polygon" → Run workflow
+on:
+  workflow_run:
+    workflows: ["Deploy to Production", "Deploy to Staging"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Причина запуска'
+        required: false
+        default: 'Ручная настройка'
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    # При автозапуске — только если деплой прошёл успешно
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Прописать IMAP-реквизиты и перезапустить AI Polygon
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: AI_IMAP_USER,AI_IMAP_PASS,AI_IMAP_HOST,AI_SMTP_USER,AI_SMTP_PASS,AI_SMTP_HOST
+          script: |
+            set -e
+            ENV_FILE="/var/www/metalpro-ai-polygon/.env"
+
+            echo "→ Обновляем $ENV_FILE"
+
+            # Функция: обновить строку в .env или добавить если нет
+            upsert_env() {
+              local key="$1"
+              local val="$2"
+              if [ -z "$val" ]; then return; fi
+              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
+              else
+                echo "${key}=${val}" >> "$ENV_FILE"
+              fi
+            }
+
+            # Создать файл если не существует
+            touch "$ENV_FILE"
+
+            upsert_env "IMAP_HOST" "${AI_IMAP_HOST:-imap.mail.ru}"
+            upsert_env "IMAP_USER" "$AI_IMAP_USER"
+            upsert_env "IMAP_PASS" "$AI_IMAP_PASS"
+            upsert_env "SMTP_HOST" "${AI_SMTP_HOST:-smtp.mail.ru}"
+            upsert_env "SMTP_USER" "${AI_SMTP_USER:-$AI_IMAP_USER}"
+            upsert_env "SMTP_PASS" "${AI_SMTP_PASS:-$AI_IMAP_PASS}"
+
+            echo "→ Перезапускаем AI Polygon"
+            pm2 restart metalpro-ai-polygon 2>/dev/null || \
+              (cd /var/www/metalpro-ai-polygon && pm2 start dist/main.js --name metalpro-ai-polygon && pm2 save)
+
+            echo "✓ Готово"
+        env:
+          AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
+          AI_IMAP_PASS: ${{ secrets.AI_IMAP_PASS }}
+          AI_IMAP_HOST: ${{ secrets.AI_IMAP_HOST }}
+          AI_SMTP_USER: ${{ secrets.AI_SMTP_USER }}
+          AI_SMTP_PASS: ${{ secrets.AI_SMTP_PASS }}
+          AI_SMTP_HOST: ${{ secrets.AI_SMTP_HOST }}
