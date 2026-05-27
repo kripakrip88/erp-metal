@@ -3,6 +3,12 @@ name: Deploy to Staging
 on:
   push:
     branches: [develop]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Причина запуска'
+        required: false
+        default: 'Ручной деплой'
 
 jobs:
   deploy:
