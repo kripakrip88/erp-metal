@@ -96,18 +96,16 @@ jobs:
               fi
             done
 
-            # Docker — перезапускаем контейнер backend напрямую
-            if [ "$PM2_RESTARTED" -eq 0 ]; then
-              echo "Docker restart backend..."
-              # Сначала пробуем точное имя контейнера
-              docker restart metalpro-ai-polygon-backend-1 2>/dev/null && PM2_RESTARTED=1 || true
-              # Если не вышло — docker compose v2
-              if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
-                cd "$POLYGON_DIR"
-                docker compose restart backend 2>/dev/null && PM2_RESTARTED=1 || \
-                docker compose up -d --force-recreate backend 2>/dev/null && PM2_RESTARTED=1 || true
-              fi
-              [ "$PM2_RESTARTED" -eq 1 ] && echo "Контейнер перезапущен ✓"
+            # Docker — пересоздаём контейнер (force-recreate подхватывает новый .env)
+            if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+              echo "Docker compose force-recreate backend..."
+              cd "$POLYGON_DIR"
+              docker compose up -d --force-recreate backend
+              PM2_RESTARTED=1
+              echo "Контейнер пересоздан ✓"
+              sleep 3
+              echo "Статус контейнера:"
+              docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
             fi
 
             if [ "$PM2_RESTARTED" -eq 0 ]; then
