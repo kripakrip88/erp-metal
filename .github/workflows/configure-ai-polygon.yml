@@ -94,16 +94,23 @@ jobs:
               fi
             done
 
-            # Docker — пересобираем образ и пересоздаём контейнер
-            # --build: пересобирает образ из исходников (важно! без этого запускается старый скомпилированный JS)
-            # --force-recreate: подхватывает новый .env
+            # Docker — git pull + пересборка образа + пересоздание контейнера
             if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
-              echo "Docker compose build + force-recreate backend..."
               cd "$POLYGON_DIR"
+
+              echo "====== GIT PULL (свежий исходник) ======"
+              git pull origin main 2>&1 || git pull origin master 2>&1 || echo "git pull не удался (продолжаем с текущим кодом)"
+
+              echo "====== ТЕКУЩИЙ КОММИТ ======"
+              git log --oneline -3 2>/dev/null || echo "git log недоступен"
+
+              echo "====== Docker compose --build --force-recreate ======"
               docker compose up -d --build --force-recreate backend
               PM2_RESTARTED=1
-              echo "Образ пересобран, контейнер пересоздан ✓"
-              sleep 5
+              echo "Образ пересобран из свежего исходника, контейнер пересоздан ✓"
+
+              echo "Ожидаем запуск приложения (15 сек)..."
+              sleep 15
               echo "Статус контейнера:"
               docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
             fi
