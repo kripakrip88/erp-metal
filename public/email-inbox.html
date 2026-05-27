@@ -720,6 +720,11 @@ async function pollMail() {
   try {
     var r = await fetch(AI_API + '/api/email-copilot/poll', { method: 'POST' });
     var data = await r.json();
+    if (!r.ok) {
+      var msg = data.message || data.error || ('Ошибка ' + r.status);
+      ERP.toast('IMAP ошибка: ' + msg, 'error');
+      return;
+    }
     var n = data.received != null ? data.received : (data.newCount != null ? data.newCount : (data.count || 0));
     ERP.toast('Получено: ' + n + ' новых', n > 0 ? 'success' : '');
     updateLastUpdate();
