@@ -94,14 +94,16 @@ jobs:
               fi
             done
 
-            # Docker — пересоздаём контейнер (force-recreate подхватывает новый .env)
+            # Docker — пересобираем образ и пересоздаём контейнер
+            # --build: пересобирает образ из исходников (важно! без этого запускается старый скомпилированный JS)
+            # --force-recreate: подхватывает новый .env
             if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
-              echo "Docker compose force-recreate backend..."
+              echo "Docker compose build + force-recreate backend..."
               cd "$POLYGON_DIR"
-              docker compose up -d --force-recreate backend
+              docker compose up -d --build --force-recreate backend
               PM2_RESTARTED=1
-              echo "Контейнер пересоздан ✓"
-              sleep 3
+              echo "Образ пересобран, контейнер пересоздан ✓"
+              sleep 5
               echo "Статус контейнера:"
               docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
             fi
