@@ -82,4 +82,22 @@ module.exports = [
       await forwardJson(res, aiRes)
     },
   },
+
+  // GET /proxy/ai/attachment/:messageId/:filename — скачивание вложений
+  {
+    method: 'GET',
+    pathname: '/proxy/ai/attachment/:messageId/:filename',
+    handler: async (req, res, params) => {
+      const aiRes = await proxyToAi('GET',
+        `/api/email-copilot/attachment/${params.messageId}/${encodeURIComponent(params.filename)}`)
+      if (!aiRes.ok) {
+        return json(res, { error: 'Вложение не найдено' }, aiRes.status)
+      }
+      const ct = aiRes.headers.get('content-type') || 'application/octet-stream'
+      const cd = aiRes.headers.get('content-disposition') || `attachment; filename="${params.filename}"`
+      res.writeHead(200, { 'Content-Type': ct, 'Content-Disposition': cd })
+      const buf = await aiRes.arrayBuffer()
+      res.end(Buffer.from(buf))
+    },
+  },
 ]
