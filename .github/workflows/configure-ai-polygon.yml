@@ -5,11 +5,6 @@ on:
     workflows: ["Deploy to Production", "Deploy to Staging"]
     types: [completed]
   workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Причина запуска'
-        required: false
-        default: 'Ручная настройка'
 
 jobs:
   configure:
@@ -23,16 +18,23 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: AI_IMAP_USER,AI_IMAP_PASS,AI_IMAP_HOST
+          envs: AI_IMAP_USER,AI_IMAP_PASS
           script: |
-            echo "=== Ищем директорию AI Polygon ==="
+            echo "====== PM2 LIST ======"
+            pm2 list
+
+            echo "====== DOCKER CONTAINERS ======"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "docker не найден"
+
+            echo "====== ПОИСК ДИРЕКТОРИИ ======"
             POLYGON_DIR=""
             for dir in \
               /var/www/metalpro-ai-polygon \
               /root/metalpro-ai-polygon \
               /opt/metalpro-ai-polygon \
               /home/deploy/metalpro-ai-polygon \
-              /srv/metalpro-ai-polygon; do
+              /srv/metalpro-ai-polygon \
+              /var/www/ai-polygon; do
               if [ -d "$dir" ]; then
                 POLYGON_DIR="$dir"
                 echo "Найдено: $POLYGON_DIR"
@@ -42,69 +44,75 @@ jobs:
 
             if [ -z "$POLYGON_DIR" ]; then
               echo "Поиск через find..."
-              POLYGON_DIR=$(find /var /root /opt /home /srv -maxdepth 4 -name "docker-compose.yml" 2>/dev/null | xargs grep -l "metalpro\|ai-polygon" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+              POLYGON_DIR=$(find /var /root /opt /home /srv -maxdepth 5 \( -name ".env" -o -name "docker-compose.yml" \) 2>/dev/null | xargs grep -l "IMAP\|metalpro\|ai.polygon" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
               echo "Найдено через find: $POLYGON_DIR"
             fi
 
             if [ -z "$POLYGON_DIR" ]; then
-              echo "ОШИБКА: Директория AI Polygon не найдена"
+              echo "ОШИБКА: Директория не найдена"
               exit 1
             fi
 
+            echo "====== ОБНОВЛЯЕМ .env в $POLYGON_DIR ======"
             ENV_FILE="$POLYGON_DIR/.env"
-            echo "=== Обновляем $ENV_FILE ==="
-
             touch "$ENV_FILE"
 
-            upsert_env() {
-              local key="$1"
-              local val="$2"
-              if [ -z "$val" ]; then return; fi
-              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
-                sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
-                echo "Обновлено: $key"
+            upsert() {
+              local k="$1" v="$2"
+              [ -z "$v" ] && return
+              if grep -q "^${k}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${k}=.*|${k}=${v}|" "$ENV_FILE"
+                echo "  Обновлено: $k"
               else
-                echo "${key}=${val}" >> "$ENV_FILE"
-                echo "Добавлено: $key"
+                echo "${k}=${v}" >> "$ENV_FILE"
+                echo "  Добавлено: $k"
               fi
             }
 
-            upsert_env "IMAP_HOST" "${AI_IMAP_HOST:-imap.mail.ru}"
-            upsert_env "IMAP_USER" "$AI_IMAP_USER"
-            upsert_env "IMAP_PASS" "$AI_IMAP_PASS"
-            upsert_env "SMTP_HOST" "smtp.mail.ru"
-            upsert_env "SMTP_USER" "$AI_IMAP_USER"
-            upsert_env "SMTP_PASS" "$AI_IMAP_PASS"
+            upsert "IMAP_HOST" "imap.mail.ru"
+            upsert "IMAP_USER" "$AI_IMAP_USER"
+            upsert "IMAP_PASS" "$AI_IMAP_PASS"
+            upsert "SMTP_HOST" "smtp.mail.ru"
+            upsert "SMTP_USER" "$AI_IMAP_USER"
+            upsert "SMTP_PASS" "$AI_IMAP_PASS"
 
-            echo "=== Перезапускаем сервис ==="
+            echo ""
+            echo "IMAP_USER = $AI_IMAP_USER"
+            echo "IMAP_HOST = imap.mail.ru"
 
-            # Пробуем PM2 с разными именами
-            RESTARTED=0
-            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend; do
+            echo "====== ПЕРЕЗАПУСК ======"
+            # PM2 — пробуем все возможные имена
+            PM2_RESTARTED=0
+            for pname in $(pm2 list --no-color 2>/dev/null | grep -oP '(?<=│ )\S+(?= +│ default)' | head -20); do
+              echo "PM2 процесс: $pname"
+            done
+
+            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
               if pm2 describe "$pname" > /dev/null 2>&1; then
-                echo "PM2 restart: $pname"
+                echo "Перезапускаю PM2: $pname"
                 pm2 restart "$pname"
-                RESTARTED=1
+                PM2_RESTARTED=1
                 break
               fi
             done
 
-            # Если PM2 не сработал — пробуем docker-compose
-            if [ "$RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+            # Docker-compose — пробуем если PM2 не сработал
+            if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
               echo "Docker-compose restart..."
               cd "$POLYGON_DIR"
-              docker-compose restart backend 2>/dev/null || docker-compose up -d 2>/dev/null
-              RESTARTED=1
+              docker-compose up -d --force-recreate backend 2>/dev/null || \
+              docker-compose restart 2>/dev/null || \
+              echo "WARN: docker-compose не сработал"
             fi
 
-            if [ "$RESTARTED" -eq 0 ]; then
-              echo "WARN: Не удалось найти PM2 процесс или docker-compose. .env обновлён, перезапустите вручную."
+            if [ "$PM2_RESTARTED" -eq 0 ]; then
+              echo ""
+              echo "WARN: Не нашли PM2 процесс с ожидаемым именем."
+              echo "Доступные PM2 процессы:"
+              pm2 list --no-color 2>/dev/null | grep -v "^$" | head -20
             fi
 
-            echo "=== Готово ==="
-            echo "IMAP_USER прописан: $AI_IMAP_USER"
-            echo "IMAP_HOST: ${AI_IMAP_HOST:-imap.mail.ru}"
+            echo "====== ГОТОВО ======"
         env:
           AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
           AI_IMAP_PASS: ${{ secrets.AI_IMAP_PASS }}
-          AI_IMAP_HOST: ${{ secrets.AI_IMAP_HOST }}
