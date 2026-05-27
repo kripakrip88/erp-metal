@@ -36,7 +36,11 @@ function proxyToAI(req, res) {
     const proxyReq = http.request(
       { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: req.url, method: req.method, headers },
       (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers)
+        // 401 от AI Polygon — его внутренняя ошибка, не ERP-авторизация.
+        // Меняем на 503 чтобы ERP.authFetch не выбрасывал пользователя из сессии.
+        const statusCode = proxyRes.statusCode === 401 ? 503 : proxyRes.statusCode
+        const fwdHeaders  = Object.assign({}, proxyRes.headers)
+        res.writeHead(statusCode, fwdHeaders)
         proxyRes.pipe(res)
       }
     )
