@@ -1,5 +1,8 @@
 name: Configure AI Polygon
 
+# Запускается:
+# 1. Автоматически после каждого деплоя на staging или prod
+# 2. Вручную из GitHub → Actions → "Configure AI Polygon" → Run workflow
 on:
   workflow_run:
     workflows: ["Deploy to Production", "Deploy to Staging"]
@@ -81,12 +84,7 @@ jobs:
             echo "IMAP_HOST = imap.mail.ru"
 
             echo "====== ПЕРЕЗАПУСК ======"
-            # PM2 — пробуем все возможные имена
             PM2_RESTARTED=0
-            for pname in $(pm2 list --no-color 2>/dev/null | grep -oP '(?<=│ )\S+(?= +│ default)' | head -20); do
-              echo "PM2 процесс: $pname"
-            done
-
             for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
               if pm2 describe "$pname" > /dev/null 2>&1; then
                 echo "Перезапускаю PM2: $pname"
@@ -96,42 +94,52 @@ jobs:
               fi
             done
 
-            # Docker — пересобираем образ и пересоздаём контейнер
-            # --build: пересобирает из исходников (без этого запускается старый JS с auth guards)
-            # --force-recreate: подхватывает обновлённый .env
+            # Docker — git pull + пересборка образа + пересоздание контейнера
             if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
-              echo "Docker compose --build --force-recreate backend..."
               cd "$POLYGON_DIR"
+
+              echo "====== GIT PULL (свежий исходник) ======"
+              git pull origin main 2>&1 || git pull origin master 2>&1 || echo "git pull не удался (продолжаем с текущим кодом)"
+
+              echo "====== ТЕКУЩИЙ КОММИТ ======"
+              git log --oneline -3 2>/dev/null || echo "git log недоступен"
+
+              echo "====== Docker compose --build --force-recreate ======"
               docker compose up -d --build --force-recreate backend
               PM2_RESTARTED=1
-              echo "Образ пересобран, контейнер пересоздан ✓"
-              sleep 5
+              echo "Образ пересобран из свежего исходника, контейнер пересоздан ✓"
+
+              echo "Ожидаем запуск приложения (15 сек)..."
+              sleep 15
               echo "Статус контейнера:"
               docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
             fi
 
             if [ "$PM2_RESTARTED" -eq 0 ]; then
               echo ""
-              echo "WARN: Не нашли PM2 процесс с ожидаемым именем."
-              echo "Доступные PM2 процессы:"
-              pm2 list --no-color 2>/dev/null | grep -v "^$" | head -20
+              echo "WARN: Не нашли PM2 процесс или Docker compose"
+              pm2 list --no-color 2>/dev/null | head -20
             fi
 
             echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
-            echo "IMAP env в контейнере:"
-            docker exec metalpro-ai-polygon-backend-1 printenv IMAP_HOST 2>/dev/null || echo "  IMAP_HOST: не задан"
-            docker exec metalpro-ai-polygon-backend-1 printenv IMAP_USER 2>/dev/null || echo "  IMAP_USER: не задан"
-            IMAP_PASS_IN=$(docker exec metalpro-ai-polygon-backend-1 printenv IMAP_PASS 2>/dev/null)
-            if [ -n "$IMAP_PASS_IN" ]; then
-              echo "  IMAP_PASS: задан (длина: ${#IMAP_PASS_IN} символов)"
-            else
-              echo "  IMAP_PASS: НЕ ЗАДАН!"
-            fi
+            CONTAINER=$(docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}}" | head -1)
+            if [ -n "$CONTAINER" ]; then
+              docker exec "$CONTAINER" printenv IMAP_HOST 2>/dev/null || echo "  IMAP_HOST: не задан"
+              docker exec "$CONTAINER" printenv IMAP_USER 2>/dev/null || echo "  IMAP_USER: не задан"
+              IMAP_PASS_IN=$(docker exec "$CONTAINER" printenv IMAP_PASS 2>/dev/null)
+              if [ -n "$IMAP_PASS_IN" ]; then
+                echo "  IMAP_PASS: задан (длина: ${#IMAP_PASS_IN} символов)"
+              else
+                echo "  IMAP_PASS: НЕ ЗАДАН!"
+              fi
 
-            echo "====== ТЕСТ IMAP СОЕДИНЕНИЯ ======"
-            docker exec metalpro-ai-polygon-backend-1 sh -c \
-              "node -e \"const {ImapFlow}=require('imapflow');const c=new ImapFlow({host:process.env.IMAP_HOST,port:993,secure:true,auth:{user:process.env.IMAP_USER,pass:process.env.IMAP_PASS},logger:false});c.connect().then(()=>{console.log('IMAP OK');c.logout();}).catch(e=>console.log('IMAP ERR:',e.message));\"" \
-              2>&1 || echo "Тест IMAP не удался"
+              echo "====== ТЕСТ IMAP СОЕДИНЕНИЯ ======"
+              docker exec "$CONTAINER" sh -c \
+                "node -e \"const {ImapFlow}=require('imapflow');const c=new ImapFlow({host:process.env.IMAP_HOST,port:993,secure:true,auth:{user:process.env.IMAP_USER,pass:process.env.IMAP_PASS},logger:false});c.connect().then(()=>{console.log('IMAP OK');c.logout();}).catch(e=>console.log('IMAP ERR:',e.message));\"" \
+                2>&1 || echo "Тест IMAP не удался"
+            else
+              echo "Контейнер не найден — проверьте docker ps"
+            fi
 
             echo "====== ГОТОВО ======"
         env:
