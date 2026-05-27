@@ -83,17 +83,42 @@ jobs:
             echo "IMAP_USER = $AI_IMAP_USER"
             echo "IMAP_HOST = imap.mail.ru"
 
+            echo "====== ДИАГНОСТИКА ПОРТА 4000 ======"
+            echo "Что сейчас на порту 4000:"
+            lsof -i:4000 2>/dev/null || ss -tlnp sport = :4000 2>/dev/null || echo "lsof/ss недоступны"
+
+            echo "PM2 процессы:"
+            pm2 list --no-color 2>/dev/null | head -30
+
             echo "====== ОСВОБОЖДАЕМ ПОРТ 4000 ======"
-            # PM2 мог захватить порт 4000 со старым кодом — убиваем его
-            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon; do
-              if pm2 describe "$pname" > /dev/null 2>&1; then
-                echo "Удаляем PM2 процесс: $pname (он занимал порт 4000)"
-                pm2 delete "$pname" 2>/dev/null || true
+            # Найти PM2-процесс по PID порта 4000 и удалить его (чтобы не перезапускал)
+            PORT_PID=$(lsof -ti:4000 2>/dev/null | head -1)
+            if [ -n "$PORT_PID" ]; then
+              echo "PID на порту 4000: $PORT_PID"
+              echo "Команда: $(cat /proc/$PORT_PID/cmdline 2>/dev/null | tr '\0' ' ' | head -c 200)"
+              # Найти имя PM2-процесса по PID через pm2 jlist + node
+              AI_PM2_NAME=$(pm2 jlist 2>/dev/null | node -e "
+                let d=''; process.stdin.on('data',c=>d+=c);
+                process.stdin.on('end',()=>{
+                  try{ const l=JSON.parse(d); const p=l.find(p=>p.pid===$PORT_PID);
+                  if(p) process.stdout.write(p.name); }catch(e){}
+                });" 2>/dev/null)
+              if [ -n "$AI_PM2_NAME" ]; then
+                echo "PM2 имя процесса: $AI_PM2_NAME — удаляем"
+                pm2 delete "$AI_PM2_NAME" 2>/dev/null || true
+                pm2 save --force 2>/dev/null || true
+              else
+                echo "PM2 процесс не найден по PID — удаляем по известным именам"
+                for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
+                  pm2 delete "$pname" 2>/dev/null || true
+                done
+                pm2 save --force 2>/dev/null || true
               fi
-            done
-            # На всякий случай убиваем всё на порту 4000
-            fuser -k 4000/tcp 2>/dev/null || true
-            sleep 2
+            fi
+            # Убить всё на порту 4000
+            fuser -k 4000/tcp 2>/dev/null || lsof -ti:4000 | xargs kill -9 2>/dev/null || true
+            sleep 3
+            echo "Порт 4000 после очистки: $(lsof -i:4000 2>/dev/null || echo 'свободен')"
 
             echo "====== ПЕРЕЗАПУСК ЧЕРЕЗ DOCKER ======"
             if [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
