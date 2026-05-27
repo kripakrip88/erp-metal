@@ -85,14 +85,16 @@ const routes = [
   }},
   // Диагностика AI Polygon — публичный endpoint
   { method: 'GET', pathname: '/api/ai-health', handler: async (_req, res) => {
-    function probe(path, method = 'GET', body = null) {
+    const https = require('https')
+    function probe(hostname, port, path, method = 'GET', body = null, useHttps = false) {
       return new Promise((resolve) => {
-        const opts = { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path, method, timeout: 4000, headers: {} }
+        const lib = useHttps ? https : http
+        const opts = { hostname, port, path, method, timeout: 5000, headers: {}, rejectUnauthorized: false }
         if (body) { opts.headers['content-type'] = 'application/json'; opts.headers['content-length'] = Buffer.byteLength(body) }
-        const r = http.request(opts, (pr) => {
+        const r = lib.request(opts, (pr) => {
           const chunks = []
           pr.on('data', c => chunks.push(c))
-          pr.on('end', () => resolve({ status: pr.statusCode, body: Buffer.concat(chunks).toString().slice(0, 400) }))
+          pr.on('end', () => resolve({ status: pr.statusCode, body: Buffer.concat(chunks).toString().slice(0, 300) }))
         })
         r.on('timeout', () => { r.destroy(); resolve({ status: 0, body: 'timeout' }) })
         r.on('error', (e) => resolve({ status: 0, body: e.message }))
@@ -100,15 +102,14 @@ const routes = [
         r.end()
       })
     }
-    const [inbox, poll] = await Promise.all([
-      probe('/api/email-copilot/inbox?limit=1'),
-      probe('/api/email-copilot/poll', 'POST', '{}'),
+    const [locInbox, apiInbox] = await Promise.all([
+      probe(AI_POLYGON_HOST, AI_POLYGON_PORT, '/api/email-copilot/inbox?limit=1'),
+      probe('api.erppark.ru', 443, '/api/email-copilot/inbox?limit=1', 'GET', null, true),
     ])
     json(res, {
-      host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`,
-      inbox,
-      poll,
-    }, inbox.status === 0 ? 503 : 200)
+      localhost_4000: { status: locInbox.status, body: locInbox.body },
+      api_erppark_ru:  { status: apiInbox.status, body: apiInbox.body },
+    })
   }},
 ]
 
