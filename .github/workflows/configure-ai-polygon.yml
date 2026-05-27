@@ -115,6 +115,22 @@ jobs:
               pm2 list --no-color 2>/dev/null | grep -v "^$" | head -20
             fi
 
+            echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
+            echo "IMAP env в контейнере:"
+            docker exec metalpro-ai-polygon-backend-1 printenv IMAP_HOST 2>/dev/null || echo "  IMAP_HOST: не задан"
+            docker exec metalpro-ai-polygon-backend-1 printenv IMAP_USER 2>/dev/null || echo "  IMAP_USER: не задан"
+            IMAP_PASS_IN=$(docker exec metalpro-ai-polygon-backend-1 printenv IMAP_PASS 2>/dev/null)
+            if [ -n "$IMAP_PASS_IN" ]; then
+              echo "  IMAP_PASS: задан (длина: ${#IMAP_PASS_IN} символов)"
+            else
+              echo "  IMAP_PASS: НЕ ЗАДАН!"
+            fi
+
+            echo "====== ТЕСТ IMAP СОЕДИНЕНИЯ ======"
+            docker exec metalpro-ai-polygon-backend-1 sh -c \
+              "node -e \"const {ImapFlow}=require('imapflow');const c=new ImapFlow({host:process.env.IMAP_HOST,port:993,secure:true,auth:{user:process.env.IMAP_USER,pass:process.env.IMAP_PASS},logger:false});c.connect().then(()=>{console.log('IMAP OK');c.logout();}).catch(e=>console.log('IMAP ERR:',e.message));\"" \
+              2>&1 || echo "Тест IMAP не удался"
+
             echo "====== ГОТОВО ======"
         env:
           AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
