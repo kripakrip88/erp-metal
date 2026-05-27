@@ -83,29 +83,32 @@ const routes = [
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
-  // Диагностика AI Polygon — доступен только авторизованным пользователям
+  // Диагностика AI Polygon — публичный endpoint
   { method: 'GET', pathname: '/api/ai-health', handler: async (_req, res) => {
-    await new Promise((resolve) => {
-      const probeReq = http.request(
-        { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: '/api/email-copilot/health', method: 'GET', timeout: 3000 },
-        (probeRes) => {
+    function probe(path, method = 'GET', body = null) {
+      return new Promise((resolve) => {
+        const opts = { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path, method, timeout: 4000, headers: {} }
+        if (body) { opts.headers['content-type'] = 'application/json'; opts.headers['content-length'] = Buffer.byteLength(body) }
+        const r = http.request(opts, (pr) => {
           const chunks = []
-          probeRes.on('data', c => chunks.push(c))
-          probeRes.on('end', () => {
-            json(res, {
-              ai_polygon: 'ok',
-              status: probeRes.statusCode,
-              host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`,
-              body: Buffer.concat(chunks).toString().slice(0, 200),
-            })
-            resolve()
-          })
-        }
-      )
-      probeReq.on('timeout', () => { probeReq.destroy(); json(res, { ai_polygon: 'timeout', host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}` }, 503); resolve() })
-      probeReq.on('error', (e) => { json(res, { ai_polygon: 'down', host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`, error: e.message }, 503); resolve() })
-      probeReq.end()
-    })
+          pr.on('data', c => chunks.push(c))
+          pr.on('end', () => resolve({ status: pr.statusCode, body: Buffer.concat(chunks).toString().slice(0, 400) }))
+        })
+        r.on('timeout', () => { r.destroy(); resolve({ status: 0, body: 'timeout' }) })
+        r.on('error', (e) => resolve({ status: 0, body: e.message }))
+        if (body) r.write(body)
+        r.end()
+      })
+    }
+    const [inbox, poll] = await Promise.all([
+      probe('/api/email-copilot/inbox?limit=1'),
+      probe('/api/email-copilot/poll', 'POST', '{}'),
+    ])
+    json(res, {
+      host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`,
+      inbox,
+      poll,
+    }, inbox.status === 0 ? 503 : 200)
   }},
 ]
 
