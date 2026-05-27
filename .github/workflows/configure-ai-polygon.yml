@@ -84,18 +84,9 @@ jobs:
             echo "IMAP_HOST = imap.mail.ru"
 
             echo "====== ПЕРЕЗАПУСК ======"
-            PM2_RESTARTED=0
-            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
-              if pm2 describe "$pname" > /dev/null 2>&1; then
-                echo "Перезапускаю PM2: $pname"
-                pm2 restart "$pname"
-                PM2_RESTARTED=1
-                break
-              fi
-            done
 
-            # Docker — git pull + пересборка образа + пересоздание контейнера
-            if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+            # Docker имеет ПРИОРИТЕТ — проверяем его первым
+            if [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
               cd "$POLYGON_DIR"
 
               echo "====== GIT PULL (свежий исходник) ======"
@@ -106,19 +97,22 @@ jobs:
 
               echo "====== Docker compose --build --force-recreate ======"
               docker compose up -d --build --force-recreate backend
-              PM2_RESTARTED=1
               echo "Образ пересобран из свежего исходника, контейнер пересоздан ✓"
 
-              echo "Ожидаем запуск приложения (15 сек)..."
-              sleep 15
+              echo "Ожидаем запуск приложения (20 сек)..."
+              sleep 20
               echo "Статус контейнера:"
               docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
-            fi
 
-            if [ "$PM2_RESTARTED" -eq 0 ]; then
-              echo ""
-              echo "WARN: Не нашли PM2 процесс или Docker compose"
-              pm2 list --no-color 2>/dev/null | head -20
+            else
+              echo "docker-compose.yml не найден, пробуем PM2..."
+              for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon; do
+                if pm2 describe "$pname" > /dev/null 2>&1; then
+                  echo "Перезапускаю PM2: $pname"
+                  pm2 restart "$pname"
+                  break
+                fi
+              done
             fi
 
             echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
