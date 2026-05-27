@@ -274,14 +274,14 @@ async function loadMessages() {
     if (currentFolder) qs.push('status=' + currentFolder);
     if (currentIntent) qs.push('intent=' + currentIntent);
     if (qs.length) url += '?' + qs.join('&');
-    var r = await fetch(url);
+    var r = await ERP.authFetch(url);
     var data = await r.json();
     messages = Array.isArray(data.messages) ? data.messages : (Array.isArray(data) ? data : []);
     renderList();
     updateLastUpdate();
     updateFolderCounts();
   } catch(e) {
-    list.innerHTML = '<div class="empty-list">AI-сервис недоступен<br><small>Порт 4000</small></div>';
+    list.innerHTML = '<div class="empty-list">AI-сервис недоступен</div>';
   }
 }
 
@@ -318,7 +318,7 @@ async function updateFolderCounts() {
   var statuses = ['pending', 'replied', 'archived'];
   var ids = ['fc-pending', 'fc-replied', 'fc-archived'];
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/inbox?status=pending&limit=999');
+    var r = await ERP.authFetch(AI_API + '/api/email-copilot/inbox?status=pending&limit=999');
     var data = await r.json();
     var n = (Array.isArray(data.messages) ? data.messages : (Array.isArray(data) ? data : [])).length;
     var el = document.getElementById('fc-pending');
@@ -613,7 +613,7 @@ async function reanalyzeEmail(id) {
   var btn = document.getElementById('reanalyze-btn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Анализ...'; }
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/analyze/' + id, { method: 'POST' });
+    var r = await ERP.authFetch(AI_API + '/api/email-copilot/analyze/' + id, { method: 'POST' });
     if (!r.ok) throw new Error('Ошибка анализа: ' + r.status);
     ERP.toast('Анализ завершён', 'success');
     await loadMessages();
@@ -634,9 +634,8 @@ async function sendReply(id, messageId) {
   if (btn) { btn.disabled = true; btn.textContent = 'Отправка...'; }
   try {
     var msg = messages.find(function(m){ return m.id === id; });
-    var r = await fetch(AI_API + '/api/email-copilot/reply', {
+    var r = await ERP.authFetch(AI_API + '/api/email-copilot/reply', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messageId: messageId, replyBody: body, sentBy: 'manager' }),
     });
     if (!r.ok) throw new Error('Ошибка отправки');
@@ -674,7 +673,7 @@ async function sendReply(id, messageId) {
 /* ── ARCHIVE ────────────────────────────────────────────── */
 async function archiveMail(id) {
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/archive/' + id, { method: 'POST' });
+    var r = await ERP.authFetch(AI_API + '/api/email-copilot/archive/' + id, { method: 'POST' });
     if (!r.ok) throw new Error('Ошибка');
     ERP.toast('Письмо перемещено в архив', 'success');
     selectedId = null;
@@ -718,7 +717,7 @@ async function createRfqFromEmail(id) {
 /* ── POLL MAIL ──────────────────────────────────────────── */
 async function pollMail() {
   try {
-    var r = await fetch(AI_API + '/api/email-copilot/poll', { method: 'POST' });
+    var r = await ERP.authFetch(AI_API + '/api/email-copilot/poll', { method: 'POST' });
     var data = await r.json();
     if (!r.ok) {
       var msg = data.message || data.error || ('Ошибка ' + r.status);
