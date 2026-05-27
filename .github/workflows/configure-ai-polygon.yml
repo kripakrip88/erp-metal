@@ -124,9 +124,15 @@ jobs:
             if [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
               cd "$POLYGON_DIR"
 
-              echo "====== GIT PULL ======"
-              git pull origin main 2>&1 || git pull origin master 2>&1 || echo "git pull не удался"
+              echo "====== GIT: принудительно берём latest main ======"
+              git fetch origin main 2>&1
+              git reset --hard origin/main 2>&1
+              echo "Текущий коммит:"
               git log --oneline -3 2>/dev/null || true
+
+              echo "====== Удаляем застрявший контейнер ======"
+              docker rm -f metalpro-ai-polygon-backend-1 2>/dev/null || true
+              sleep 2
 
               echo "====== Docker compose --build --force-recreate ======"
               docker compose up -d --build --force-recreate backend
