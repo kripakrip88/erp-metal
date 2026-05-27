@@ -11,6 +11,45 @@ const { ensureUploadsDir }  = require('./src/services/storageService')
 
 const PUBLIC_PATHS = new Set(['/api/health', '/api/auth/login'])
 
+// ── AI Polygon Proxy ──────────────────────────────────────────────────────────
+// Порт 4000 закрыт файрволом снаружи. Браузер не может достучаться напрямую.
+// Все запросы /api/email-copilot/* (кроме нативного log-reply) проксируются
+// через этот сервер на localhost:4000.
+const AI_POLYGON_HOST = process.env.AI_POLYGON_HOST || 'localhost'
+const AI_POLYGON_PORT = parseInt(process.env.AI_POLYGON_PORT || '4000', 10)
+
+// Пути, которые обрабатываются нативно в erp-metal (не проксируем)
+const NATIVE_EMAIL_PATHS = new Set(['/api/email-copilot/log-reply'])
+
+function proxyToAI(req, res) {
+  const chunks = []
+  req.on('data', chunk => chunks.push(chunk))
+  req.on('end', () => {
+    const bodyBuf = Buffer.concat(chunks)
+    const headers = Object.assign({}, req.headers, {
+      host: AI_POLYGON_HOST + ':' + AI_POLYGON_PORT,
+    })
+    delete headers['authorization']   // erp-metal JWT не нужен AI-полигону
+    if (bodyBuf.length > 0) headers['content-length'] = bodyBuf.length
+    else delete headers['content-length']
+
+    const proxyReq = http.request(
+      { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: req.url, method: req.method, headers },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers)
+        proxyRes.pipe(res)
+      }
+    )
+    proxyReq.on('error', () => {
+      if (!res.headersSent)
+        json(res, { error: 'AI-сервис недоступен', detail: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}` }, 503)
+    })
+    if (bodyBuf.length > 0) proxyReq.write(bodyBuf)
+    proxyReq.end()
+  })
+  req.on('error', () => { if (!res.headersSent) json(res, { error: 'request error' }, 400) })
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js':   'application/javascript; charset=utf-8',
@@ -96,6 +135,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (!PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return
+
+  // Proxy /api/email-copilot/* → AI Polygon localhost:4000
+  // Нативные пути (log-reply) пропускаем дальше — они в routes
+  if (pathname.startsWith('/api/email-copilot/') && !NATIVE_EMAIL_PATHS.has(pathname)) {
+    proxyToAI(req, res)
+    return
+  }
 
   const match = matchRoute(routes, req.method, req.url)
   if (match) {

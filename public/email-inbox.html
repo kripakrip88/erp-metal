@@ -189,7 +189,8 @@
 <script>
 ERP.init('email');
 
-var AI_API = (window.AI_API_URL || (location.protocol + '//' + location.hostname + ':4000'));
+// Запросы идут через erp-metal proxy → localhost:4000 (порт закрыт снаружи)
+var AI_API = (window.AI_API_URL || '');
 var currentFolder = 'pending';
 var currentIntent = '';
 var selectedId = null;
