@@ -24,6 +24,14 @@
 
 ---
 
+## 2026-05-27
+
+### erp-metal
+- [fix] AI Polygon прокси в server.js — устранена CORS/400 ошибка Email Copilot при обращении к порту 4000
+  - Добавлен `proxyToAI()` — форвардит `/api/email-copilot/*` на `localhost:4000`
+  - `email-inbox.html`: убран жёсткий порт 4000, теперь same-origin через прокси
+  - Настройка через env: `AI_POLYGON_HOST`, `AI_POLYGON_PORT`
+
 ## 2025-05-27
 
 ### Документация
