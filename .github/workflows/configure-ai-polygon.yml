@@ -8,16 +8,10 @@ on:
     workflows: ["Deploy to Production", "Deploy to Staging"]
     types: [completed]
   workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Причина запуска'
-        required: false
-        default: 'Ручная настройка'
 
 jobs:
   configure:
     runs-on: ubuntu-latest
-    # При автозапуске — только если деплой прошёл успешно
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
@@ -27,44 +21,118 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: AI_IMAP_USER,AI_IMAP_PASS,AI_IMAP_HOST,AI_SMTP_USER,AI_SMTP_PASS,AI_SMTP_HOST
+          envs: AI_IMAP_USER,AI_IMAP_PASS
           script: |
-            set -e
-            ENV_FILE="/var/www/metalpro-ai-polygon/.env"
+            echo "====== PM2 LIST ======"
+            pm2 list
 
-            echo "→ Обновляем $ENV_FILE"
+            echo "====== DOCKER CONTAINERS ======"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "docker не найден"
 
-            # Функция: обновить строку в .env или добавить если нет
-            upsert_env() {
-              local key="$1"
-              local val="$2"
-              if [ -z "$val" ]; then return; fi
-              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
-                sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
+            echo "====== ПОИСК ДИРЕКТОРИИ ======"
+            POLYGON_DIR=""
+            for dir in \
+              /var/www/metalpro-ai-polygon \
+              /root/metalpro-ai-polygon \
+              /opt/metalpro-ai-polygon \
+              /home/deploy/metalpro-ai-polygon \
+              /srv/metalpro-ai-polygon \
+              /var/www/ai-polygon; do
+              if [ -d "$dir" ]; then
+                POLYGON_DIR="$dir"
+                echo "Найдено: $POLYGON_DIR"
+                break
+              fi
+            done
+
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "Поиск через find..."
+              POLYGON_DIR=$(find /var /root /opt /home /srv -maxdepth 5 \( -name ".env" -o -name "docker-compose.yml" \) 2>/dev/null | xargs grep -l "IMAP\|metalpro\|ai.polygon" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+              echo "Найдено через find: $POLYGON_DIR"
+            fi
+
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "ОШИБКА: Директория не найдена"
+              exit 1
+            fi
+
+            echo "====== ОБНОВЛЯЕМ .env в $POLYGON_DIR ======"
+            ENV_FILE="$POLYGON_DIR/.env"
+            touch "$ENV_FILE"
+
+            upsert() {
+              local k="$1" v="$2"
+              [ -z "$v" ] && return
+              if grep -q "^${k}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${k}=.*|${k}=${v}|" "$ENV_FILE"
+                echo "  Обновлено: $k"
               else
-                echo "${key}=${val}" >> "$ENV_FILE"
+                echo "${k}=${v}" >> "$ENV_FILE"
+                echo "  Добавлено: $k"
               fi
             }
 
-            # Создать файл если не существует
-            touch "$ENV_FILE"
+            upsert "IMAP_HOST" "imap.mail.ru"
+            upsert "IMAP_USER" "$AI_IMAP_USER"
+            upsert "IMAP_PASS" "$AI_IMAP_PASS"
+            upsert "SMTP_HOST" "smtp.mail.ru"
+            upsert "SMTP_USER" "$AI_IMAP_USER"
+            upsert "SMTP_PASS" "$AI_IMAP_PASS"
 
-            upsert_env "IMAP_HOST" "${AI_IMAP_HOST:-imap.mail.ru}"
-            upsert_env "IMAP_USER" "$AI_IMAP_USER"
-            upsert_env "IMAP_PASS" "$AI_IMAP_PASS"
-            upsert_env "SMTP_HOST" "${AI_SMTP_HOST:-smtp.mail.ru}"
-            upsert_env "SMTP_USER" "${AI_SMTP_USER:-$AI_IMAP_USER}"
-            upsert_env "SMTP_PASS" "${AI_SMTP_PASS:-$AI_IMAP_PASS}"
+            echo ""
+            echo "IMAP_USER = $AI_IMAP_USER"
+            echo "IMAP_HOST = imap.mail.ru"
 
-            echo "→ Перезапускаем AI Polygon"
-            pm2 restart metalpro-ai-polygon 2>/dev/null || \
-              (cd /var/www/metalpro-ai-polygon && pm2 start dist/main.js --name metalpro-ai-polygon && pm2 save)
+            echo "====== ПЕРЕЗАПУСК ======"
+            PM2_RESTARTED=0
+            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
+              if pm2 describe "$pname" > /dev/null 2>&1; then
+                echo "Перезапускаю PM2: $pname"
+                pm2 restart "$pname"
+                PM2_RESTARTED=1
+                break
+              fi
+            done
 
-            echo "✓ Готово"
+            # Docker — пересоздаём контейнер (force-recreate подхватывает новый .env)
+            if [ "$PM2_RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+              echo "Docker compose force-recreate backend..."
+              cd "$POLYGON_DIR"
+              docker compose up -d --force-recreate backend
+              PM2_RESTARTED=1
+              echo "Контейнер пересоздан ✓"
+              sleep 3
+              echo "Статус контейнера:"
+              docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
+            fi
+
+            if [ "$PM2_RESTARTED" -eq 0 ]; then
+              echo ""
+              echo "WARN: Не нашли PM2 процесс или Docker compose"
+              pm2 list --no-color 2>/dev/null | head -20
+            fi
+
+            echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
+            CONTAINER=$(docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}}" | head -1)
+            if [ -n "$CONTAINER" ]; then
+              docker exec "$CONTAINER" printenv IMAP_HOST 2>/dev/null || echo "  IMAP_HOST: не задан"
+              docker exec "$CONTAINER" printenv IMAP_USER 2>/dev/null || echo "  IMAP_USER: не задан"
+              IMAP_PASS_IN=$(docker exec "$CONTAINER" printenv IMAP_PASS 2>/dev/null)
+              if [ -n "$IMAP_PASS_IN" ]; then
+                echo "  IMAP_PASS: задан (длина: ${#IMAP_PASS_IN} символов)"
+              else
+                echo "  IMAP_PASS: НЕ ЗАДАН!"
+              fi
+
+              echo "====== ТЕСТ IMAP СОЕДИНЕНИЯ ======"
+              docker exec "$CONTAINER" sh -c \
+                "node -e \"const {ImapFlow}=require('imapflow');const c=new ImapFlow({host:process.env.IMAP_HOST,port:993,secure:true,auth:{user:process.env.IMAP_USER,pass:process.env.IMAP_PASS},logger:false});c.connect().then(()=>{console.log('IMAP OK');c.logout();}).catch(e=>console.log('IMAP ERR:',e.message));\"" \
+                2>&1 || echo "Тест IMAP не удался"
+            else
+              echo "Контейнер не найден — проверьте docker ps"
+            fi
+
+            echo "====== ГОТОВО ======"
         env:
           AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
           AI_IMAP_PASS: ${{ secrets.AI_IMAP_PASS }}
-          AI_IMAP_HOST: ${{ secrets.AI_IMAP_HOST }}
-          AI_SMTP_USER: ${{ secrets.AI_SMTP_USER }}
-          AI_SMTP_PASS: ${{ secrets.AI_SMTP_PASS }}
-          AI_SMTP_HOST: ${{ secrets.AI_SMTP_HOST }}

@@ -16,3 +16,16 @@
   - `email-inbox.html`: `AI_API` теперь same-origin, без жёсткого порта 4000
   - Настройка через env: `AI_POLYGON_HOST`, `AI_POLYGON_PORT`
   - Смержено в `develop` → задеплоено на staging
+
+---
+
+## 2026-05-27 (продолжение)
+
+### erp-metal
+- [fix] Email Copilot: заменить fetch() на ERP.authFetch() — все запросы к AI API теперь передают JWT токен
+  - Причина: erp-metal proxy требует авторизацию, fetch() не отправлял Bearer токен
+  - Исправлены: pollMail, loadMessages, updateFolderCounts, reanalyzeEmail, sendReply, archiveMail
+- [fix] server.js proxy: 401 от AI Polygon → 503 — не выбрасывать пользователя из ERP-сессии
+  - ERP.authFetch при 401 удалял JWT и редиректил на логин, даже если ошибка была на стороне AI
+- [ci] deploy-staging.yml: добавлен workflow_dispatch для ручного запуска из GitHub Actions
+- [ci] configure-ai-polygon.yml: синхронизирован develop с main (Docker + PM2 поддержка)
