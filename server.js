@@ -9,6 +9,39 @@ const { authenticate } = require('./src/middleware/authenticate')
 
 const PUBLIC_PATHS = new Set(['/api/health', '/api/auth/login'])
 
+// ── AI Polygon Proxy ───────────────────────────────────────────────────────────
+const AI_POLYGON_HOST = process.env.AI_POLYGON_HOST || 'localhost'
+const AI_POLYGON_PORT = parseInt(process.env.AI_POLYGON_PORT || '4000', 10)
+
+function proxyToAI(req, res) {
+  const chunks = []
+  req.on('data', chunk => chunks.push(chunk))
+  req.on('end', () => {
+    const bodyBuf = Buffer.concat(chunks)
+    const headers = Object.assign({}, req.headers, { host: AI_POLYGON_HOST + ':' + AI_POLYGON_PORT })
+    delete headers['authorization'] // не пробрасываем erp-metal JWT в AI-сервис
+    if (bodyBuf.length > 0) headers['content-length'] = bodyBuf.length
+    else delete headers['content-length']
+
+    const options = { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: req.url, method: req.method, headers }
+    const proxyReq = http.request(options, (proxyRes) => {
+      const resHeaders = Object.assign({}, proxyRes.headers, {
+        'Access-Control-Allow-Origin':  '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      })
+      res.writeHead(proxyRes.statusCode, resHeaders)
+      proxyRes.pipe(res)
+    })
+    proxyReq.on('error', () => {
+      if (!res.headersSent) json(res, { error: 'AI-сервис недоступен', host: AI_POLYGON_HOST, port: AI_POLYGON_PORT }, 503)
+    })
+    if (bodyBuf.length > 0) proxyReq.write(bodyBuf)
+    proxyReq.end()
+  })
+  req.on('error', () => { if (!res.headersSent) json(res, { error: 'Request error' }, 400) })
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js':   'application/javascript; charset=utf-8',
@@ -76,6 +109,13 @@ const server = http.createServer(async (req, res) => {
   // Serve static files first (no auth required for HTML/JS/CSS)
   if (req.method === 'GET' && !pathname.startsWith('/api/')) {
     if (serveStatic(req, res)) return
+  }
+
+  // Proxy /api/email-copilot/* → AI Polygon (порт 4000 по умолчанию)
+  if (pathname.startsWith('/api/email-copilot/') || pathname === '/api/email-copilot') {
+    if (!authenticate(req, res)) return
+    proxyToAI(req, res)
+    return
   }
 
   if (!PUBLIC_PATHS.has(pathname) && !authenticate(req, res)) return

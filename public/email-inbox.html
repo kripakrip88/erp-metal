@@ -86,7 +86,8 @@
 <script>
 ERP.init('email');
 
-var AI_API = (window.AI_API_URL || (location.protocol + '//' + location.hostname + ':4000'));
+// AI API проксируется через erp-metal backend (устраняет CORS и Mixed Content)
+var AI_API = (window.AI_API_URL || '');
 var currentFilter = { status: 'pending', intent: '' };
 var selectedId = null;
 var messages = [];
