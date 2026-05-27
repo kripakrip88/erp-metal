@@ -1,8 +1,5 @@
 name: Configure AI Polygon
 
-# Запускается:
-# 1. Автоматически после каждого деплоя на staging или prod
-# 2. Вручную из GitHub → Actions → "Configure AI Polygon" → Run workflow
 on:
   workflow_run:
     workflows: ["Deploy to Production", "Deploy to Staging"]
@@ -17,7 +14,6 @@ on:
 jobs:
   configure:
     runs-on: ubuntu-latest
-    # При автозапуске — только если деплой прошёл успешно
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
@@ -27,44 +23,88 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: AI_IMAP_USER,AI_IMAP_PASS,AI_IMAP_HOST,AI_SMTP_USER,AI_SMTP_PASS,AI_SMTP_HOST
+          envs: AI_IMAP_USER,AI_IMAP_PASS,AI_IMAP_HOST
           script: |
-            set -e
-            ENV_FILE="/var/www/metalpro-ai-polygon/.env"
+            echo "=== Ищем директорию AI Polygon ==="
+            POLYGON_DIR=""
+            for dir in \
+              /var/www/metalpro-ai-polygon \
+              /root/metalpro-ai-polygon \
+              /opt/metalpro-ai-polygon \
+              /home/deploy/metalpro-ai-polygon \
+              /srv/metalpro-ai-polygon; do
+              if [ -d "$dir" ]; then
+                POLYGON_DIR="$dir"
+                echo "Найдено: $POLYGON_DIR"
+                break
+              fi
+            done
 
-            echo "→ Обновляем $ENV_FILE"
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "Поиск через find..."
+              POLYGON_DIR=$(find /var /root /opt /home /srv -maxdepth 4 -name "docker-compose.yml" 2>/dev/null | xargs grep -l "metalpro\|ai-polygon" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+              echo "Найдено через find: $POLYGON_DIR"
+            fi
 
-            # Функция: обновить строку в .env или добавить если нет
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "ОШИБКА: Директория AI Polygon не найдена"
+              exit 1
+            fi
+
+            ENV_FILE="$POLYGON_DIR/.env"
+            echo "=== Обновляем $ENV_FILE ==="
+
+            touch "$ENV_FILE"
+
             upsert_env() {
               local key="$1"
               local val="$2"
               if [ -z "$val" ]; then return; fi
               if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
                 sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
+                echo "Обновлено: $key"
               else
                 echo "${key}=${val}" >> "$ENV_FILE"
+                echo "Добавлено: $key"
               fi
             }
-
-            # Создать файл если не существует
-            touch "$ENV_FILE"
 
             upsert_env "IMAP_HOST" "${AI_IMAP_HOST:-imap.mail.ru}"
             upsert_env "IMAP_USER" "$AI_IMAP_USER"
             upsert_env "IMAP_PASS" "$AI_IMAP_PASS"
-            upsert_env "SMTP_HOST" "${AI_SMTP_HOST:-smtp.mail.ru}"
-            upsert_env "SMTP_USER" "${AI_SMTP_USER:-$AI_IMAP_USER}"
-            upsert_env "SMTP_PASS" "${AI_SMTP_PASS:-$AI_IMAP_PASS}"
+            upsert_env "SMTP_HOST" "smtp.mail.ru"
+            upsert_env "SMTP_USER" "$AI_IMAP_USER"
+            upsert_env "SMTP_PASS" "$AI_IMAP_PASS"
 
-            echo "→ Перезапускаем AI Polygon"
-            pm2 restart metalpro-ai-polygon 2>/dev/null || \
-              (cd /var/www/metalpro-ai-polygon && pm2 start dist/main.js --name metalpro-ai-polygon && pm2 save)
+            echo "=== Перезапускаем сервис ==="
 
-            echo "✓ Готово"
+            # Пробуем PM2 с разными именами
+            RESTARTED=0
+            for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend; do
+              if pm2 describe "$pname" > /dev/null 2>&1; then
+                echo "PM2 restart: $pname"
+                pm2 restart "$pname"
+                RESTARTED=1
+                break
+              fi
+            done
+
+            # Если PM2 не сработал — пробуем docker-compose
+            if [ "$RESTARTED" -eq 0 ] && [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+              echo "Docker-compose restart..."
+              cd "$POLYGON_DIR"
+              docker-compose restart backend 2>/dev/null || docker-compose up -d 2>/dev/null
+              RESTARTED=1
+            fi
+
+            if [ "$RESTARTED" -eq 0 ]; then
+              echo "WARN: Не удалось найти PM2 процесс или docker-compose. .env обновлён, перезапустите вручную."
+            fi
+
+            echo "=== Готово ==="
+            echo "IMAP_USER прописан: $AI_IMAP_USER"
+            echo "IMAP_HOST: ${AI_IMAP_HOST:-imap.mail.ru}"
         env:
           AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
           AI_IMAP_PASS: ${{ secrets.AI_IMAP_PASS }}
           AI_IMAP_HOST: ${{ secrets.AI_IMAP_HOST }}
-          AI_SMTP_USER: ${{ secrets.AI_SMTP_USER }}
-          AI_SMTP_PASS: ${{ secrets.AI_SMTP_PASS }}
-          AI_SMTP_HOST: ${{ secrets.AI_SMTP_HOST }}
