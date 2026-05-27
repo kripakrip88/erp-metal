@@ -83,6 +83,30 @@ const routes = [
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
+  // Диагностика AI Polygon — доступен только авторизованным пользователям
+  { method: 'GET', pathname: '/api/ai-health', handler: async (_req, res) => {
+    await new Promise((resolve) => {
+      const probeReq = http.request(
+        { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: '/api/email-copilot/health', method: 'GET', timeout: 3000 },
+        (probeRes) => {
+          const chunks = []
+          probeRes.on('data', c => chunks.push(c))
+          probeRes.on('end', () => {
+            json(res, {
+              ai_polygon: 'ok',
+              status: probeRes.statusCode,
+              host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`,
+              body: Buffer.concat(chunks).toString().slice(0, 200),
+            })
+            resolve()
+          })
+        }
+      )
+      probeReq.on('timeout', () => { probeReq.destroy(); json(res, { ai_polygon: 'timeout', host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}` }, 503); resolve() })
+      probeReq.on('error', (e) => { json(res, { ai_polygon: 'down', host: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}`, error: e.message }, 503); resolve() })
+      probeReq.end()
+    })
+  }},
 ]
 
 const PUBLIC_DIR = path.join(__dirname, 'public')
