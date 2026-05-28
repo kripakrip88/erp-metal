@@ -175,6 +175,11 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
+  if (pathname.startsWith('/api/normalization/')) {
+    proxyToAI(req, res)
+    return
+  }
+
   const match = matchRoute(routes, req.method, req.url)
   if (match) {
     try {
