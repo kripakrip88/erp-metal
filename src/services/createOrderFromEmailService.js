@@ -4,9 +4,47 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase()
 }
 
+async function createAssembliesFromResults(tx, orderId, normalizationResults) {
+  const groups = new Map()
+  for (const item of normalizationResults) {
+    const key = item.assembly_name || 'Основной узел'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(item)
+  }
+  let asmPos = 0
+  for (const [asmName, items] of groups) {
+    const assembly = await tx.assembly.create({
+      data: { orderId, name: asmName, qty: 1, position: asmPos++ },
+    })
+    let partPos = 0
+    for (const item of items) {
+      const aiStatus = item.status === 'confirmed' || item.status === 'replaced'
+        ? item.status
+        : item.status === 'no_match' ? 'no_match' : 'pending'
+      await tx.part.create({
+        data: {
+          assemblyId:           assembly.id,
+          materialDefinitionId: item.confirmed_material_erp_id || null,
+          name:                 item.confirmed_material_name || item.raw_text || null,
+          measurementType:      'LINEAR',
+          quantity:             Math.max(1, Math.round(item.quantity || 1)),
+          position:             partPos++,
+          aiGenerated:          true,
+          aiRawText:            item.raw_text || null,
+          aiNormResultId:       item.normalization_result_id || null,
+          aiConfidence:         item.confidence != null ? item.confidence : null,
+          aiMatchMethod:        item.match_method || null,
+          aiStatus,
+        },
+      })
+    }
+  }
+}
+
 // Creates a DRAFT order from an inbound email.
-// Idempotent: calling twice with the same emailMessageId returns the existing order.
-async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId }) {
+// Idempotent on messageId: returns existing order.
+// If existing order has no assemblies and normalizationResults provided, adds them retroactively.
+async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId, normalizationResults }) {
   const email = normalizeEmail(fromAddress)
 
   // Idempotency: if this email already spawned an order, return it
@@ -15,6 +53,13 @@ async function createOrderFromEmail({ messageId, title, fromAddress, fromName, s
     include: { order: { select: { id: true, orderNumber: true } } },
   })
   if (existing?.orderId) {
+    // Retroactively add assemblies if the order was created before AI parts existed
+    if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
+      const asmCount = await prisma.assembly.count({ where: { orderId: existing.orderId } })
+      if (asmCount === 0) {
+        await prisma.$transaction(tx => createAssembliesFromResults(tx, existing.orderId, normalizationResults))
+      }
+    }
     return {
       orderId:     existing.orderId,
       orderNumber: existing.order?.orderNumber ?? null,
@@ -97,6 +142,11 @@ async function createOrderFromEmail({ messageId, title, fromAddress, fromName, s
         payload:       { orderId: order.id, customerId: customer.id, messageId, fromAddress, subject },
       },
     })
+
+    // 5. Create Assembly + Parts from normalization results (if provided)
+    if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
+      await createAssembliesFromResults(tx, order.id, normalizationResults)
+    }
 
     return { orderId: order.id, orderNumber: order.orderNumber, customerId: customer.id }
   })

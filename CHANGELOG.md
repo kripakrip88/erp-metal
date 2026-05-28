@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-05-28
+
+### erp-metal
+- [fix] email-inbox.html — позиции из письма всегда переносятся в КП
+  - Причина: если `/api/normalization/match` недоступен, `normalizationResults` оставался пустым массивом
+  - Решение: сначала строится fallback из сырых extractedItems (`status: no_match`), потом пробуем нормализацию — если она возвращает результаты, заменяем fallback; если упала, оставляем fallback
+  - Позиции теперь всегда попадают в узлы калькулятора, даже без AI Polygon
+- [feat] server.js — добавлен proxy для `/api/normalization/*` → AI Polygon port 4000
+  - Порт 4000 закрыт файрволом — браузер обращается через erp-metal
+  - `NATIVE_NORMALIZATION_PATHS` Set для будущих нативных путей (пока пустой)
+  - Аналогично существующему блоку `/api/email-copilot/*`
+
+---
+
 ## 2026-05-27
 
 ### erp-metal
