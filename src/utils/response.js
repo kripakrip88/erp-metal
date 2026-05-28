@@ -5,6 +5,7 @@ function json(res, data, status = 200) {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   })
-  res.end(JSON.stringify(data))
+  // BigInt (e.g. sizeBytes in FileVersion) is not JSON-serializable by default
+  res.end(JSON.stringify(data, (_, v) => typeof v === 'bigint' ? Number(v) : v))
 }
 module.exports = { json }

@@ -55,7 +55,13 @@ async function _resolveConsumption(client, assemblyId, coating, mat) {
   const areaM2 = coating.autoAreaLink
     ? await _assemblyPaintAreaM2(client, assemblyId)
     : Number(coating.manualAreaM2 || 0)
-  return calcCoatingConsumption(areaM2, Number(mat.consumptionGm2), coating.lossFactorPercent)
+  return calcCoatingConsumption(
+    areaM2,
+    Number(mat.consumptionGm2),
+    coating.lossFactorPercent,
+    mat.referenceDftMkm,
+    coating.selectedDftMkm
+  )
 }
 
 // ─── Assembly coatings ────────────────────────────────────────────────────
@@ -81,7 +87,7 @@ async function createAssemblyCoating(assemblyId, data) {
   let materialNameSnapshot = data.materialNameSnapshot ?? null
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
-    select: { code: true, name: true, consumptionGm2: true, pricePerKg: true },
+    select: { code: true, name: true, consumptionGm2: true, referenceDftMkm: true, pricePerKg: true },
   })
   if (!materialCodeSnapshot) materialCodeSnapshot = mat?.code ?? null
   if (!materialNameSnapshot) materialNameSnapshot = mat?.name ?? null
@@ -147,7 +153,7 @@ async function recalculateAssemblyCoatings(assemblyId) {
       areaM2 = Number(coating.manualAreaM2 || 0)
     }
     const { theoreticalConsumptionKg, finalConsumptionKg } =
-      calcCoatingConsumption(areaM2, Number(coating.coatingMaterial.consumptionGm2), coating.lossFactorPercent)
+      calcCoatingConsumption(areaM2, Number(coating.coatingMaterial.consumptionGm2), coating.lossFactorPercent, coating.coatingMaterial.referenceDftMkm, coating.selectedDftMkm)
     const { calculatedCost } = calcCoatingCost(finalConsumptionKg, coating.costSnapshotPerKg)
     updates.push(prisma.assemblyCoating.update({
       where: { id: coating.id },
@@ -201,7 +207,9 @@ async function applyCoatingSystem(assemblyId, coatingSystemId, options = {}) {
       const { theoreticalConsumptionKg, finalConsumptionKg } = calcCoatingConsumption(
         autoAreaM2,
         Number(layer.coatingMaterial.consumptionGm2),
-        null
+        null,
+        layer.coatingMaterial.referenceDftMkm,
+        layer.defaultDftMkm ?? null
       )
       const costSnapshotPerKg = layer.coatingMaterial.pricePerKg ?? null
       const { calculatedCost } = calcCoatingCost(finalConsumptionKg, costSnapshotPerKg)
@@ -260,7 +268,7 @@ async function updateAssemblyCoating(coatingId, data) {
 
   const mat = await prisma.coatingMaterial.findUnique({
     where: { id: data.coatingMaterialId },
-    select: { code: true, name: true, consumptionGm2: true, pricePerKg: true },
+    select: { code: true, name: true, consumptionGm2: true, referenceDftMkm: true, pricePerKg: true },
   })
 
   let costSnapshotPerKg

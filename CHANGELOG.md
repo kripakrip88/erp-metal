@@ -6,37 +6,26 @@
 
 ---
 
-## Формат записи
-
-```
-## YYYY-MM-DD
-
-### erp-metal
-- [feat] название — зачем сделано
-- [fix] название — что было не так
-- [refactor] название — мотивация
-
-### metalpro-ai-polygon
-- [feat] название — зачем сделано
-```
-
-Типы: `feat` / `fix` / `refactor` / `docs` / `migration` / `config` / `breaking`
-
----
-
 ## 2026-05-27
 
 ### erp-metal
-- [fix] AI Polygon прокси в server.js — устранена CORS/400 ошибка Email Copilot при обращении к порту 4000
-  - Добавлен `proxyToAI()` — форвардит `/api/email-copilot/*` на `localhost:4000`
-  - `email-inbox.html`: убран жёсткий порт 4000, теперь same-origin через прокси
+- [fix] AI Polygon прокси в server.js — устранена ошибка "AI-сервис недоступен (порт 4000)"
+  - Причина: порт 4000 закрыт файрволом, браузер не может достучаться напрямую
+  - Решение: `proxyToAI()` форвардит `/api/email-copilot/*` на `localhost:4000` (внутри сервера доступен)
+  - `/api/email-copilot/log-reply` остаётся нативным (erp-metal DB)
+  - `email-inbox.html`: `AI_API` теперь same-origin, без жёсткого порта 4000
   - Настройка через env: `AI_POLYGON_HOST`, `AI_POLYGON_PORT`
+  - Смержено в `develop` → задеплоено на staging
 
-## 2025-05-27
+---
 
-### Документация
-- [docs] Создан CONTEXT.md — единый источник правды о состоянии обоих репо
-- [docs] Создан CHANGELOG.md — лог изменений для синхронизации claude.ai и Claude Code
-- [docs] Создан CLAUDE_ADDON.md — дополнение к CLAUDE.md с правилами синхронизации
-- [fix] WORKFLOW.md — staging порт исправлен с 8080 на 3000
-- [config] Сервер привязан к домену (обновить домен в CONTEXT.md)
+## 2026-05-27 (продолжение)
+
+### erp-metal
+- [fix] Email Copilot: заменить fetch() на ERP.authFetch() — все запросы к AI API теперь передают JWT токен
+  - Причина: erp-metal proxy требует авторизацию, fetch() не отправлял Bearer токен
+  - Исправлены: pollMail, loadMessages, updateFolderCounts, reanalyzeEmail, sendReply, archiveMail
+- [fix] server.js proxy: 401 от AI Polygon → 503 — не выбрасывать пользователя из ERP-сессии
+  - ERP.authFetch при 401 удалял JWT и редиректил на логин, даже если ошибка была на стороне AI
+- [ci] deploy-staging.yml: добавлен workflow_dispatch для ручного запуска из GitHub Actions
+- [ci] configure-ai-polygon.yml: синхронизирован develop с main (Docker + PM2 поддержка)

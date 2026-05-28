@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — МеталлПро ERP</title>
+<script src="nav.js"></script>
+<style>
+.pipeline-wrap{display:flex;gap:12px;padding:20px;overflow-x:auto;align-items:flex-start;min-height:calc(100vh - 48px);}
+.col{flex-shrink:0;width:272px;background:var(--panel);border-radius:10px;border:1px solid var(--brd);display:flex;flex-direction:column;max-height:calc(100vh - 88px);}
+.col-head{padding:12px 14px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.col-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.col-title{font-size:12px;font-weight:700;color:var(--txt);flex:1;letter-spacing:.2px;}
+.col-count{font-size:11px;font-weight:600;color:var(--txts);background:var(--card);padding:1px 7px;border-radius:10px;}
+.col-body{padding:8px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;}
+.col-body.drag-over{background:rgba(59,130,246,.06);border-radius:0 0 10px 10px;}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:11px 12px;cursor:grab;transition:box-shadow .15s,border-color .15s;position:relative;}
+.card:hover{border-color:var(--brdl);box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.card.dragging{opacity:.45;cursor:grabbing;}
+.card-num{font-size:10px;font-weight:600;color:var(--txts);font-family:var(--ffm);margin-bottom:4px;}
+.card-title{font-size:12.5px;font-weight:600;color:var(--txt);line-height:1.35;margin-bottom:6px;word-break:break-word;}
+.card-customer{font-size:11px;color:var(--txts);display:flex;align-items:center;gap:5px;margin-bottom:6px;}
+.card-customer::before{content:"◉";font-size:9px;opacity:.5;}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+.card-age{font-size:10px;color:var(--txtm);}
+.card-asm{font-size:10px;color:var(--txts);background:var(--panel);padding:1px 6px;border-radius:4px;}
+.card-open{position:absolute;top:8px;right:8px;font-size:11px;color:var(--txts);opacity:0;background:var(--panel);border:1px solid var(--brd);border-radius:4px;padding:1px 6px;cursor:pointer;transition:opacity .12s;}
+.card:hover .card-open{opacity:1;}
+
+/* Won / Lost colors */
+.col[data-col="PRODUCTION"] .col-dot{background:#10b981;}
+.col[data-col="CANCELLED"]  .col-dot{background:#ef4444;}
+.col[data-col="DRAFT"]      .col-dot{background:#8b9ab0;}
+.col[data-col="QUOTATION"]  .col-dot{background:#3b82f6;}
+.col[data-col="AWAITING_APPROVAL"] .col-dot{background:#f59e0b;}
+.col[data-col="APPROVED"]   .col-dot{background:#06b6d4;}
+
+.col[data-col="PRODUCTION"] .card{border-left:3px solid #10b981;}
+.col[data-col="CANCELLED"]  .card{border-left:3px solid #ef4444;opacity:.7;}
+
+.empty-col{text-align:center;padding:28px 12px;color:var(--txtm);font-size:11.5px;border:1.5px dashed var(--brd);border-radius:7px;margin:4px 0;}
+
+/* Toast */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;}
+.toast{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:9px 14px;font-size:12.5px;color:var(--txt);box-shadow:0 4px 20px rgba(0,0,0,.4);animation:tin .2s ease;}
+.toast.ok{border-left:3px solid var(--green);}
+.toast.err{border-left:3px solid var(--red);}
+@keyframes tin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+/* Topbar filter */
+.tb-filter{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.tb-filter label{font-size:11.5px;color:var(--txts);}
+.tb-filter input{background:var(--card);border:1px solid var(--brd);border-radius:5px;color:var(--txt);padding:4px 10px;font-size:12px;font-family:var(--ff);outline:none;width:180px;}
+.tb-filter input:focus{border-color:var(--blue);}
+.tb-total{font-size:11.5px;color:var(--txts);background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:4px 10px;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">CRM</span>
+      <div class="tb-filter">
+        <input type="text" id="search-inp" placeholder="Поиск по названию или клиенту…" oninput="filterCards(this.value)">
+        <span class="tb-total" id="total-badge">—</span>
+      </div>
+    </div>
+    <div class="pipeline-wrap" id="pipeline"></div>
+  </div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+ERP.init('pipeline')
+
+var COLS = [
+  { status: 'DRAFT',             label: 'Новый запрос',    hint: 'RFQ получен, не рассмотрен' },
+  { status: 'QUOTATION',         label: 'На рассмотрении', hint: 'Анализируем, уточняем ТЗ' },
+  { status: 'AWAITING_APPROVAL', label: 'Расчёт цены',     hint: 'Считаем стоимость' },
+  { status: 'APPROVED',          label: 'КП отправлено',   hint: 'Ждём ответа клиента' },
+  { status: 'PRODUCTION',        label: 'Выиграно ✓',      hint: 'Клиент принял, в работе' },
+  { status: 'CANCELLED',         label: 'Потеряно',        hint: 'Отклонено или отменено' },
+]
+
+var allOrders = []
+var filterQ   = ''
+var draggingId = null
+var draggingFromStatus = null
+
+/* ── Load ─────────────────────────────────────────────────────────────────── */
+async function load() {
+  try {
+    var r = await ERP.authFetch('/api/orders')
+    var data = await r.json()
+    allOrders = (Array.isArray(data) ? data : []).filter(function(o){
+      return o.status !== 'COMPLETED' && o.status !== 'DELIVERED'
+    })
+    render()
+  } catch(e) { toast('Ошибка загрузки: ' + e.message, 'err') }
+}
+
+/* ── Render ───────────────────────────────────────────────────────────────── */
+function render() {
+  var q = filterQ.toLowerCase()
+  var pipeline = document.getElementById('pipeline')
+  var total = 0
+
+  pipeline.innerHTML = COLS.map(function(col) {
+    var cards = allOrders.filter(function(o){
+      if (o.status !== col.status) return false
+      if (!q) return true
+      return (o.title||'').toLowerCase().includes(q) ||
+             (o.customerName||'').toLowerCase().includes(q) ||
+             (o.orderNumber||'').toLowerCase().includes(q)
+    })
+    total += cards.length
+    return renderCol(col, cards)
+  }).join('')
+
+  document.getElementById('total-badge').textContent = total + ' сделок'
+
+  // Bind drag events after render
+  bindDrag()
+}
+
+function renderCol(col, cards) {
+  var cardsHtml = cards.length
+    ? cards.map(renderCard).join('')
+    : '<div class="empty-col">Нет сделок</div>'
+
+  return '<div class="col" data-col="' + col.status + '" ' +
+    'title="' + esc(col.hint) + '" ' +
+    'ondragover="onDragOver(event,this)" ' +
+    'ondragleave="onDragLeave(event,this)" ' +
+    'ondrop="onDrop(event,\'' + col.status + '\')">' +
+    '<div class="col-head">' +
+      '<div class="col-dot"></div>' +
+      '<div class="col-title">' + esc(col.label) + '</div>' +
+      '<div class="col-count">' + cards.length + '</div>' +
+    '</div>' +
+    '<div class="col-body">' + cardsHtml + '</div>' +
+  '</div>'
+}
+
+function renderCard(o) {
+  var age = daysDiff(o.createdAt)
+  var ageStr = age === 0 ? 'сегодня' : age === 1 ? 'вчера' : age + ' д.'
+  var asmCount = o._count && o._count.assemblies || 0
+
+  return '<div class="card" draggable="true" data-id="' + o.id + '" data-status="' + o.status + '" ' +
+    'ondragstart="onDragStart(event,\'' + o.id + '\',\'' + o.status + '\')">' +
+    '<div class="card-num">' + esc(o.orderNumber || '—') + '</div>' +
+    '<div class="card-title">' + esc(o.title || '(без названия)') + '</div>' +
+    (o.customerName ? '<div class="card-customer">' + esc(o.customerName) + '</div>' : '') +
+    '<div class="card-footer">' +
+      '<span class="card-age">' + ageStr + '</span>' +
+      (asmCount ? '<span class="card-asm">⬡ ' + asmCount + '</span>' : '') +
+    '</div>' +
+    '<button class="card-open" onclick="openOrder(event,\'' + o.id + '\')">→</button>' +
+  '</div>'
+}
+
+/* ── Drag & Drop ──────────────────────────────────────────────────────────── */
+function bindDrag() {
+  document.querySelectorAll('.card').forEach(function(card) {
+    card.addEventListener('dragstart', function(e) {
+      onDragStart(e, card.dataset.id, card.dataset.status)
+    })
+  })
+}
+
+function onDragStart(e, id, status) {
+  draggingId = id
+  draggingFromStatus = status
+  e.dataTransfer.effectAllowed = 'move'
+  setTimeout(function() {
+    var el = document.querySelector('.card[data-id="' + id + '"]')
+    if (el) el.classList.add('dragging')
+  }, 0)
+}
+
+function onDragOver(e, colEl) {
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+  colEl.querySelector('.col-body').classList.add('drag-over')
+}
+
+function onDragLeave(e, colEl) {
+  if (!colEl.contains(e.relatedTarget)) {
+    colEl.querySelector('.col-body').classList.remove('drag-over')
+  }
+}
+
+async function onDrop(e, targetStatus) {
+  e.preventDefault()
+  document.querySelectorAll('.col-body').forEach(function(b){ b.classList.remove('drag-over') })
+  document.querySelectorAll('.card.dragging').forEach(function(c){ c.classList.remove('dragging') })
+
+  if (!draggingId || targetStatus === draggingFromStatus) return
+
+  try {
+    var resp = await ERP.authFetch('/api/orders/' + draggingId + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetStatus }),
+    })
+    if (!resp.ok) { var err = await resp.json(); throw new Error(err.error || 'Ошибка') }
+    var colLabel = COLS.find(function(c){ return c.status === targetStatus })
+    toast('Сделка переведена: ' + (colLabel ? colLabel.label : targetStatus), 'ok')
+    // Optimistic update
+    var order = allOrders.find(function(o){ return o.id === draggingId })
+    if (order) order.status = targetStatus
+    render()
+  } catch(e) {
+    toast(e.message || 'Ошибка перемещения', 'err')
+    render()
+  }
+
+  draggingId = null
+  draggingFromStatus = null
+}
+
+/* ── Actions ──────────────────────────────────────────────────────────────── */
+function openOrder(e, id) {
+  e.stopPropagation()
+  window.location.href = 'simulator.html?orderId=' + id
+}
+
+function filterCards(q) {
+  filterQ = q
+  render()
+}
+
+/* ── Utils ────────────────────────────────────────────────────────────────── */
+function daysDiff(dateStr) {
+  if (!dateStr) return 0
+  var diff = Date.now() - new Date(dateStr).getTime()
+  return Math.floor(diff / 86400000)
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+function toast(msg, type) {
+  var wrap = document.getElementById('toasts')
+  var div = document.createElement('div')
+  div.className = 'toast ' + (type || '')
+  div.textContent = msg
+  wrap.appendChild(div)
+  setTimeout(function(){ div.remove() }, 3500)
+}
+
+load()
+</script>
+</body>
+</html>

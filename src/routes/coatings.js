@@ -1,6 +1,7 @@
 const { json }      = require('../utils/response')
 const { parseBody } = require('../utils/parseBody')
 const { validateAssemblyCoating } = require('../validators/coatingValidator')
+const prisma = require('../repositories/prisma')
 const {
   listAssemblyCoatings, createAssemblyCoating,
   updateAssemblyCoating, deleteAssemblyCoating,
@@ -33,6 +34,21 @@ module.exports = [
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/coatings/:coatingId/recalculate', handler: async (req, res, params) => {
     json(res, await recalculateAssemblyCoating(params.coatingId))
   }},
+  // Reorder coating layers — accepts ordered array of coating IDs
+  { method: 'PATCH', pathname: '/api/assemblies/:assemblyId/coatings/reorder', handler: async (req, res, params) => {
+    const body = await parseBody(req)
+    const ids = body.ids
+    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string')) {
+      return json(res, { error: 'ids must be array of strings' }, 400)
+    }
+    await prisma.$transaction(
+      ids.map((id, idx) =>
+        prisma.assemblyCoating.update({ where: { id, assemblyId: params.assemblyId }, data: { position: idx } })
+      )
+    )
+    json(res, { ok: true })
+  }},
+
   { method: 'POST', pathname: '/api/assemblies/:assemblyId/apply-coating-system', handler: async (req, res, params) => {
     const body = await parseBody(req)
     if (!body.coatingSystemId) return json(res, { error: 'coatingSystemId обязательное поле' }, 400)

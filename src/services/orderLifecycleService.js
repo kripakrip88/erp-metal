@@ -7,10 +7,10 @@ const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 // Backward transitions (e.g. QUOTATION → DRAFT) are permitted where business
 // process allows rework. Forward skips (e.g. DRAFT → PRODUCTION) are blocked.
 const ALLOWED_TRANSITIONS = {
-  DRAFT:             ['QUOTATION'],
-  QUOTATION:         ['AWAITING_APPROVAL', 'DRAFT'],
-  AWAITING_APPROVAL: ['APPROVED', 'QUOTATION'],
-  APPROVED:          ['PRODUCTION', 'QUOTATION'],
+  DRAFT:             ['QUOTATION', 'CANCELLED'],
+  QUOTATION:         ['AWAITING_APPROVAL', 'DRAFT', 'CANCELLED'],
+  AWAITING_APPROVAL: ['APPROVED', 'QUOTATION', 'CANCELLED'],
+  APPROVED:          ['PRODUCTION', 'QUOTATION', 'CANCELLED'],
   PRODUCTION:        ['COMPLETED'],
   COMPLETED:         ['DELIVERED'],
   // DELIVERED and CANCELLED are terminal states.

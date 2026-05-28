@@ -102,10 +102,13 @@ async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freez
     // block on the presence of a previous frozen revision, which is valid during re-freeze.
     await _assertOrderEditable(rev.assemblyId, tx)
 
-    // Snapshot all current live AssemblyCoating rows at freeze time
+    // Snapshot all current live AssemblyCoating rows at freeze time.
+    // Include coatingMaterial to bake in the material's defaults — prevents
+    // changes to the material catalog from altering historical revision data.
     const coatings = await tx.assemblyCoating.findMany({
-      where: { assemblyId: rev.assemblyId },
+      where:   { assemblyId: rev.assemblyId },
       orderBy: { position: 'asc' },
+      include: { coatingMaterial: true },
     })
 
     if (coatings.length === 0) {
@@ -122,8 +125,10 @@ async function freezeAssemblyRevision(revisionId, { frozenByUserId = null, freez
         materialNameSnapshot:      c.materialNameSnapshot ?? '',
         layerNumber:               c.layerNumber,
         position:                  c.position,
-        selectedDftMkm:            c.selectedDftMkm            ?? null,
-        dilutionPercent:           c.dilutionPercent            ?? null,
+        // Bake in actual values: prefer explicit override, fall back to material default.
+        // Storing null here would cause old revisions to re-read from the catalog after changes.
+        selectedDftMkm:            c.selectedDftMkm            ?? c.coatingMaterial?.defaultDftMkm          ?? null,
+        dilutionPercent:           c.dilutionPercent            ?? c.coatingMaterial?.defaultDilutionPercent ?? null,
         lossFactorPercent:         c.lossFactorPercent          ?? null,
         theoreticalConsumptionKg:  c.theoreticalConsumptionKg  ?? null,
         finalConsumptionKg:        c.finalConsumptionKg         ?? null,

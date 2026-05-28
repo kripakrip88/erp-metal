@@ -1,0 +1,195 @@
+name: Configure AI Polygon
+
+# Запускается:
+# 1. Автоматически после каждого деплоя на staging или prod
+# 2. Вручную из GitHub → Actions → "Configure AI Polygon" → Run workflow
+on:
+  workflow_run:
+    workflows: ["Deploy to Production", "Deploy to Staging"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Прописать IMAP-реквизиты и перезапустить AI Polygon
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: AI_IMAP_USER,AI_IMAP_PASS
+          script: |
+            echo "====== PM2 LIST ======"
+            pm2 list
+
+            echo "====== DOCKER CONTAINERS ======"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "docker не найден"
+
+            echo "====== ПОИСК ДИРЕКТОРИИ ======"
+            POLYGON_DIR=""
+            for dir in \
+              /var/www/metalpro-ai-polygon \
+              /root/metalpro-ai-polygon \
+              /opt/metalpro-ai-polygon \
+              /home/deploy/metalpro-ai-polygon \
+              /srv/metalpro-ai-polygon \
+              /var/www/ai-polygon; do
+              if [ -d "$dir" ]; then
+                POLYGON_DIR="$dir"
+                echo "Найдено: $POLYGON_DIR"
+                break
+              fi
+            done
+
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "Поиск через find..."
+              POLYGON_DIR=$(find /var /root /opt /home /srv -maxdepth 5 \( -name ".env" -o -name "docker-compose.yml" \) 2>/dev/null | xargs grep -l "IMAP\|metalpro\|ai.polygon" 2>/dev/null | head -1 | xargs dirname 2>/dev/null)
+              echo "Найдено через find: $POLYGON_DIR"
+            fi
+
+            if [ -z "$POLYGON_DIR" ]; then
+              echo "ОШИБКА: Директория не найдена"
+              exit 1
+            fi
+
+            echo "====== ОБНОВЛЯЕМ .env в $POLYGON_DIR ======"
+            ENV_FILE="$POLYGON_DIR/.env"
+            touch "$ENV_FILE"
+
+            upsert() {
+              local k="$1" v="$2"
+              [ -z "$v" ] && return
+              if grep -q "^${k}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${k}=.*|${k}=${v}|" "$ENV_FILE"
+                echo "  Обновлено: $k"
+              else
+                echo "${k}=${v}" >> "$ENV_FILE"
+                echo "  Добавлено: $k"
+              fi
+            }
+
+            upsert "IMAP_HOST" "imap.mail.ru"
+            upsert "IMAP_USER" "$AI_IMAP_USER"
+            upsert "IMAP_PASS" "$AI_IMAP_PASS"
+            upsert "SMTP_HOST" "smtp.mail.ru"
+            upsert "SMTP_USER" "$AI_IMAP_USER"
+            upsert "SMTP_PASS" "$AI_IMAP_PASS"
+
+            echo ""
+            echo "IMAP_USER = $AI_IMAP_USER"
+            echo "IMAP_HOST = imap.mail.ru"
+
+            echo "====== ДИАГНОСТИКА ПОРТА 4000 ======"
+            echo "Что сейчас на порту 4000:"
+            lsof -i:4000 2>/dev/null || ss -tlnp sport = :4000 2>/dev/null || echo "lsof/ss недоступны"
+
+            echo "PM2 процессы:"
+            pm2 list --no-color 2>/dev/null | head -30
+
+            echo "====== ОСВОБОЖДАЕМ ПОРТ 4000 ======"
+            # Найти PM2-процесс по PID порта 4000 и удалить его (чтобы не перезапускал)
+            PORT_PID=$(lsof -ti:4000 2>/dev/null | head -1)
+            if [ -n "$PORT_PID" ]; then
+              echo "PID на порту 4000: $PORT_PID"
+              echo "Команда: $(cat /proc/$PORT_PID/cmdline 2>/dev/null | tr '\0' ' ' | head -c 200)"
+              # Найти имя PM2-процесса по PID через pm2 jlist + node
+              AI_PM2_NAME=$(pm2 jlist 2>/dev/null | node -e "
+                let d=''; process.stdin.on('data',c=>d+=c);
+                process.stdin.on('end',()=>{
+                  try{ const l=JSON.parse(d); const p=l.find(p=>p.pid===$PORT_PID);
+                  if(p) process.stdout.write(p.name); }catch(e){}
+                });" 2>/dev/null)
+              if [ -n "$AI_PM2_NAME" ]; then
+                echo "PM2 имя процесса: $AI_PM2_NAME — удаляем"
+                pm2 delete "$AI_PM2_NAME" 2>/dev/null || true
+                pm2 save --force 2>/dev/null || true
+              else
+                echo "PM2 процесс не найден по PID — удаляем по известным именам"
+                for pname in metalpro-ai-polygon metalpro-ai-polygon-backend ai-polygon backend polygon; do
+                  pm2 delete "$pname" 2>/dev/null || true
+                done
+                pm2 save --force 2>/dev/null || true
+              fi
+            fi
+            # Убить всё на порту 4000
+            fuser -k 4000/tcp 2>/dev/null || lsof -ti:4000 | xargs kill -9 2>/dev/null || true
+            sleep 3
+            echo "Порт 4000 после очистки: $(lsof -i:4000 2>/dev/null || echo 'свободен')"
+
+            echo "====== ПЕРЕЗАПУСК ЧЕРЕЗ DOCKER ======"
+            if [ -f "$POLYGON_DIR/docker-compose.yml" ]; then
+              cd "$POLYGON_DIR"
+
+              echo "====== GIT: принудительно берём latest main ======"
+              git fetch origin main 2>&1
+              git reset --hard origin/main 2>&1
+              echo "Текущий коммит:"
+              git log --oneline -3 2>/dev/null || true
+
+              echo "====== ПАТЧ: поддержка вложений в письмах ======"
+              echo "aW1wb3J0IHsgSW5qZWN0YWJsZSwgTG9nZ2VyIH0gZnJvbSAiQG5lc3Rqcy9jb21tb24iOwppbXBvcnQgeyBzaW1wbGVQYXJzZXIgfSBmcm9tICJtYWlscGFyc2VyIjsKaW1wb3J0IHsgSW1hcEZsb3cgfSBmcm9tICJpbWFwZmxvdyI7CgpleHBvcnQgaW50ZXJmYWNlIFJhd0VtYWlsIHsKICBtZXNzYWdlSWQ6IHN0cmluZzsKICBmcm9tQWRkcmVzczogc3RyaW5nOwogIHRvQWRkcmVzczogc3RyaW5nOwogIHN1YmplY3Q6IHN0cmluZzsKICBib2R5VGV4dDogc3RyaW5nOwogIHJlY2VpdmVkQXQ6IERhdGU7CiAgYXR0YWNobWVudHM6IEFycmF5PHsgZmlsZW5hbWU6IHN0cmluZzsgY29udGVudFR5cGU6IHN0cmluZzsgc2l6ZTogbnVtYmVyIH0+Owp9CgpASW5qZWN0YWJsZSgpCmV4cG9ydCBjbGFzcyBJbWFwU2VydmljZSB7CiAgcHJpdmF0ZSByZWFkb25seSBsb2dnZXIgPSBuZXcgTG9nZ2VyKEltYXBTZXJ2aWNlLm5hbWUpOwoKICBwcml2YXRlIGNyZWF0ZUNsaWVudCgpIHsKICAgIHJldHVybiBuZXcgSW1hcEZsb3coewogICAgICBob3N0OiBwcm9jZXNzLmVudi5JTUFQX0hPU1QgfHwgImltYXAubWFpbC5ydSIsCiAgICAgIHBvcnQ6IDk5MywKICAgICAgc2VjdXJlOiB0cnVlLAogICAgICBhdXRoOiB7CiAgICAgICAgdXNlcjogcHJvY2Vzcy5lbnYuSU1BUF9VU0VSIHx8ICIiLAogICAgICAgIHBhc3M6IHByb2Nlc3MuZW52LklNQVBfUEFTUyB8fCAiIiwKICAgICAgfSwKICAgICAgbG9nZ2VyOiBmYWxzZSwKICAgIH0pOwogIH0KCiAgYXN5bmMgZmV0Y2hOZXdFbWFpbHMoc2luY2VEYXRlPzogRGF0ZSk6IFByb21pc2U8UmF3RW1haWxbXT4gewogICAgY29uc3QgY2xpZW50ID0gdGhpcy5jcmVhdGVDbGllbnQoKTsKICAgIGNvbnN0IGVtYWlsczogUmF3RW1haWxbXSA9IFtdOwoKICAgIHRyeSB7CiAgICAgIGF3YWl0IGNsaWVudC5jb25uZWN0KCk7CiAgICAgIGNvbnN0IGxvY2sgPSBhd2FpdCBjbGllbnQuZ2V0TWFpbGJveExvY2soIklOQk9YIik7CgogICAgICB0cnkgewogICAgICAgIGNvbnN0IHNpbmNlID0gc2luY2VEYXRlID8/IG5ldyBEYXRlKERhdGUubm93KCkgLSA3ICogMjQgKiA2MCAqIDYwICogMTAwMCk7CiAgICAgICAgZm9yIGF3YWl0IChjb25zdCBtc2cgb2YgY2xpZW50LmZldGNoKHsgc2luY2UgfSwgeyBlbnZlbG9wZTogdHJ1ZSwgc291cmNlOiB0cnVlIH0pKSB7CiAgICAgICAgICB0cnkgewogICAgICAgICAgICBjb25zdCBwYXJzZWQgPSBhd2FpdCBzaW1wbGVQYXJzZXIobXNnLnNvdXJjZSk7CiAgICAgICAgICAgIGxldCByYXc6IHN0cmluZzsKICAgICAgICAgICAgaWYgKHBhcnNlZC50ZXh0KSB7CiAgICAgICAgICAgICAgcmF3ID0gcGFyc2VkLnRleHQ7CiAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgcmF3ID0gKHBhcnNlZC5odG1sID8/ICIiKS50b1N0cmluZygpCiAgICAgICAgICAgICAgICAucmVwbGFjZSgvPGJyXHMqXC8/Pi9naSwgIlxuIikKICAgICAgICAgICAgICAgIC5yZXBsYWNlKC88XC9wPi9naSwgIlxuXG4iKQogICAgICAgICAgICAgICAgLnJlcGxhY2UoLzxbXj5dKz4vZywgIiIpCiAgICAgICAgICAgICAgICAucmVwbGFjZSgvJm5ic3A7L2csICIgIikKICAgICAgICAgICAgICAgIC5yZXBsYWNlKC8mYW1wOy9nLCAiJiIpCiAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmx0Oy9nLCAiPCIpCiAgICAgICAgICAgICAgICAucmVwbGFjZSgvJmd0Oy9nLCAiPiIpOwogICAgICAgICAgICB9CiAgICAgICAgICAgIGNvbnN0IHRleHQgPSByYXcKICAgICAgICAgICAgICAucmVwbGFjZSgvXHJcbi9nLCAiXG4iKQogICAgICAgICAgICAgIC5yZXBsYWNlKC9bIFx0XSsvZywgIiAiKQogICAgICAgICAgICAgIC5yZXBsYWNlKC9cblsgXHRdKy9nLCAiXG4iKQogICAgICAgICAgICAgIC5yZXBsYWNlKC9cbnszLH0vZywgIlxuXG4iKQogICAgICAgICAgICAgIC50cmltKCkKICAgICAgICAgICAgICAuc2xpY2UoMCwgNTAwMCk7CgogICAgICAgICAgICBjb25zdCBmcm9tID0gcGFyc2VkLmZyb20/LnZhbHVlPy5bMF0/LmFkZHJlc3MgPz8gbXNnLmVudmVsb3BlPy5mcm9tPy5bMF0/LmFkZHJlc3MgPz8gIiI7CiAgICAgICAgICAgIGNvbnN0IHRvID0gcGFyc2VkLnRvCiAgICAgICAgICAgICAgPyAoQXJyYXkuaXNBcnJheShwYXJzZWQudG8pID8gcGFyc2VkLnRvIDogW3BhcnNlZC50b10pCiAgICAgICAgICAgICAgICAgIC5mbGF0TWFwKChhOiBhbnkpID0+IGEudmFsdWUgPz8gW10pCiAgICAgICAgICAgICAgICAgIC5tYXAoKGE6IGFueSkgPT4gYS5hZGRyZXNzKQogICAgICAgICAgICAgICAgICAuZmlsdGVyKEJvb2xlYW4pWzBdID8/ICIiCiAgICAgICAgICAgICAgOiBtc2cuZW52ZWxvcGU/LnRvPy5bMF0/LmFkZHJlc3MgPz8gIiI7CgogICAgICAgICAgICBjb25zdCBhdHRhY2htZW50cyA9IChwYXJzZWQuYXR0YWNobWVudHMgfHwgW10pLm1hcCgoYTogYW55KSA9PiAoewogICAgICAgICAgICAgIGZpbGVuYW1lOiBhLmZpbGVuYW1lIHx8ICJhdHRhY2htZW50IiwKICAgICAgICAgICAgICBjb250ZW50VHlwZTogYS5jb250ZW50VHlwZSB8fCAiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIiwKICAgICAgICAgICAgICBzaXplOiBhLnNpemUgfHwgKGEuY29udGVudCA/IGEuY29udGVudC5sZW5ndGggOiAwKSwKICAgICAgICAgICAgfSkpOwoKICAgICAgICAgICAgZW1haWxzLnB1c2goewogICAgICAgICAgICAgIG1lc3NhZ2VJZDogKHBhcnNlZC5tZXNzYWdlSWQgPz8gbXNnLmVudmVsb3BlPy5tZXNzYWdlSWQgPz8gYHVpZC0ke21zZy51aWR9YCkucmVwbGFjZSgvWzw+XS9nLCAiIiksCiAgICAgICAgICAgICAgZnJvbUFkZHJlc3M6IGZyb20sCiAgICAgICAgICAgICAgdG9BZGRyZXNzOiB0bywKICAgICAgICAgICAgICBzdWJqZWN0OiBwYXJzZWQuc3ViamVjdCA/PyBtc2cuZW52ZWxvcGU/LnN1YmplY3QgPz8gIijQsdC10Lcg0YLQtdC80YspIiwKICAgICAgICAgICAgICBib2R5VGV4dDogdGV4dCB8fCAiKNC/0YPRgdGC0L7QtSDQv9C40YHRjNC80L4pIiwKICAgICAgICAgICAgICByZWNlaXZlZEF0OiBwYXJzZWQuZGF0ZSA/PyBtc2cuZW52ZWxvcGU/LmRhdGUgPz8gbmV3IERhdGUoKSwKICAgICAgICAgICAgICBhdHRhY2htZW50cywKICAgICAgICAgICAgfSk7CiAgICAgICAgICB9IGNhdGNoIChlOiBhbnkpIHsKICAgICAgICAgICAgdGhpcy5sb2dnZXIud2FybihgU2tpcCBtc2cgJHttc2cudWlkfTogJHtlLm1lc3NhZ2V9YCk7CiAgICAgICAgICB9CiAgICAgICAgfQogICAgICB9IGZpbmFsbHkgewogICAgICAgIGxvY2sucmVsZWFzZSgpOwogICAgICB9CiAgICB9IGZpbmFsbHkgewogICAgICBhd2FpdCBjbGllbnQubG9nb3V0KCk7CiAgICB9CiAgICB0aGlzLmxvZ2dlci5sb2coYEZldGNoZWQgJHtlbWFpbHMubGVuZ3RofSBlbWFpbHNgKTsKICAgIHJldHVybiBlbWFpbHM7CiAgfQp9Cg==" | base64 -d > "$POLYGON_DIR/backend/src/email-copilot/imap.service.ts"
+              echo "  imap.service.ts ✓"
+              export SCHEMA_FILE="$POLYGON_DIR/backend/prisma/schema.prisma"
+              export SVC_FILE="$POLYGON_DIR/backend/src/email-copilot/email-copilot.service.ts"
+              node -e "
+              const fs=require('fs');
+              const sf=process.env.SCHEMA_FILE;
+              let s=fs.readFileSync(sf,'utf8');
+              if(!s.includes('attachments Json?')){
+                s=s.replace('  updatedAt DateTime @updatedAt','  attachments Json?\n  updatedAt DateTime @updatedAt');
+                fs.writeFileSync(sf,s);console.log('  schema.prisma ✓');
+              }else{console.log('  schema.prisma already patched');}
+              const vf=process.env.SVC_FILE;
+              let v=fs.readFileSync(vf,'utf8');
+              if(!v.includes('attachments: raw.attachments')){
+                v=v.replace('        bodyText: raw.bodyText,','        bodyText: raw.bodyText,\n        attachments: raw.attachments && raw.attachments.length ? raw.attachments : undefined,');
+                fs.writeFileSync(vf,v);console.log('  email-copilot.service.ts ✓');
+              }else{console.log('  service already patched');}
+              "
+
+              echo "====== Удаляем застрявший контейнер ======"
+              docker rm -f metalpro-ai-polygon-backend-1 2>/dev/null || true
+              sleep 2
+
+              echo "====== Docker compose --build --force-recreate ======"
+              docker compose up -d --build --force-recreate backend
+              echo "Контейнер пересобран и запущен ✓"
+
+              echo "Ожидаем запуск (20 сек)..."
+              sleep 20
+              echo "Статус:"
+              docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}} | {{.Status}}"
+
+            else
+              echo "ОШИБКА: docker-compose.yml не найден в $POLYGON_DIR"
+              exit 1
+            fi
+
+            echo "====== ПРОВЕРКА ВНУТРИ КОНТЕЙНЕРА ======"
+            CONTAINER=$(docker ps --filter "name=metalpro-ai-polygon-backend" --format "{{.Names}}" | head -1)
+            if [ -n "$CONTAINER" ]; then
+              docker exec "$CONTAINER" printenv IMAP_HOST 2>/dev/null || echo "  IMAP_HOST: не задан"
+              docker exec "$CONTAINER" printenv IMAP_USER 2>/dev/null || echo "  IMAP_USER: не задан"
+              IMAP_PASS_IN=$(docker exec "$CONTAINER" printenv IMAP_PASS 2>/dev/null)
+              if [ -n "$IMAP_PASS_IN" ]; then
+                echo "  IMAP_PASS: задан (длина: ${#IMAP_PASS_IN} символов)"
+              else
+                echo "  IMAP_PASS: НЕ ЗАДАН!"
+              fi
+
+              echo "====== ТЕСТ IMAP СОЕДИНЕНИЯ ======"
+              docker exec "$CONTAINER" sh -c \
+                "node -e \"const {ImapFlow}=require('imapflow');const c=new ImapFlow({host:process.env.IMAP_HOST,port:993,secure:true,auth:{user:process.env.IMAP_USER,pass:process.env.IMAP_PASS},logger:false});c.connect().then(()=>{console.log('IMAP OK');c.logout();}).catch(e=>console.log('IMAP ERR:',e.message));\"" \
+                2>&1 || echo "Тест IMAP не удался"
+            else
+              echo "Контейнер не найден — проверьте docker ps"
+            fi
+
+            echo "====== ГОТОВО ======"
+        env:
+          AI_IMAP_USER: ${{ secrets.AI_IMAP_USER }}
+          AI_IMAP_PASS: ${{ secrets.AI_IMAP_PASS }}

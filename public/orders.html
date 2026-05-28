@@ -19,9 +19,34 @@
 .filter-sel{height:34px;padding:0 8px;background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--txts);font-family:var(--ff);font-size:12.5px;outline:none;cursor:pointer;width:auto;}
 .filter-sel:focus{border-color:var(--blue);}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
-thead th.sortable{cursor:pointer;user-select:none;}
+/* Table container — scrollable when table is wider than content */
+.table-scroll{overflow-x:auto;}
+#orders-table{table-layout:fixed;border-collapse:collapse;}
+/* Column visibility — hide by nth-child so CSS applies to dynamically rendered rows */
+#orders-table.hide-col-num    th:nth-child(1),#orders-table.hide-col-num    td:nth-child(1){display:none;}
+#orders-table.hide-col-client th:nth-child(2),#orders-table.hide-col-client td:nth-child(2){display:none;}
+#orders-table.hide-col-obj    th:nth-child(3),#orders-table.hide-col-obj    td:nth-child(3){display:none;}
+#orders-table.hide-col-revs   th:nth-child(4),#orders-table.hide-col-revs   td:nth-child(4){display:none;}
+#orders-table.hide-col-date   th:nth-child(5),#orders-table.hide-col-date   td:nth-child(5){display:none;}
+#orders-table.hide-col-status th:nth-child(6),#orders-table.hide-col-status td:nth-child(6){display:none;}
+thead th{position:relative;white-space:nowrap;user-select:none;overflow:hidden;text-overflow:ellipsis;}
+thead th.sortable{cursor:pointer;}
 thead th.sortable:hover{color:var(--txt);}
 thead th.sort-on{color:var(--blue);}
+/* Column resize handle */
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;z-index:10;background:transparent;}
+.col-resizer:hover{background:rgba(59,130,246,.4);}
+/* Order number readability */
+.order-num-cell{font-family:var(--ffm);font-size:13px;font-weight:700;color:var(--blue);letter-spacing:.5px;padding:1px 5px;background:rgba(59,130,246,.07);border-radius:4px;display:inline-block;}
+/* Column visibility toggle */
+.col-picker-wrap{position:relative;}
+.col-picker-btn{background:var(--card);border:1px solid var(--brd);border-radius:6px;color:var(--txts);font-family:var(--ff);font-size:12px;padding:0 10px;height:34px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.col-picker-btn:hover{border-color:var(--brdl);color:var(--txt);}
+.col-picker-dd{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--card);border:1px solid var(--brdl);border-radius:8px;z-index:100;min-width:180px;padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.col-picker-dd.open{display:block;}
+.col-picker-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;font-size:12.5px;}
+.col-picker-item:hover{background:var(--hov);}
+.col-picker-item input{accent-color:var(--blue);width:14px;height:14px;cursor:pointer;}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
 .detail-field{background:var(--card);border-radius:6px;padding:10px 12px;}
 .detail-field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:3px;}
@@ -33,6 +58,19 @@ thead th.sort-on{color:var(--blue);}
 .rev-note{font-size:12px;flex:1;}
 .rev-date{font-size:11px;color:var(--txts);font-family:var(--ffm);white-space:nowrap;}
 .section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--brd);}
+/* Customer autocomplete */
+.ac-wrap{position:relative;}
+.ac-dd{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brdl);border-radius:6px;z-index:200;max-height:180px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.ac-item{padding:8px 12px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.ac-item:hover{background:var(--hov);}
+.ac-name{font-weight:600;flex:1;}
+.ac-sub{font-size:10.5px;color:var(--txts);}
+.ac-new{color:var(--blue);font-style:italic;}
+/* Status select in detail */
+.status-sel{background:var(--card);border:1px solid var(--brd);border-radius:5px;color:var(--txt);font-family:var(--ff);font-size:12px;padding:3px 6px;outline:none;cursor:pointer;max-width:220px;}
+.status-sel:focus{border-color:var(--blue);}
+.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red);}
+.btn-danger:hover{background:rgba(239,68,68,.1);}
 </style>
 </head>
 <body>
@@ -63,22 +101,36 @@ thead th.sort-on{color:var(--blue);}
           <option value="all">Все</option>
           <option value="archived">Архив</option>
         </select>
+        <div class="col-picker-wrap">
+          <button class="col-picker-btn" onclick="toggleColPicker(event)">⚙ Столбцы ▾</button>
+          <div class="col-picker-dd" id="col-picker-dd"></div>
+        </div>
         <span class="count-lbl" id="count-lbl"></span>
       </div>
       <div class="card">
-        <table>
+        <div class="table-scroll">
+        <table id="orders-table">
+          <colgroup>
+            <col id="col-num"    style="width:130px">
+            <col id="col-client" style="width:200px">
+            <col id="col-obj"    style="width:300px">
+            <col id="col-revs"   style="width:80px">
+            <col id="col-date"   style="width:110px">
+            <col id="col-status" style="width:160px">
+          </colgroup>
           <thead>
             <tr>
-              <th class="sortable" onclick="setSort('num')">№ заказа <span id="si-num"></span></th>
-              <th>Заказчик</th>
-              <th>Объект</th>
-              <th>Ревизии</th>
-              <th class="sortable" onclick="setSort('date')">Дата <span id="si-date"></span></th>
-              <th>Статус</th>
+              <th class="sortable" onclick="setSort('num')" data-col="col-num">№ заказа <span id="si-num"></span><div class="col-resizer" onmousedown="startResize(event,'col-num')"></div></th>
+              <th data-col="col-client">Заказчик<div class="col-resizer" onmousedown="startResize(event,'col-client')"></div></th>
+              <th data-col="col-obj">Объект<div class="col-resizer" onmousedown="startResize(event,'col-obj')"></div></th>
+              <th data-col="col-revs">Рев.<div class="col-resizer" onmousedown="startResize(event,'col-revs')"></div></th>
+              <th class="sortable" onclick="setSort('date')" data-col="col-date">Дата <span id="si-date"></span><div class="col-resizer" onmousedown="startResize(event,'col-date')"></div></th>
+              <th data-col="col-status">Статус</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
+        </div>
         <div id="empty-state" style="display:none"></div>
       </div>
     </div>
@@ -94,6 +146,18 @@ thead th.sort-on{color:var(--blue);}
 ERP.init('orders');
 
 var sortField = 'date', sortDir = 'desc';
+var _createCustomerId = null;
+
+var STATUS_LABELS = {
+  DRAFT:'Новый запрос', QUOTATION:'На рассмотрении', AWAITING_APPROVAL:'Расчёт цены',
+  APPROVED:'КП отправлено', PRODUCTION:'В производстве', COMPLETED:'Готово',
+  DELIVERED:'Сдан', CANCELLED:'Отменён'
+};
+var ALLOWED_NEXT = {
+  DRAFT:['QUOTATION','CANCELLED'], QUOTATION:['AWAITING_APPROVAL','DRAFT','CANCELLED'],
+  AWAITING_APPROVAL:['APPROVED','QUOTATION','CANCELLED'], APPROVED:['PRODUCTION','QUOTATION','CANCELLED'],
+  PRODUCTION:['COMPLETED'], COMPLETED:['DELIVERED'], DELIVERED:[], CANCELLED:[]
+};
 
 function isArchived(o) { return o.status === 'CANCELLED'; }
 
@@ -151,17 +215,17 @@ function render() {
   empty.style.display = 'none';
   tbody.innerHTML = orders.map(function(o){
     var statusBadge = {
-      DRAFT:'<span class="badge b-draft">Draft</span>',
-      QUOTATION:'<span class="badge b-quotation">Quote</span>',
-      AWAITING_APPROVAL:'<span class="badge b-awaiting">На согл.</span>',
-      APPROVED:'<span class="badge b-approved">Одобрен</span>',
-      PRODUCTION:'<span class="badge b-production">Произв.</span>',
-      COMPLETED:'<span class="badge b-completed">Готов</span>',
+      DRAFT:'<span class="badge b-draft">Новый запрос</span>',
+      QUOTATION:'<span class="badge b-quotation">На рассмотрении</span>',
+      AWAITING_APPROVAL:'<span class="badge b-awaiting">Расчёт цены</span>',
+      APPROVED:'<span class="badge b-approved">КП отправлено</span>',
+      PRODUCTION:'<span class="badge b-production">В производстве</span>',
+      COMPLETED:'<span class="badge b-completed">Готово</span>',
       DELIVERED:'<span class="badge b-delivered">Сдан</span>',
       CANCELLED:'<span class="badge b-cancelled">Отменён</span>',
     }[o.status] || '<span class="badge b-draft">'+ERP.esc(o.status)+'</span>';
     return '<tr class="clickable" onclick="openDetail(\''+o.id+'\')">' +
-      '<td><span class="mono" style="color:var(--blue);font-weight:700">'+ERP.esc(o.orderNumber)+'</span></td>' +
+      '<td><span class="order-num-cell">'+ERP.esc(o.orderNumber||'—')+'</span></td>' +
       '<td><span style="font-weight:600">'+ERP.esc(o.customerName||'—')+'</span></td>' +
       '<td style="color:var(--txts)">'+ERP.esc(o.title||'—')+'</td>' +
       '<td><span class="mono" style="color:var(--txts)">'+(o._count&&o._count.revisions||0)+' рев.</span></td>' +
@@ -171,13 +235,20 @@ function render() {
   }).join('');
 }
 
+/* ── Create modal ──────────────────────────────────────────────────────────── */
 function openCreateModal() {
+  _createCustomerId = null;
   document.getElementById('modal-inner').innerHTML =
     '<div class="modal-header"><div class="modal-title">Новый заказ</div><button class="modal-close" onclick="closeModal()">✕</button></div>' +
     '<div class="modal-body">' +
-      '<div class="field"><label>Номер заказа *</label><input id="f-num" placeholder="например, 1045" autocomplete="off"></div>' +
-      '<div class="field"><label>Заказчик *</label><input id="f-client" placeholder="Название компании"></div>' +
-      '<div class="field"><label>Объект *</label><input id="f-object" placeholder="Наименование объекта"></div>' +
+      '<div class="field"><label>Номер заказа <span style="color:var(--txts);font-weight:400">(необязательно — присвоится автоматически)</span></label><input id="f-num" placeholder="например, 1045" autocomplete="off"></div>' +
+      '<div class="field"><label>Заказчик</label>' +
+        '<div class="ac-wrap">' +
+          '<input id="f-client" placeholder="Начните вводить название..." autocomplete="off" oninput="searchCustomers(this.value)" onfocus="searchCustomers(this.value)">' +
+          '<div class="ac-dd" id="f-client-dd" style="display:none"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="field"><label>Объект</label><input id="f-object" placeholder="Наименование объекта (необязательно)"></div>' +
       '<div class="field"><label>Примечание</label><input id="f-note" placeholder="Описание"></div>' +
     '</div>' +
     '<div class="modal-footer">' +
@@ -185,21 +256,68 @@ function openCreateModal() {
       '<button class="btn btn-primary" id="btn-save" onclick="saveOrder()">Создать заказ</button>' +
     '</div>';
   document.getElementById('modal-bg').style.display = 'flex';
-  setTimeout(function(){ document.getElementById('f-num').focus(); }, 50);
+  setTimeout(function(){ document.getElementById('f-client').focus(); }, 50);
+  document.addEventListener('click', closeAcOnClickOutside, true);
+}
+
+function closeAcOnClickOutside(e) {
+  var dd = document.getElementById('f-client-dd');
+  var inp = document.getElementById('f-client');
+  if (dd && !dd.contains(e.target) && e.target !== inp) { dd.style.display = 'none'; }
+}
+
+var _acTimer = null;
+async function searchCustomers(q) {
+  clearTimeout(_acTimer);
+  _acTimer = setTimeout(async function() {
+    var dd = document.getElementById('f-client-dd');
+    if (!dd) return;
+    if (!q || q.length < 1) { dd.style.display = 'none'; return; }
+    try {
+      var r = await ERP.authFetch('/api/customers?search=' + encodeURIComponent(q));
+      var list = await r.json();
+      if (!Array.isArray(list)) { dd.style.display = 'none'; return; }
+      var items = list.slice(0, 8).map(function(c) {
+        return '<div class="ac-item" onclick="selectCustomer(\'' + c.id + '\',\'' + ERP.esc(c.name).replace(/'/g,'\\\'') + '\')">' +
+          '<div class="ac-name">' + ERP.esc(c.name) + '</div>' +
+          (c.email ? '<div class="ac-sub">' + ERP.esc(c.email) + '</div>' : '') +
+          (c._count ? '<div class="ac-sub">' + c._count.orders + ' заказов</div>' : '') +
+        '</div>';
+      });
+      items.push('<div class="ac-item ac-new" onclick="selectCustomerNew()">+ Новый клиент «' + ERP.esc(q) + '»</div>');
+      dd.innerHTML = items.join('');
+      dd.style.display = 'block';
+    } catch(e) { dd.style.display = 'none'; }
+  }, 200);
+}
+
+function selectCustomer(id, name) {
+  _createCustomerId = id;
+  var inp = document.getElementById('f-client');
+  if (inp) inp.value = name;
+  var dd = document.getElementById('f-client-dd');
+  if (dd) dd.style.display = 'none';
+}
+
+function selectCustomerNew() {
+  _createCustomerId = null;
+  var dd = document.getElementById('f-client-dd');
+  if (dd) dd.style.display = 'none';
 }
 
 async function saveOrder() {
-  var orderNumber = (document.getElementById('f-num').value||'').trim();
-  var customerName = (document.getElementById('f-client').value||'').trim();
-  var title = (document.getElementById('f-object').value||'').trim();
-  if (!orderNumber) { ERP.toast('Введите номер заказа', 'error'); return; }
-  if (!customerName || !title) { ERP.toast('Заполните заказчика и объект', 'error'); return; }
+  var orderNumber  = (document.getElementById('f-num').value||'').trim() || null;
+  var customerName = (document.getElementById('f-client').value||'').trim() || null;
+  var title        = (document.getElementById('f-object').value||'').trim() || null;
+  var description  = (document.getElementById('f-note').value||'').trim() || null;
   var btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = 'Сохранение...';
   try {
-    var order = await ERPStore.createOrder({ orderNumber: orderNumber, customerName: customerName, title: title, description: document.getElementById('f-note').value||null });
+    var order = await ERPStore.createOrder({
+      orderNumber, customerName, customerId: _createCustomerId, title, description
+    });
     closeModal(); render();
-    ERP.toast('Заказ ' + orderNumber + ' создан', 'success');
+    ERP.toast('Заказ ' + (order.orderNumber||'') + ' создан', 'success');
     setTimeout(function(){ window.location.href = ERPStore.buildSimulatorURL(order.id); }, 800);
   } catch(e) {
     ERP.toast(e.message, 'error');
@@ -207,6 +325,7 @@ async function saveOrder() {
   }
 }
 
+/* ── Detail modal ──────────────────────────────────────────────────────────── */
 async function openDetail(id) {
   document.getElementById('modal-inner').innerHTML = '<div style="padding:32px;text-align:center;color:var(--txts)">Загрузка...</div>';
   document.getElementById('modal-bg').style.display = 'flex';
@@ -219,20 +338,31 @@ async function openDetail(id) {
         '<div class="rev-date">'+ERPStore.formatDate(r.createdAt)+'</div>' +
       '</div>';
     }).join('');
+
+    var nextStatuses = ALLOWED_NEXT[o.status] || [];
+    var statusOptions = '<option value="' + o.status + '" selected>' + ERP.esc(STATUS_LABELS[o.status]||o.status) + '</option>' +
+      nextStatuses.map(function(s){ return '<option value="'+s+'">'+ERP.esc(STATUS_LABELS[s]||s)+'</option>'; }).join('');
+
     document.getElementById('modal-inner').innerHTML =
-      '<div class="modal-header"><div class="modal-title">Заказ № '+ERP.esc(o.orderNumber)+'</div><button class="modal-close" onclick="closeModal()">✕</button></div>' +
+      '<div class="modal-header">' +
+        '<div class="modal-title">Заказ № '+ERP.esc(o.orderNumber||'—')+'</div>' +
+        '<button class="modal-close" onclick="closeModal()">✕</button>' +
+      '</div>' +
       '<div class="modal-body">' +
         '<div class="detail-grid">' +
           '<div class="detail-field"><div class="detail-field-label">Заказчик</div><div class="detail-field-value">'+ERP.esc(o.customerName||'—')+'</div></div>' +
           '<div class="detail-field"><div class="detail-field-label">Объект</div><div class="detail-field-value">'+ERP.esc(o.title||'—')+'</div></div>' +
-          '<div class="detail-field"><div class="detail-field-label">Статус</div><div class="detail-field-value">'+ERP.esc(o.status)+'</div></div>' +
+          '<div class="detail-field"><div class="detail-field-label">Статус</div><div class="detail-field-value">' +
+            '<select class="status-sel" id="detail-status" onchange="changeStatus(\''+o.id+'\',this.value)">'+statusOptions+'</select>' +
+          '</div></div>' +
           '<div class="detail-field"><div class="detail-field-label">Создан</div><div class="detail-field-value">'+ERPStore.formatDate(o.createdAt)+'</div></div>' +
         '</div>' +
         '<div class="section-lbl">История ревизий</div>' +
         (revs || '<div style="color:var(--txts);font-size:13px;padding:8px 0">Ревизий нет — зафиксируйте в симуляторе</div>') +
       '</div>' +
       '<div class="modal-footer">' +
-        '<button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>' +
+        '<button class="btn btn-danger" onclick="deleteOrder(\''+o.id+'\',\''+ERP.esc(o.orderNumber||'—')+'\')">Удалить</button>' +
+        '<button class="btn btn-secondary" style="margin-left:auto" onclick="closeModal()">Закрыть</button>' +
         '<button class="btn btn-primary" onclick="openInSimulator(\''+o.id+'\')">Открыть расчёт →</button>' +
       '</div>';
   } catch(e) {
@@ -240,12 +370,141 @@ async function openDetail(id) {
   }
 }
 
+async function changeStatus(id, newStatus) {
+  try {
+    var r = await ERP.authFetch('/api/orders/' + id + '/status', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!r.ok) { var e = await r.json(); throw new Error(e.error || 'Ошибка'); }
+    ERP.toast('Статус изменён: ' + (STATUS_LABELS[newStatus]||newStatus), 'success');
+    await ERPStore.loadOrders();
+    render();
+    openDetail(id);
+  } catch(e) {
+    ERP.toast(e.message, 'error');
+    openDetail(id);
+  }
+}
+
+async function deleteOrder(id, num) {
+  if (!confirm('Удалить заказ № ' + num + '?\n\nЗаказ будет скрыт из системы. Это действие необратимо.')) return;
+  try {
+    var r = await ERP.authFetch('/api/orders/' + id, { method: 'DELETE' });
+    if (!r.ok) { var e = await r.json(); throw new Error(e.error || 'Ошибка'); }
+    ERP.toast('Заказ удалён', 'success');
+    closeModal();
+    await ERPStore.loadOrders();
+    render();
+  } catch(e) {
+    ERP.toast(e.message, 'error');
+  }
+}
+
 function openInSimulator(id) { window.location.href = ERPStore.buildSimulatorURL(id); }
-function closeModal() { document.getElementById('modal-bg').style.display = 'none'; }
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+  document.removeEventListener('click', closeAcOnClickOutside, true);
+}
 function handleBgClick(e) { if (e.target === document.getElementById('modal-bg')) closeModal(); }
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 
+/* ── Column definitions (for resize + visibility) ──────────────────────────── */
+var COL_DEFS = [
+  { id:'col-num',    label:'№ заказа',  canHide:false },
+  { id:'col-client', label:'Заказчик',  canHide:true  },
+  { id:'col-obj',    label:'Объект',    canHide:true  },
+  { id:'col-revs',   label:'Ревизии',   canHide:true  },
+  { id:'col-date',   label:'Дата',      canHide:true  },
+  { id:'col-status', label:'Статус',    canHide:true  },
+];
+var _hiddenCols = {};
+
+/* ── Column resize ─────────────────────────────────────────────────────────── */
+var _rszCol = null, _rszX0 = 0, _rszW0 = 0, _rszTblW = 0;
+function startResize(e, colId) {
+  e.stopPropagation(); e.preventDefault();
+  var tbl = document.getElementById('orders-table');
+  _rszCol  = document.getElementById(colId);
+  _rszX0   = e.clientX;
+  _rszW0   = parseInt(_rszCol.style.width) || _rszCol.offsetWidth || 100;
+  _rszTblW = tbl.offsetWidth;
+  function onMove(ev) {
+    var delta = ev.clientX - _rszX0;
+    var w = Math.max(60, _rszW0 + delta);
+    _rszCol.style.width = w + 'px';
+    // Grow/shrink table by same delta so other columns don't shift
+    tbl.style.width = Math.max(400, _rszTblW + delta) + 'px';
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    saveColWidths();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+function syncTableWidth() {
+  var total = COL_DEFS.reduce(function(s, c) {
+    var el = document.getElementById(c.id);
+    return s + (parseInt(el && el.style.width) || 100);
+  }, 0);
+  document.getElementById('orders-table').style.width = Math.max(total, 500) + 'px';
+}
+function saveColWidths() {
+  var w = {}, h = {};
+  COL_DEFS.forEach(function(c){
+    var el = document.getElementById(c.id);
+    if (el) w[c.id] = el.style.width;
+    h[c.id] = !!_hiddenCols[c.id];
+  });
+  localStorage.setItem('erp_orders_cols',    JSON.stringify(w));
+  localStorage.setItem('erp_orders_hidden',  JSON.stringify(h));
+}
+function loadColWidths() {
+  try {
+    var w = JSON.parse(localStorage.getItem('erp_orders_cols')||'{}');
+    COL_DEFS.forEach(function(c){ var el=document.getElementById(c.id); if(el&&w[c.id]) el.style.width=w[c.id]; });
+    var h = JSON.parse(localStorage.getItem('erp_orders_hidden')||'{}');
+    COL_DEFS.forEach(function(c){ _hiddenCols[c.id] = !!h[c.id]; });
+    applyColVisibility();
+    syncTableWidth();
+  } catch(_) {}
+}
+
+/* ── Column visibility toggle ──────────────────────────────────────────────── */
+function toggleColPicker(e) {
+  e.stopPropagation();
+  var dd = document.getElementById('col-picker-dd');
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+  dd.innerHTML = COL_DEFS.map(function(c) {
+    var checked = !_hiddenCols[c.id] ? 'checked' : '';
+    var disabled = !c.canHide ? 'disabled style="opacity:.4"' : '';
+    return '<label class="col-picker-item" '+disabled+'>' +
+      '<input type="checkbox" id="chk-'+c.id+'" '+checked+' '+disabled+
+        ' onchange="toggleColumn(\''+c.id+'\')" onclick="event.stopPropagation()">' +
+      c.label +
+    '</label>';
+  }).join('');
+  dd.classList.add('open');
+  setTimeout(function(){
+    document.addEventListener('click', function closePicker(ev) {
+      if (!dd.contains(ev.target)) { dd.classList.remove('open'); document.removeEventListener('click', closePicker); }
+    });
+  }, 0);
+}
+function toggleColumn(colId) {
+  _hiddenCols[colId] = !_hiddenCols[colId];
+  applyColVisibility();
+  saveColWidths();
+}
+function applyColVisibility() {
+  var tbl = document.getElementById('orders-table');
+  COL_DEFS.forEach(function(c) { tbl.classList.toggle('hide-'+c.id, !!_hiddenCols[c.id]); });
+}
+
 async function init() {
+  loadColWidths(); // also calls syncTableWidth + applyColVisibility
   document.getElementById('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--txts);padding:28px">Загрузка заказов...</td></tr>';
   try { await ERPStore.loadOrders(); }
   catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }

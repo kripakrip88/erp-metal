@@ -1,10 +1,11 @@
-const { required, optionalStr } = require('./common')
+const { optionalStr } = require('./common')
 
 function validateCreateOrder(body) {
   return {
-    orderNumber:  body.orderNumber || `ORD-${Date.now()}`,
-    customerName: required(body.customerName, 'customerName'),
-    title:        required(body.title, 'title'),
+    orderNumber:  optionalStr(body.orderNumber) || null,
+    customerId:   body.customerId   || null,
+    customerName: optionalStr(body.customerName) || '',
+    title:        optionalStr(body.title) || null,
     description:  optionalStr(body.description),
     mode:         body.mode || 'STANDARD',
   }

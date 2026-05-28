@@ -153,12 +153,15 @@
       { id: 'simulator', href: 'simulator.html',    ico: '◈',  label: 'Расчёт КП' },
     ]},
     { group: 'CRM', items: [
+      { id: 'pipeline',  href: 'pipeline.html',     ico: '⬛',  label: 'CRM' },
       { id: 'crm',       href: 'crm.html',          ico: '◉',  label: 'Клиенты' },
       { id: 'email',     href: 'email-inbox.html',  ico: '✉',  label: 'Входящие' },
     ]},
     { group: 'Справочники', items: [
-      { id: 'materials', href: 'materials.html',    ico: '⬡',  label: 'Материалы' },
-      { id: 'templates', href: 'templates.html',    ico: '⬤',  label: 'Шаблоны' },
+      { id: 'materials',         href: 'materials.html',          ico: '⬡',  label: 'Металлопрокат' },
+      { id: 'fasteners',         href: 'fasteners.html',          ico: '⬡',  label: 'Метизы' },
+      { id: 'coating-materials', href: 'coating-materials.html',  ico: '◫',  label: 'ЛКМ' },
+      { id: 'templates',         href: 'templates.html',          ico: '⬤',  label: 'Шаблоны' },
     ]},
   ];
 

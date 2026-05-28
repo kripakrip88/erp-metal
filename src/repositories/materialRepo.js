@@ -1,10 +1,11 @@
 const prisma = require('./prisma')
 
-async function findAll({ search, profileType, categoryId, companyId }) {
+async function findAll({ search, profileType, categoryId, materialDomain, companyId }) {
   const where = {
     companyId, isActive: true, deletedAt: null,
-    ...(profileType  ? { profileType }         : {}),
-    ...(categoryId   ? { categoryId }           : {}),
+    ...(profileType    ? { profileType }                                          : {}),
+    ...(categoryId     ? { categoryId }                                           : {}),
+    ...(materialDomain ? { materialDomain: { in: materialDomain.split(',') } }    : {}),
     ...(search ? { OR: [
       { code: { contains: search, mode: 'insensitive' } },
       { name: { contains: search, mode: 'insensitive' } },
@@ -27,7 +28,7 @@ async function findById(id) {
   })
 }
 
-async function create({ companyId, code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function create({ companyId, code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, strengthClass, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const geo = await tx.materialGeometry.create({
       data: {
@@ -41,18 +42,20 @@ async function create({ companyId, code, name, materialType, profileType, steelG
     return tx.materialDefinition.create({
       data: {
         companyId, code, name, materialType, profileType,
+        materialDomain: materialDomain ?? 'STRUCTURAL',
         steelGrade: steelGrade ?? null,
         categoryId: categoryId ?? null,
-        standard:   standard   ?? null,
-        pieceUnit:  pieceUnit  ?? null,
-        geometryId: geo.id,
+        standard:      standard      ?? null,
+        strengthClass: strengthClass ?? null,
+        pieceUnit:     pieceUnit     ?? null,
+        geometryId:    geo.id,
       },
       include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
     })
   })
 }
 
-async function update(id, { code, name, materialType, profileType, steelGrade, categoryId, standard, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
+async function update(id, { code, name, materialType, profileType, materialDomain, steelGrade, categoryId, standard, strengthClass, pieceUnit, measurementType, theoreticalWeightPerMeter, weightPerSquareMeter, paintSurfacePerMeter, unitWeightKg }) {
   return prisma.$transaction(async (tx) => {
     const mat = await tx.materialDefinition.findUnique({ where: { id }, select: { geometryId: true } })
     if (!mat) throw new Error('Material not found')
@@ -72,10 +75,12 @@ async function update(id, { code, name, materialType, profileType, steelGrade, c
       where: { id },
       data: {
         code, name, materialType, profileType,
-        steelGrade: steelGrade ?? null,
-        categoryId: categoryId ?? null,
-        standard:   standard   ?? null,
-        pieceUnit:  pieceUnit  ?? null,
+        materialDomain: materialDomain ?? undefined,
+        steelGrade:    steelGrade    ?? null,
+        categoryId:    categoryId    ?? null,
+        standard:      standard      ?? null,
+        strengthClass: strengthClass ?? null,
+        pieceUnit:     pieceUnit     ?? null,
       },
       include: { geometry: true, procurementProfiles: { where: { isActive: true }, include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } } } }
     })
