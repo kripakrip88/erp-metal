@@ -19,7 +19,8 @@ const AI_POLYGON_HOST = process.env.AI_POLYGON_HOST || 'localhost'
 const AI_POLYGON_PORT = parseInt(process.env.AI_POLYGON_PORT || '4000', 10)
 
 // Пути, которые обрабатываются нативно в erp-metal (не проксируем)
-const NATIVE_EMAIL_PATHS = new Set(['/api/email-copilot/log-reply'])
+const NATIVE_EMAIL_PATHS         = new Set(['/api/email-copilot/log-reply'])
+const NATIVE_NORMALIZATION_PATHS = new Set([])
 
 function proxyToAI(req, res) {
   const chunks = []
@@ -171,6 +172,12 @@ const server = http.createServer(async (req, res) => {
   // Proxy /api/email-copilot/* → AI Polygon localhost:4000
   // Нативные пути (log-reply) пропускаем дальше — они в routes
   if (pathname.startsWith('/api/email-copilot/') && !NATIVE_EMAIL_PATHS.has(pathname)) {
+    proxyToAI(req, res)
+    return
+  }
+
+  // Proxy /api/normalization/* → AI Polygon localhost:4000
+  if (pathname.startsWith('/api/normalization/') && !NATIVE_NORMALIZATION_PATHS.has(pathname)) {
     proxyToAI(req, res)
     return
   }
