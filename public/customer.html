@@ -127,9 +127,10 @@ function priorityBadge(p) {
   var map = { VIP:'b-vip', HIGH:'b-high', NORMAL:'b-normal', LOW:'b-low' };
   return '<span class="badge '+(map[p]||'b-normal')+'">'+p+'</span>';
 }
+var STATUS_RU = {DRAFT:'Новый запрос',QUOTATION:'На рассмотрении',AWAITING_APPROVAL:'Расчёт цены',APPROVED:'КП отправлено',PRODUCTION:'В производстве',COMPLETED:'Готово',DELIVERED:'Сдан',CANCELLED:'Отменён'};
 function statusBadge(s) {
   var map = { DRAFT:'b-draft', QUOTATION:'b-quotation', AWAITING_APPROVAL:'b-awaiting', APPROVED:'b-approved', PRODUCTION:'b-production', COMPLETED:'b-completed', DELIVERED:'b-delivered', CANCELLED:'b-cancelled' };
-  return '<span class="badge '+(map[s]||'b-draft')+'">'+s+'</span>';
+  return '<span class="badge '+(map[s]||'b-draft')+'">'+(STATUS_RU[s]||s)+'</span>';
 }
 function typeBadge(t) {
   var map = { EMAIL:'b-email', CALL:'b-call', MEETING:'b-meeting', NOTE:'b-note' };

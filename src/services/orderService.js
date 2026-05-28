@@ -10,7 +10,9 @@ const {
 } = require('./orderIntegrityService')
 const { AUDIT_EVENTS, safeAudit } = require('./auditService')
 
-async function listOrders() {
+async function listOrders(context) {
+  const companyId = context?.companyId
+  if (companyId) return orderRepo.findAll(companyId)
   const company = await getCompany()
   if (!company) return []
   return orderRepo.findAll(company.id)
@@ -20,20 +22,45 @@ async function getOrder(id) {
   return orderRepo.findById(id)
 }
 
-async function createOrder(data) {
-  const company = await getCompany()
-  if (!company) throw new Error('Company not found')
-  const user = await prisma.user.findFirst({ where: { companyId: company.id } })
-  return orderRepo.create({
-    companyId:    company.id,
-    createdById:  user?.id || company.id,
-    orderNumber:  data.orderNumber,
-    customerName: data.customerName,
-    title:        data.title,
+async function createOrder(data, context) {
+  const companyId = context?.companyId
+  const actorId   = context?.userId || null
+  let resolvedCompanyId = companyId
+  if (!resolvedCompanyId) {
+    const company = await getCompany()
+    if (!company) throw new Error('Company not found')
+    resolvedCompanyId = company.id
+  }
+  const createdById = actorId || (await prisma.user.findFirst({ where: { companyId: resolvedCompanyId }, select: { id: true } }))?.id || resolvedCompanyId
+
+  // Auto-generate sequential order number if not provided
+  let orderNumber = data.orderNumber
+  if (!orderNumber) {
+    const count = await prisma.order.count({ where: { companyId: resolvedCompanyId } })
+    orderNumber = String(count + 1).padStart(4, '0')
+  }
+
+  // Resolve customerName from customerId if not explicitly provided
+  let customerName = data.customerName || ''
+  if (data.customerId && !customerName) {
+    const customer = await prisma.customer.findUnique({ where: { id: data.customerId }, select: { name: true } })
+    if (customer) customerName = customer.name
+  }
+
+  const createData = {
+    companyId:    resolvedCompanyId,
+    createdById,
+    orderNumber,
+    customerName,
+    title:        data.title || '',
     description:  data.description || null,
     status:       'DRAFT',
     mode:         data.mode || 'STANDARD',
-  })
+  }
+  // Only pass customerId if it's a real value — passing null breaks Prisma relation validation
+  if (data.customerId) createData.customerId = data.customerId
+
+  return orderRepo.create(createData)
 }
 
 async function createAssembly(orderId, data) {
