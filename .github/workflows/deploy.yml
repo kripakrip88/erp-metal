@@ -17,5 +17,8 @@ jobs:
           script: |
             cd /var/www/erp-metal
             git pull origin main
+            npm install --production
+            set -a; [ -f .env ] && source .env; set +a
             npx prisma migrate deploy
+            npx prisma generate
             bash deploy.sh
