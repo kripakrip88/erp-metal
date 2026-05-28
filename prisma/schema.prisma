@@ -480,9 +480,9 @@ model Assembly {
 model Part {
   id                   String          @id @default(uuid())
   assemblyId           String
-  materialDefinitionId String
+  materialDefinitionId String?
   name                 String?
-  measurementType      MeasurementType
+  measurementType      MeasurementType @default(LINEAR)
   length               Decimal?        @db.Decimal(12, 4)
   sheetWidth           Decimal?        @db.Decimal(12, 4)
   sheetHeight          Decimal?        @db.Decimal(12, 4)
@@ -504,10 +504,19 @@ model Part {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
-  assembly           Assembly           @relation(fields: [assemblyId], references: [id])
-  materialDefinition MaterialDefinition @relation(fields: [materialDefinitionId], references: [id])
+  // AI normalization fields
+  aiGenerated          Boolean         @default(false)
+  aiRawText            String?
+  aiNormResultId       String?
+  aiConfidence         Float?
+  aiMatchMethod        String?
+  aiStatus             String?
+
+  assembly           Assembly            @relation(fields: [assemblyId], references: [id])
+  materialDefinition MaterialDefinition? @relation(fields: [materialDefinitionId], references: [id])
 
   @@index([partCategory])
+  @@index([aiGenerated])
   @@map("parts")
 }
 

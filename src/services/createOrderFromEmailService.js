@@ -6,7 +6,8 @@ function normalizeEmail(email) {
 
 // Creates a DRAFT order from an inbound email.
 // Idempotent: calling twice with the same emailMessageId returns the existing order.
-async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId }) {
+// Optionally accepts normalizationResults to create Assembly + Parts immediately.
+async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId, normalizationResults }) {
   const email = normalizeEmail(fromAddress)
 
   // Idempotency: if this email already spawned an order, return it
@@ -97,6 +98,48 @@ async function createOrderFromEmail({ messageId, title, fromAddress, fromName, s
         payload:       { orderId: order.id, customerId: customer.id, messageId, fromAddress, subject },
       },
     })
+
+    // 5. Create Assembly + Parts from normalization results (if provided)
+    if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
+      // Group by assembly_name
+      const groups = new Map()
+      for (const item of normalizationResults) {
+        const key = item.assembly_name || 'Основной узел'
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key).push(item)
+      }
+
+      let asmPos = 0
+      for (const [asmName, items] of groups) {
+        const assembly = await tx.assembly.create({
+          data: { orderId: order.id, name: asmName, qty: 1, position: asmPos++ },
+        })
+
+        let partPos = 0
+        for (const item of items) {
+          const aiStatus = item.status === 'confirmed' || item.status === 'replaced'
+            ? item.status
+            : item.status === 'no_match' ? 'no_match' : 'pending'
+
+          await tx.part.create({
+            data: {
+              assemblyId:          assembly.id,
+              materialDefinitionId: item.confirmed_material_erp_id || null,
+              name:                item.confirmed_material_name || item.raw_text || null,
+              measurementType:     'LINEAR',
+              quantity:            Math.max(1, Math.round(item.quantity || 1)),
+              position:            partPos++,
+              aiGenerated:         true,
+              aiRawText:           item.raw_text || null,
+              aiNormResultId:      item.normalization_result_id || null,
+              aiConfidence:        item.confidence != null ? item.confidence : null,
+              aiMatchMethod:       item.match_method || null,
+              aiStatus,
+            },
+          })
+        }
+      }
+    }
 
     return { orderId: order.id, orderNumber: order.orderNumber, customerId: customer.id }
   })

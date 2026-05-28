@@ -87,6 +87,38 @@ html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:v
 .aadd{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blue);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
 .aadd:hover{background:rgba(59,130,246,.2)}
 
+/* AI BANNER */
+.ai-banner{background:rgba(88,28,135,.15);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.ai-banner > span:first-child{font-size:18px;flex-shrink:0;color:#a78bfa}
+.ai-banner-title{font-size:12.5px;font-weight:700;color:#c4b5fd}
+.ai-banner-sub{font-size:11px;color:var(--txts);margin-top:2px}
+.ai-stats{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.as{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace}
+.as-ok{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.as-warn{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+.as-err{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.ai-banner button{background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap}
+.ai-banner button:hover{background:rgba(139,92,246,.35)}
+/* AI part row */
+.ai-row-ok   td:first-child{border-left:3px solid #34d399}
+.ai-row-warn td:first-child{border-left:3px solid #fbbf24}
+.ai-row-err  td:first-child{border-left:3px solid #f87171}
+.ai-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;font-family:'DM Mono',monospace}
+.ai-ok  {background:rgba(16,185,129,.15);color:#34d399}
+.ai-warn{background:rgba(245,158,11,.12);color:#fbbf24}
+.ai-err {background:rgba(239,68,68,.12);color:#f87171}
+.ai-acts{display:flex;gap:3px;margin-top:3px}
+.ai-btn{font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer;border:none;font-weight:700;line-height:1.4}
+.ai-btn-ok{background:rgba(16,185,129,.2);color:#34d399}
+.ai-btn-ok:hover{background:rgba(16,185,129,.35)}
+.ai-btn-sw{background:rgba(245,158,11,.15);color:#fbbf24}
+.ai-btn-sw:hover{background:rgba(245,158,11,.3)}
+/* AI unresolved row */
+.ai-unresolved{padding:8px 10px;display:flex;align-items:center;gap:8px;background:rgba(239,68,68,.04)}
+.ai-raw{font-size:11.5px;color:var(--txts);font-style:italic;font-family:'DM Mono',monospace}
+/* Remember alias checkbox */
+#ai-remember-wrap{display:none;font-size:10.5px;color:var(--txts);align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--brd)}
+
 /* ASSEMBLY CARD */
 .ac{background:var(--panel);border:1px solid var(--brd);border-radius:8px;overflow:visible;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);margin-bottom:10px}
 .ah{padding:7px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -463,6 +495,19 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
             </div>
           </div>
           <!-- ASSEMBLIES -->
+          <!-- AI BANNER -->
+          <div id="ai-banner" class="ai-banner" style="display:none">
+            <span>✦</span>
+            <div>
+              <div class="ai-banner-title">AI заполнил расчёт из спецификации PDF</div>
+              <div class="ai-banner-sub">Проверьте материалы — подтвердите или замените</div>
+            </div>
+            <div class="ai-stats">
+              <span class="as as-ok" id="ai-stat-ok" style="display:none"></span>
+              <span class="as as-warn" id="ai-stat-warn" style="display:none"></span>
+              <span class="as as-err" id="ai-stat-err" style="display:none"></span>
+            </div>
+          </div>
           <div id="asms-container"></div>
           <!-- DEBUG SUMMARY -->
           <div class="debug-box hidden" id="dbg-sum" style="margin-top:4px"><div id="dbg-sum-lines"></div></div>
@@ -674,6 +719,10 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
       </div>
     </div>
     <div class="modal-ftr">
+      <label id="ai-remember-wrap" style="display:none;font-size:10.5px;color:var(--txts);align-items:center;gap:6px;margin-right:auto">
+        <input type="checkbox" id="ai-remember" checked style="width:13px;height:13px;padding:0">
+        запомнить замену (AI обучится)
+      </label>
       <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
       <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Добавить деталь</button>
     </div>
@@ -863,6 +912,7 @@ async function initApp() {
       revs = apiRevs.sort((a, b) => a.revisionNumber - b.revisionNumber).map(r => _apiRevToSim(r, order.orderNumber, order.customerName));
       const revCountEl = document.getElementById('rev-count'); if (revCountEl) revCountEl.textContent = revs.length;
       if (revs.length) { revTag.style.display = ''; revTag.textContent = `Rev ${revs.length}`; }
+      updateAiBanner();
     } else {
       loadDraft();
     }
@@ -1365,6 +1415,26 @@ function renderBomRows(a) {
 }
 
 function renderPR(p, a) {
+  // AI part without matched material — special unresolved row
+  if (p.aiGenerated && !p.mid) {
+    return `<tr class="ai-row-err" draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+      <td colspan="7">
+        <div class="ai-unresolved">
+          <span class="ai-badge ai-err">⚠ без матч</span>
+          <span class="ai-raw">"${p.aiRawText || p.name || '—'}"</span>
+          <span style="font-size:10px;color:var(--txtm)">${p.qty || 1} ${p.name ? '' : 'шт'}</span>
+        </div>
+      </td>
+      <td><span class="mv" style="color:var(--txts)">—</span></td>
+      <td><div class="pt-acts">
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Выбрать материал">⇄</button>
+        <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  }
+
   const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) return '';
   const archivedBadge = mat.archived ? '<span style="color:var(--amber);font-size:9px;font-weight:700;display:block">⚠ архив</span>' : '';
   const { wpu, tot, pm2, lmm, dbg: d } = cPW(p, mat); const mu = a.qty;
@@ -1379,10 +1449,37 @@ function renderPR(p, a) {
     ? `<input class="ii" type="number" value="${p.w||0}" min="1" title="Ширина, мм" onchange="inlineEdit('${a.id}','${p.id}','w',+this.value)"><span class="ii-sep">×</span><input class="ii" type="number" value="${p.h||0}" min="1" title="Высота, мм" onchange="inlineEdit('${a.id}','${p.id}','h',+this.value)"><span class="ii-unit">мм</span>`
     : fmtD(p);
   const qtyCell = `<input class="ii ii-sm" type="number" value="${p.qty}" min="1" title="Количество" onchange="inlineEdit('${a.id}','${p.id}','qty',+this.value)"><span class="ii-unit">шт</span>`;
-  return `<tr draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+
+  // AI row decorations
+  let aiRowClass = '', aiBadge = '', aiActsBtns = '';
+  if (p.aiGenerated) {
+    const st = p.aiStatus;
+    const conf = p.aiConfidence != null ? Math.round(p.aiConfidence * 100) : null;
+    const confStr = conf != null ? conf + '%' : '';
+    if (st === 'confirmed' || st === 'replaced') {
+      aiRowClass = 'ai-row-ok';
+      aiBadge = `<span class="ai-badge ai-ok">✓ ${confStr}</span>`;
+    } else if (st === 'no_match') {
+      aiRowClass = 'ai-row-err';
+      aiBadge = `<span class="ai-badge ai-err">⚠ ${confStr}</span>`;
+      aiActsBtns = `<div class="ai-acts">
+        <button class="ai-btn ai-btn-ok" onclick="doConfirmAiPart('${a.id}','${p.id}')" title="Подтвердить">✓</button>
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Заменить материал">⇄</button>
+      </div>`;
+    } else {
+      aiRowClass = 'ai-row-warn';
+      aiBadge = `<span class="ai-badge ai-warn">AI ${confStr}</span>`;
+      aiActsBtns = `<div class="ai-acts">
+        <button class="ai-btn ai-btn-ok" onclick="doConfirmAiPart('${a.id}','${p.id}')" title="Подтвердить">✓</button>
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Заменить материал">⇄</button>
+      </div>`;
+    }
+  }
+
+  return `<tr class="${aiRowClass}" draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
       ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
       ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
-    <td style="overflow:hidden"><span class="drag-handle">⠿</span><span class="mn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%">${mat.name}</span><span class="mc">${mat.code}</span>${archivedBadge}</td>
+    <td style="overflow:hidden"><span class="drag-handle">⠿</span><span class="mn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%">${mat.name}${aiBadge}</span><span class="mc">${mat.code}</span>${archivedBadge}</td>
     <td style="font-size:11.5px;color:var(--txts)">${p.name || '—'}</td>
     <td class="text-xs">${tl}</td>
     <td class="mv" style="white-space:nowrap">${dimsCell}</td>
@@ -1391,9 +1488,9 @@ function renderPR(p, a) {
     <td><span class="chip-w">${wT.toFixed(2)} кг</span></td>
     <td>${pr ? `<span class="mv">₽${fm(pr.price)}</span>` : '<span style="color:var(--red);font-size:10px">⚠</span>'}</td>
     <td><div class="pt-acts">
-      <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')" title="Изменить материал">✏</button>
+      ${aiActsBtns ? '' : `<button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')" title="Изменить материал">✏</button>`}
       <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
-    </div>${pr ? `<span class="cv">₽${fm(Math.round(cost))}</span>` : ''}</td>
+    </div>${aiActsBtns}${pr ? `<span class="cv">₽${fm(Math.round(cost))}</span>` : ''}</td>
   </tr>${dbgH}`;
 }
 
@@ -1676,7 +1773,55 @@ function updSum() {
   renderRightPanel();
 }
 
-function refresh() { renderAsms(); updSum(); }
+function refresh() { renderAsms(); updSum(); updateAiBanner(); }
+
+// ─── AI NORMALIZATION REVIEW ──────────────────────────────────────────────────
+
+let _aiReplaceAid = null, _aiReplacePid = null;
+
+function updateAiBanner() {
+  const allParts = asms.flatMap(a => a.parts);
+  const aiParts  = allParts.filter(p => p.aiGenerated);
+  if (!aiParts.length) { document.getElementById('ai-banner').style.display = 'none'; return; }
+
+  const ok  = aiParts.filter(p => p.aiStatus === 'confirmed' || p.aiStatus === 'replaced').length;
+  const err = aiParts.filter(p => !p.mid || p.aiStatus === 'no_match').length;
+  const warn = aiParts.length - ok - err;
+
+  const banner = document.getElementById('ai-banner');
+  banner.style.display = 'flex';
+
+  const okEl = document.getElementById('ai-stat-ok');
+  const warnEl = document.getElementById('ai-stat-warn');
+  const errEl = document.getElementById('ai-stat-err');
+  okEl.textContent   = ok   + ' ✓'; okEl.style.display   = ok   ? '' : 'none';
+  warnEl.textContent = warn + ' AI'; warnEl.style.display = warn ? '' : 'none';
+  errEl.textContent  = err  + ' ⚠'; errEl.style.display  = err  ? '' : 'none';
+}
+
+async function doConfirmAiPart(aid, pid) {
+  const a = asms.find(a => a.id === aid); if (!a) return;
+  const p = a.parts.find(p => p.id === pid); if (!p) return;
+  try {
+    const r = await fetch('/api/parts/' + pid + '/ai-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('erp_token') || '') },
+      body: JSON.stringify({ action: 'confirmed' }),
+    });
+    if (!r.ok) { const d = await r.json(); toast(d.error || 'Ошибка', 'error'); return; }
+    p.aiStatus = 'confirmed';
+    refresh();
+    toast('Подтверждено', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openReplaceAi(aid, pid) {
+  _aiReplaceAid = aid; _aiReplacePid = pid;
+  openEdit(aid, pid);
+  document.getElementById('ai-remember-wrap').style.display = 'flex';
+  document.getElementById('modal-title').textContent = 'Заменить материал (AI)';
+  document.getElementById('btn-confirm').textContent = 'Заменить';
+}
 
 // ─── RIGHT PANEL ──────────────────────────────────────────────────────────────
 
@@ -1861,7 +2006,12 @@ function openEdit(aid, pid) {
   buildCF(); calcPart();
 }
 
-function closeModal() { document.getElementById('modal-ov').classList.remove('open'); document.getElementById('mat-dd').classList.remove('open'); }
+function closeModal() {
+  document.getElementById('modal-ov').classList.remove('open');
+  document.getElementById('mat-dd').classList.remove('open');
+  document.getElementById('ai-remember-wrap').style.display = 'none';
+  _aiReplaceAid = null; _aiReplacePid = null;
+}
 
 function resetForm() {
   selM = null;
@@ -1973,8 +2123,29 @@ function confirmPart() {
   }
   const a = asms.find(a => a.id === curA); if (!a) return;
   const pd = { mid: selM.id, name: document.getElementById('p-name').value || '', mtype: f.mtype, len: f.len, qty: f.qty, w: f.w, h: f.h, pw: f.pw, partCategory: curEP ? undefined : _curPartCategory };
-  if (curEP) { const i = a.parts.findIndex(p => p.id === curEP); if (i !== -1) a.parts[i] = { ...a.parts[i], ...pd }; toast('Деталь обновлена', 'success'); }
-  else { a.parts.push({ id: 'pt' + nP++, ...pd, partCategory: _curPartCategory }); toast(_curPartCategory === 'FASTENER' ? 'Метиз добавлен' : 'Деталь добавлена', 'success'); }
+  if (curEP) {
+    const i = a.parts.findIndex(p => p.id === curEP);
+    if (i !== -1) {
+      const existingPart = a.parts[i];
+      a.parts[i] = { ...existingPart, ...pd };
+
+      // AI replace flow: call api and update aiStatus
+      if (_aiReplaceAid && _aiReplacePid === curEP && existingPart.aiGenerated) {
+        const remember = document.getElementById('ai-remember') && document.getElementById('ai-remember').checked;
+        a.parts[i].aiStatus = 'replaced';
+        const partId = curEP;
+        fetch('/api/parts/' + partId + '/ai-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('erp_token') || '') },
+          body: JSON.stringify({ action: 'replaced', materialDefinitionId: selM.id, materialName: selM.name, rememberAlias: !!remember }),
+        }).then(r => r.ok ? null : r.json().then(d => toast(d.error || 'AI sync ошибка', 'error'))).catch(() => {});
+      }
+    }
+    toast('Деталь обновлена', 'success');
+  } else {
+    a.parts.push({ id: 'pt' + nP++, ...pd, partCategory: _curPartCategory });
+    toast(_curPartCategory === 'FASTENER' ? 'Метиз добавлен' : 'Деталь добавлена', 'success');
+  }
   closeModal(); refresh(); saveDraft();
 }
 
@@ -2217,7 +2388,7 @@ function _apiAsmsToSim(apiAsms) {
         archived: !md.isActive || !!md.deletedAt,
       };
     }
-    return { id: p.id, mid: p.materialDefinitionId, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL' };
+    return { id: p.id, mid: p.materialDefinitionId || null, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL', aiGenerated: p.aiGenerated || false, aiRawText: p.aiRawText || null, aiNormResultId: p.aiNormResultId || null, aiConfidence: p.aiConfidence ?? null, aiMatchMethod: p.aiMatchMethod || null, aiStatus: p.aiStatus || null };
   }) }));
 }
 
