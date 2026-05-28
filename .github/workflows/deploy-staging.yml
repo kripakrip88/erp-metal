@@ -22,5 +22,10 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /var/www/erp-metal-staging
+            git pull origin develop
+            npm install --production
+            set -a; [ -f .env ] && source .env; set +a
+            npx prisma migrate deploy
+            npx prisma generate
             bash deploy.sh
             node scripts/emergency-reset-staging.js
