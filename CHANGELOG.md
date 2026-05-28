@@ -6,6 +6,16 @@
 
 ---
 
+## 2026-05-28
+
+### erp-metal
+- [feat] server.js — добавлен proxy для `/api/normalization/*` → AI Polygon port 4000
+  - Порт 4000 закрыт файрволом — браузер обращается через erp-metal
+  - `NATIVE_NORMALIZATION_PATHS` Set для будущих нативных путей (пока пустой)
+  - Аналогично существующему блоку `/api/email-copilot/*`
+
+---
+
 ## 2026-05-27
 
 ### erp-metal
