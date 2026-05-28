@@ -16,4 +16,6 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /var/www/erp-metal
+            git pull origin main
+            npx prisma migrate deploy
             bash deploy.sh
