@@ -375,8 +375,8 @@ function splitBody(text) {
   var splitAt = lines.length;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i].trim();
-    if (/^From:/i.test(l) || /^От:/i.test(l) || /^_{5,}/.test(l) ||
-        /^-{5,}/.test(l) || /^>{3,}/.test(l) ||
+    if (/^From:/i.test(l) || /^От:/i.test(l) || /^От кого:/i.test(l) || /^_{5,}/.test(l) ||
+        /^-{5,}/.test(l) || /^>/.test(l) ||
         /^On .+ wrote:/i.test(l) || /^\d{2}\.\d{2}\.\d{4}.*написал/i.test(l)) {
       splitAt = i;
       break;
@@ -391,7 +391,7 @@ function splitBody(text) {
 /* ── PARSE HISTORY INTO MESSAGE BLOCKS ─────────────────── */
 function parseHistoryBlocks(quoted) {
   if (!quoted) return [];
-  var HEADER = /^(From:|От:|On .+ wrote:|.{0,40}\d{2}\.\d{2}\.\d{4}.{0,40}написал)/i;
+  var HEADER = /^(From:|От:|От кого:|Дата:|On .+ wrote:|.{0,40}\d{2}\.\d{2}\.\d{4}.{0,40}написал|.{0,10}(Пн|Вт|Ср|Чт|Пт|Сб|Вс|Mon|Tue|Wed|Thu|Fri|Sat|Sun).{0,60}@)/i;
   var SEP    = /^[_\-]{5,}$/;
   var lines  = quoted.split('\n');
   var blocks = [], cur = null;
@@ -433,7 +433,6 @@ function renderDetail(msg) {
       var size = a.size > 1048576 ? (a.size/1048576).toFixed(1)+' МБ'
                : a.size > 1024   ? Math.round(a.size/1024)+' КБ'
                : a.size+' Б';
-      /* download link — will work once backend endpoint is ready */
       var dlHref = AI_API + '/api/email-copilot/attachment/' + msg.id + '/' + encodeURIComponent(a.filename);
       return '<div class="attach-item">' +
         '<span class="attach-icon">'+icon+'</span>' +
@@ -443,6 +442,8 @@ function renderDetail(msg) {
       '</div>';
     }).join('');
     attachHtml = '<div class="section-block"><div class="section-title">Вложения ('+msg.attachments.length+')</div><div class="attach-list">'+items+'</div></div>';
+  } else {
+    attachHtml = '<div class="section-block"><div class="section-title">Вложения</div><div class="attach-empty" style="color:var(--txts);font-size:12px;padding:4px 0;">нет вложений</div></div>';
   }
 
   /* -- extracted items table -- */
@@ -490,7 +491,10 @@ function renderDetail(msg) {
   /* -- history block -- */
   var historyHtml = '';
   if (body.quoted) {
-    var hblocks = parseHistoryBlocks(body.quoted);
+    var cleanedQuoted = body.quoted.split('\n').map(function(l) {
+      return l.replace(/^(>\s*)+/, '');
+    }).join('\n');
+    var hblocks = parseHistoryBlocks(cleanedQuoted);
     var blocksHtml = hblocks.map(function(b, idx) {
       var bodyText = b.bodyLines.join('\n').trim();
       var needExpand = bodyText.split('\n').filter(function(l){ return l.trim(); }).length > 5;
