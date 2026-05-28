@@ -420,7 +420,7 @@ function renderDetail(msg) {
   var confidence = msg.aiConfidence != null ? Math.round(msg.aiConfidence * 100) : 0;
   // Prefer HTML body if available (richer formatting)
   var rawBody = msg.bodyHtml || msg.bodyText || '';
-  var body = splitBody(rawBody);
+  var body = msg.bodyHtml ? { main: msg.bodyHtml, quoted: '' } : splitBody(rawBody);
 
   /* -- attachments -- */
   var attachHtml = '';
