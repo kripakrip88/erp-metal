@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Клиенты</title>
+<script src="../nav.js"></script>
+<link rel="stylesheet" href="crm.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Клиенты</div>
+      <div class="topbar-right">
+        <div class="crm-search-wrap">
+          <span class="crm-search-ico">⌕</span>
+          <input type="text" id="search-inp" class="crm-search-inp" placeholder="Поиск..." oninput="onSearch(this.value)">
+        </div>
+        <span class="crm-total-badge" id="crm-count"></span>
+        <button class="btn btn-primary" onclick="openCreate()">+ Новый клиент</button>
+      </div>
+    </div>
+
+    <div class="crm-board" id="crm-board">
+      <div class="crm-col" data-priority="VIP">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#f59e0b"></span>
+          <span class="crm-col-title">VIP</span>
+          <span class="crm-col-count" id="cnt-VIP">0</span>
+        </div>
+        <div class="crm-col-body" id="col-VIP"></div>
+      </div>
+      <div class="crm-col" data-priority="HIGH">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#3b82f6"></span>
+          <span class="crm-col-title">High</span>
+          <span class="crm-col-count" id="cnt-HIGH">0</span>
+        </div>
+        <div class="crm-col-body" id="col-HIGH"></div>
+      </div>
+      <div class="crm-col" data-priority="NORMAL">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#8b9ab0"></span>
+          <span class="crm-col-title">Normal</span>
+          <span class="crm-col-count" id="cnt-NORMAL">0</span>
+        </div>
+        <div class="crm-col-body" id="col-NORMAL"></div>
+      </div>
+      <div class="crm-col" data-priority="LOW">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#4a5568"></span>
+          <span class="crm-col-title">Low</span>
+          <span class="crm-col-count" id="cnt-LOW">0</span>
+        </div>
+        <div class="crm-col-body" id="col-LOW"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New customer modal -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Новый клиент</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Название компании *</label><input type="text" id="f-name" placeholder="ООО Металлконструкция"></div>
+      <div class="grid2">
+        <div class="field"><label>ИНН</label><input type="text" id="f-inn" placeholder="7700000000"></div>
+        <div class="field">
+          <label>Приоритет</label>
+          <select id="f-priority">
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="VIP">VIP</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="info@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="f-phone" placeholder="+7 (999) 000-00-00"></div>
+      </div>
+      <div class="field"><label>Сайт</label><input type="url" id="f-website" placeholder="https://company.ru"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveCustomer()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+ERP.init('crm');
+
+var allCustomers = [];
+var searchTimer = null;
+
+var PRIORITY_ORDER = ['VIP', 'HIGH', 'NORMAL', 'LOW'];
+
+var STATUS_RU = {
+  DRAFT:'Новый запрос', QUOTATION:'На рассмотрении', AWAITING_APPROVAL:'Расчёт цены',
+  APPROVED:'КП отправлено', PRODUCTION:'В производстве', COMPLETED:'Готово',
+  DELIVERED:'Сдан', CANCELLED:'Отменён'
+};
+
+var STATUS_COLOR = {
+  DRAFT:'#8b9ab0', QUOTATION:'#3b82f6', AWAITING_APPROVAL:'#f59e0b',
+  APPROVED:'#06b6d4', PRODUCTION:'#10b981', COMPLETED:'#10b981',
+  DELIVERED:'#8b5cf6', CANCELLED:'#ef4444'
+};
+
+async function loadCustomers(search) {
+  try {
+    var url = '/api/customers' + (search ? '?search=' + encodeURIComponent(search) : '');
+    var r = await ERP.authFetch(url);
+    var data = await r.json();
+    allCustomers = Array.isArray(data) ? data : [];
+    renderBoard(allCustomers);
+  } catch(e) {
+    ERP.toast('Ошибка загрузки', 'error');
+  }
+}
+
+function renderBoard(list) {
+  var total = list.length;
+  document.getElementById('crm-count').textContent = total + ' клиент' + (total===1?'':total<5?'а':'ов');
+
+  PRIORITY_ORDER.forEach(function(p) {
+    var items = list.filter(function(c){ return c.priority === p; });
+    document.getElementById('cnt-' + p).textContent = items.length;
+    var col = document.getElementById('col-' + p);
+    if (!items.length) {
+      col.innerHTML = '<div class="crm-col-empty">Нет клиентов</div>';
+      return;
+    }
+    col.innerHTML = items.map(renderCard).join('');
+  });
+}
+
+function renderCard(c) {
+  var orderCount = c._count && c._count.orders != null ? c._count.orders : 0;
+  var intCount   = c._count && c._count.interactions != null ? c._count.interactions : 0;
+  var topContact = c.contacts && c.contacts[0];
+
+  var meta = [];
+  if (c.inn)   meta.push('<span class="crm-card-meta-item">ИНН ' + ERP.esc(c.inn) + '</span>');
+  if (c.email) meta.push('<span class="crm-card-meta-item">' + ERP.esc(c.email) + '</span>');
+  if (c.phone) meta.push('<span class="crm-card-meta-item">' + ERP.esc(c.phone) + '</span>');
+
+  return '<div class="crm-card" onclick="window.location.href=\'customer.html?id=' + c.id + '\'">' +
+    '<div class="crm-card-name">' + ERP.esc(c.name) + '</div>' +
+    (meta.length ? '<div class="crm-card-meta">' + meta.join('') + '</div>' : '') +
+    (topContact ? '<div class="crm-card-contact">◉ ' + ERP.esc(topContact.name) + (topContact.position ? ' · ' + ERP.esc(topContact.position) : '') + '</div>' : '') +
+    '<div class="crm-card-footer">' +
+      '<span class="crm-card-stat" title="Заказов">⬡ ' + orderCount + '</span>' +
+      (intCount ? '<span class="crm-card-stat" title="Взаимодействий">◈ ' + intCount + '</span>' : '') +
+      '<span class="crm-card-arrow">→</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function(){ loadCustomers(val); }, 300);
+}
+
+function openCreate(priority) {
+  ['f-name','f-inn','f-email','f-phone','f-website'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('f-priority').value = priority || 'NORMAL';
+  document.getElementById('modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
+}
+
+function closeModal() { document.getElementById('modal-bg').style.display = 'none'; }
+
+async function saveCustomer() {
+  var name = document.getElementById('f-name').value.trim();
+  if (!name) { ERP.toast('Введите название компании', 'error'); return; }
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        name:     name,
+        inn:      document.getElementById('f-inn').value.trim() || null,
+        email:    document.getElementById('f-email').value.trim() || null,
+        phone:    document.getElementById('f-phone').value.trim() || null,
+        website:  document.getElementById('f-website').value.trim() || null,
+        priority: document.getElementById('f-priority').value,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeModal();
+    ERP.toast('Клиент создан', 'success');
+    loadCustomers();
+  } catch(e) {
+    ERP.toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+loadCustomers();
+</script>
+</body>
+</html>

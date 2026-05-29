@@ -1,5 +1,5 @@
-const prisma     = require('../repositories/prisma')
-const { getCompany } = require('../utils/company')
+const prisma     = require('../../repositories/prisma')
+const { getCompany } = require('../../utils/company')
 
 async function listCustomers({ search, email } = {}) {
   const company = await getCompany()
@@ -34,7 +34,6 @@ async function getCustomer(id) {
   })
   if (!customer) return null
 
-  // Include orders linked by FK *or* matching by name (for phone-created orders without customerId)
   const orders = await prisma.order.findMany({
     where: {
       deletedAt: null,

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — МеталлПро ERP</title>
+<script src="../nav.js"></script>
+<link rel="stylesheet" href="crm.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">CRM</span>
+      <div class="tb-filter">
+        <input type="text" id="search-inp" placeholder="Поиск по названию или клиенту…" oninput="filterCards(this.value)">
+        <span class="tb-total" id="total-badge">—</span>
+      </div>
+    </div>
+    <div class="pipeline-wrap" id="pipeline"></div>
+  </div>
+</div>
+
+<script>
+ERP.init('pipeline');
+
+var COLS = [
+  { status: 'DRAFT',             label: 'Новый запрос',    hint: 'RFQ получен, не рассмотрен' },
+  { status: 'QUOTATION',         label: 'На рассмотрении', hint: 'Анализируем, уточняем ТЗ' },
+  { status: 'AWAITING_APPROVAL', label: 'Расчёт цены',     hint: 'Считаем стоимость' },
+  { status: 'APPROVED',          label: 'КП отправлено',   hint: 'Ждём ответа клиента' },
+  { status: 'PRODUCTION',        label: 'Выиграно ✓',      hint: 'Клиент принял, в работе' },
+  { status: 'CANCELLED',         label: 'Потеряно',        hint: 'Отклонено или отменено' },
+];
+
+var allOrders = [];
+var filterQ   = '';
+var draggingId = null;
+var draggingFromStatus = null;
+
+async function load() {
+  try {
+    var r = await ERP.authFetch('/api/orders');
+    var data = await r.json();
+    allOrders = (Array.isArray(data) ? data : []).filter(function(o){
+      return o.status !== 'COMPLETED' && o.status !== 'DELIVERED';
+    });
+    render();
+  } catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
+}
+
+function render() {
+  var q = filterQ.toLowerCase();
+  var pipeline = document.getElementById('pipeline');
+  var total = 0;
+
+  pipeline.innerHTML = COLS.map(function(col) {
+    var cards = allOrders.filter(function(o){
+      if (o.status !== col.status) return false;
+      if (!q) return true;
+      return (o.title||'').toLowerCase().includes(q) ||
+             (o.customerName||'').toLowerCase().includes(q) ||
+             (o.orderNumber||'').toLowerCase().includes(q);
+    });
+    total += cards.length;
+    return renderCol(col, cards);
+  }).join('');
+
+  document.getElementById('total-badge').textContent = total + ' сделок';
+  bindDrag();
+}
+
+function renderCol(col, cards) {
+  var cardsHtml = cards.length
+    ? cards.map(renderCard).join('')
+    : '<div class="pl-empty-col">Нет сделок</div>';
+
+  return '<div class="pl-col" data-col="' + col.status + '" ' +
+    'title="' + ERP.esc(col.hint) + '" ' +
+    'ondragover="onDragOver(event,this)" ' +
+    'ondragleave="onDragLeave(event,this)" ' +
+    'ondrop="onDrop(event,\'' + col.status + '\')">' +
+    '<div class="pl-col-head">' +
+      '<div class="pl-col-dot"></div>' +
+      '<div class="pl-col-title">' + ERP.esc(col.label) + '</div>' +
+      '<div class="pl-col-count">' + cards.length + '</div>' +
+    '</div>' +
+    '<div class="pl-col-body">' + cardsHtml + '</div>' +
+  '</div>';
+}
+
+function renderCard(o) {
+  var age = daysDiff(o.createdAt);
+  var ageStr = age === 0 ? 'сегодня' : age === 1 ? 'вчера' : age + ' д.';
+  var asmCount = o._count && o._count.assemblies || 0;
+
+  return '<div class="pl-card" draggable="true" data-id="' + o.id + '" data-status="' + o.status + '">' +
+    '<div class="pl-card-num">' + ERP.esc(o.orderNumber || '—') + '</div>' +
+    '<div class="pl-card-title">' + ERP.esc(o.title || '(без названия)') + '</div>' +
+    (o.customerName ? '<div class="pl-card-customer">' + ERP.esc(o.customerName) + '</div>' : '') +
+    '<div class="pl-card-footer">' +
+      '<span class="pl-card-age">' + ageStr + '</span>' +
+      (asmCount ? '<span class="pl-card-asm">⬡ ' + asmCount + '</span>' : '') +
+    '</div>' +
+    '<button class="pl-card-open" onclick="openOrder(event,\'' + o.id + '\')">→</button>' +
+  '</div>';
+}
+
+function bindDrag() {
+  document.querySelectorAll('.pl-card').forEach(function(card) {
+    card.addEventListener('dragstart', function(e) {
+      onDragStart(e, card.dataset.id, card.dataset.status);
+    });
+  });
+}
+
+function onDragStart(e, id, status) {
+  draggingId = id;
+  draggingFromStatus = status;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(function() {
+    var el = document.querySelector('.pl-card[data-id="' + id + '"]');
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+
+function onDragOver(e, colEl) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  colEl.querySelector('.pl-col-body').classList.add('drag-over');
+}
+
+function onDragLeave(e, colEl) {
+  if (!colEl.contains(e.relatedTarget)) {
+    colEl.querySelector('.pl-col-body').classList.remove('drag-over');
+  }
+}
+
+async function onDrop(e, targetStatus) {
+  e.preventDefault();
+  document.querySelectorAll('.pl-col-body').forEach(function(b){ b.classList.remove('drag-over'); });
+  document.querySelectorAll('.pl-card.dragging').forEach(function(c){ c.classList.remove('dragging'); });
+
+  if (!draggingId || targetStatus === draggingFromStatus) return;
+
+  try {
+    var resp = await ERP.authFetch('/api/orders/' + draggingId + '/status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetStatus }),
+    });
+    if (!resp.ok) { var err = await resp.json(); throw new Error(err.error || 'Ошибка'); }
+    var colLabel = COLS.find(function(c){ return c.status === targetStatus; });
+    ERP.toast('Сделка переведена: ' + (colLabel ? colLabel.label : targetStatus), 'success');
+    var order = allOrders.find(function(o){ return o.id === draggingId; });
+    if (order) order.status = targetStatus;
+    render();
+  } catch(e) {
+    ERP.toast(e.message || 'Ошибка перемещения', 'error');
+    render();
+  }
+
+  draggingId = null;
+  draggingFromStatus = null;
+}
+
+function openOrder(e, id) {
+  e.stopPropagation();
+  window.location.href = '../simulator.html?orderId=' + id;
+}
+
+function filterCards(q) {
+  filterQ = q;
+  render();
+}
+
+function daysDiff(dateStr) {
+  if (!dateStr) return 0;
+  var diff = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diff / 86400000);
+}
+
+load();
+</script>
+</body>
+</html>
