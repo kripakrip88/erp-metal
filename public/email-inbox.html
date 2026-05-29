@@ -692,24 +692,27 @@ async function createRfqFromEmail(id) {
   if (!title) return;
 
   try {
-    // Extract assemblies from email body text via AI Polygon
+    // Extract assemblies from email body via AI Polygon.
+    // bodyText may be absent when email is HTML-only — fall back to bodyHtml stripped of tags.
     var assembliesFromEmail = [];
-    var bodyText = msg.bodyText || '';
-    if (bodyText.trim()) {
+    var rawForAi = msg.bodyText || (msg.bodyHtml || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (rawForAi.trim()) {
       try {
         var aiResp = await ERP.authFetch('/api/ai-bom/extract-assemblies-from-text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: bodyText }),
+          body: JSON.stringify({ text: rawForAi }),
         });
         if (aiResp.ok) {
           var aiData = await aiResp.json();
           assembliesFromEmail = aiData.assemblies || [];
         } else {
           console.warn('[ERP] extract-assemblies-from-text returned', aiResp.status);
+          ERP.toast('AI не смог распознать позиции (' + aiResp.status + ')', 'warn');
         }
       } catch(ae) {
         console.warn('[ERP] extract-assemblies-from-text unavailable:', ae.message);
+        ERP.toast('AI-сервис недоступен, заказ будет создан без узлов', 'warn');
       }
     }
 
@@ -731,7 +734,9 @@ async function createRfqFromEmail(id) {
     if (!r.ok) throw new Error(data.error || 'Ошибка');
 
     var label = data.created ? 'Заказ создан' : 'Заказ уже существует';
-    var posMsg = assembliesFromEmail.length ? ' · ' + assembliesFromEmail.length + ' узлов' : '';
+    var posMsg = assembliesFromEmail.length
+      ? ' · ' + assembliesFromEmail.length + ' узлов'
+      : ' · узлы не распознаны';
     ERP.toast(label + ' — ' + data.orderNumber + posMsg, 'success');
     if (data.orderId && confirm(label + ': ' + data.orderNumber + '\n\nОткрыть в калькуляторе КП?'))
       window.location.href = 'simulator.html?orderId=' + data.orderId;
