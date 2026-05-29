@@ -1345,8 +1345,8 @@ function doAsmSearch(inp, asmId, category) {
   const dd = document.getElementById(ddId);
   if (!dd) return;
   let ms = MATS;
-  if (category === 'FASTENER') ms = ms.filter(m => m.domain === 'FASTENER' || (m.domain === 'STRUCTURAL' && m.mtype === 'PIECE'));
-  else ms = ms.filter(m => m.domain !== 'FASTENER' && (m.kgm != null || m.kgm2 != null));
+  if (category === 'FASTENER') ms = ms.filter(m => m.domain === 'FASTENER' || m.mtype === 'PIECE');
+  else ms = ms.filter(m => m.domain !== 'FASTENER' && m.mtype !== 'PIECE');
   if (q) ms = ms.filter(m => m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q));
   if (!ms.length) {
     dd.innerHTML = `<div class="sd-empty">Ничего не найдено</div>`;
@@ -2040,9 +2040,9 @@ function resetForm() {
 
 function buildCF() {
   let mtFilter;
-  if (curMT === 'area') mtFilter = m => m.kgm2 != null;
-  else if (curMT === 'piece') mtFilter = m => m.mtype === 'PIECE';
-  else mtFilter = m => m.kgm != null;
+  if (curMT === 'area')  mtFilter = m => m.kgm2 != null || m.mtype === 'AREA';
+  else if (curMT === 'piece') mtFilter = m => m.mtype === 'PIECE' || m.domain === 'FASTENER';
+  else mtFilter = m => m.domain !== 'FASTENER' && m.mtype !== 'PIECE' && m.kgm2 == null;
   const activeCats = new Set(MATS.filter(mtFilter).map(m => m.cat));
   activeCats.add('all');
   document.getElementById('cat-filter').innerHTML = CATS.filter(c => activeCats.has(c.id)).map(c => `<div class="cat-btn ${c.id === curC ? 'active' : ''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');
@@ -2060,9 +2060,9 @@ function setMType(t) {
 function searchMat(q) {
   const dd = document.getElementById('mat-dd');
   let ms = MATS;
-  if (curMT === 'area') ms = ms.filter(m => m.kgm2 != null);
-  if (curMT === 'linear') ms = ms.filter(m => m.kgm != null);
-  if (curMT === 'piece') ms = ms.filter(m => m.mtype === 'PIECE');
+  if (curMT === 'area')   ms = ms.filter(m => m.kgm2 != null || m.mtype === 'AREA');
+  if (curMT === 'linear') ms = ms.filter(m => m.domain !== 'FASTENER' && m.mtype !== 'PIECE' && m.kgm2 == null);
+  if (curMT === 'piece')  ms = ms.filter(m => m.mtype === 'PIECE' || m.domain === 'FASTENER');
   if (curC && curC !== 'all') ms = ms.filter(m => m.cat === curC);
   if (q.trim()) { const ql = q.toLowerCase(); ms = ms.filter(m => m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)); }
   if (!ms.length) { dd.innerHTML = `<div style="padding:10px;color:var(--txtm);font-size:11px">Ничего не найдено</div>`; dd.classList.add('open'); return; }
