@@ -14,81 +14,36 @@
     <div class="topbar">
       <div class="topbar-title">Клиенты</div>
       <div class="topbar-right">
-        <div class="crm-search-wrap">
-          <span class="crm-search-ico">⌕</span>
-          <input type="text" id="search-inp" class="crm-search-inp" placeholder="Поиск..." oninput="onSearch(this.value)">
-        </div>
-        <span class="crm-total-badge" id="crm-count"></span>
         <button class="btn btn-primary" onclick="openCreate()">+ Новый клиент</button>
       </div>
     </div>
-
-    <div class="crm-board" id="crm-board">
-      <div class="crm-col" data-priority="VIP">
-        <div class="crm-col-head">
-          <span class="crm-col-dot" style="background:#f59e0b"></span>
-          <span class="crm-col-title">VIP</span>
-          <span class="crm-col-count" id="cnt-VIP">0</span>
+    <div class="content">
+      <div class="controls">
+        <div class="ctrl-search">
+          <span class="ico">🔍</span>
+          <input type="text" id="search-inp" placeholder="Поиск по названию..." oninput="onSearch(this.value)">
         </div>
-        <div class="crm-col-body" id="col-VIP"></div>
+        <span class="count-lbl" id="crm-count"></span>
       </div>
-      <div class="crm-col" data-priority="HIGH">
-        <div class="crm-col-head">
-          <span class="crm-col-dot" style="background:#3b82f6"></span>
-          <span class="crm-col-title">High</span>
-          <span class="crm-col-count" id="cnt-HIGH">0</span>
-        </div>
-        <div class="crm-col-body" id="col-HIGH"></div>
-      </div>
-      <div class="crm-col" data-priority="NORMAL">
-        <div class="crm-col-head">
-          <span class="crm-col-dot" style="background:#8b9ab0"></span>
-          <span class="crm-col-title">Normal</span>
-          <span class="crm-col-count" id="cnt-NORMAL">0</span>
-        </div>
-        <div class="crm-col-body" id="col-NORMAL"></div>
-      </div>
-      <div class="crm-col" data-priority="LOW">
-        <div class="crm-col-head">
-          <span class="crm-col-dot" style="background:#4a5568"></span>
-          <span class="crm-col-title">Low</span>
-          <span class="crm-col-count" id="cnt-LOW">0</span>
-        </div>
-        <div class="crm-col-body" id="col-LOW"></div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Компания</th>
+              <th>ИНН</th>
+              <th>Email</th>
+              <th>Телефон</th>
+              <th>Заказов</th>
+              <th>Приоритет</th>
+            </tr>
+          </thead>
+          <tbody id="crm-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Customer drawer -->
-<div id="cdr-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
-<div id="cdr-panel" class="cdr-panel">
-  <div class="cdr-head">
-    <div style="min-width:0;flex:1">
-      <div class="cdr-company" id="cdr-name">—</div>
-      <div class="cdr-meta-row" id="cdr-meta"></div>
-    </div>
-    <button class="modal-close" onclick="closeDrawer()">✕</button>
-  </div>
-  <div class="cdr-tabs">
-    <div class="cdr-tab on" onclick="switchCdrTab('orders',this)">Заказы</div>
-    <div class="cdr-tab" onclick="switchCdrTab('history',this)">История</div>
-  </div>
-  <div class="cdr-body">
-    <div id="cdr-tab-orders" class="cdr-tab-pane on">
-      <div id="cdr-orders-list"></div>
-    </div>
-    <div id="cdr-tab-history" class="cdr-tab-pane">
-      <div class="tl-wrap" id="cdr-timeline"></div>
-    </div>
-  </div>
-  <div class="cdr-footer">
-    <button class="btn btn-secondary btn-sm" onclick="closeDrawer()">Закрыть</button>
-    <button class="btn btn-primary btn-sm" id="cdr-open-btn">Открыть карточку →</button>
-  </div>
-</div>
-
-<!-- New customer modal -->
 <div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
@@ -125,198 +80,43 @@
 <script>
 ERP.init('crm');
 
-var allCustomers   = [];
-var searchTimer    = null;
-var PRIORITY_ORDER = ['VIP','HIGH','NORMAL','LOW'];
+var searchTimer = null;
 
-var STATUS_RU = {
-  DRAFT:'Новый запрос',QUOTATION:'На рассмотрении',AWAITING_APPROVAL:'Расчёт цены',
-  APPROVED:'КП отправлено',PRODUCTION:'В производстве',COMPLETED:'Готово',
-  DELIVERED:'Сдан',CANCELLED:'Отменён'
-};
-var STATUS_CLS = {
-  DRAFT:'b-draft',QUOTATION:'b-quotation',AWAITING_APPROVAL:'b-awaiting',
-  APPROVED:'b-approved',PRODUCTION:'b-production',COMPLETED:'b-completed',
-  DELIVERED:'b-delivered',CANCELLED:'b-cancelled'
-};
-var TL_ICO   = { EMAIL:'✉', CALL:'☎', MEETING:'◈', NOTE:'◉' };
-var TL_COLOR = { EMAIL:'#3b82f6', CALL:'#10b981', MEETING:'#8b5cf6', NOTE:'#8b9ab0' };
+function priorityBadge(p) {
+  var map = { VIP:'b-vip', HIGH:'b-high', NORMAL:'b-normal', LOW:'b-low' };
+  return '<span class="badge '+(map[p]||'b-normal')+'">'+p+'</span>';
+}
 
-function statusBadge(s) {
-  return '<span class="badge '+(STATUS_CLS[s]||'b-draft')+'">'+(STATUS_RU[s]||s)+'</span>';
-}
-function fmtDate(d) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-}
-function fmtNum(n, dec) {
-  if (n == null) return '—';
-  return Number(n).toLocaleString('ru-RU',{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0});
-}
-function fmtMoney(n) { return n == null ? '—' : fmtNum(n,0)+' ₽'; }
-
-/* ── Board ────────────────────────────────────────────────────────────────── */
 async function loadCustomers(search) {
+  search = search || '';
   try {
-    var url = '/api/customers' + (search ? '?search='+encodeURIComponent(search) : '');
+    var url = '/api/customers' + (search ? '?search=' + encodeURIComponent(search) : '');
     var r = await ERP.authFetch(url);
     var data = await r.json();
-    allCustomers = Array.isArray(data) ? data : [];
-    renderBoard(allCustomers);
-  } catch(e) { ERP.toast('Ошибка загрузки','error'); }
+    renderTable(Array.isArray(data) ? data : []);
+  } catch(e) {
+    ERP.toast('Ошибка загрузки', 'error');
+  }
 }
 
-function renderBoard(list) {
-  var total = list.length;
-  document.getElementById('crm-count').textContent = total+' клиент'+(total===1?'':total<5?'а':'ов');
-  PRIORITY_ORDER.forEach(function(p) {
-    var items = list.filter(function(c){ return c.priority===p; });
-    document.getElementById('cnt-'+p).textContent = items.length;
-    var col = document.getElementById('col-'+p);
-    col.innerHTML = items.length ? items.map(renderCard).join('') : '<div class="crm-col-empty">Нет клиентов</div>';
-  });
-}
-
-function renderCard(c) {
-  var orderCount = c._count && c._count.orders != null ? c._count.orders : 0;
-  var intCount   = c._count && c._count.interactions != null ? c._count.interactions : 0;
-  var topContact = c.contacts && c.contacts[0];
-  var metaItems  = [];
-  if (c.inn)   metaItems.push(ERP.esc(c.inn));
-  if (c.email) metaItems.push(ERP.esc(c.email));
-  if (c.phone) metaItems.push(ERP.esc(c.phone));
-
-  return '<div class="crm-card" onclick="openDrawer(\''+c.id+'\')">' +
-    '<div class="crm-card-name">'+ERP.esc(c.name)+'</div>' +
-    (metaItems.length ? '<div class="crm-card-meta">'+metaItems.map(function(m){return '<span class="crm-card-meta-item">'+m+'</span>';}).join('')+'</div>' : '') +
-    (topContact ? '<div class="crm-card-contact">◉ '+ERP.esc(topContact.name)+(topContact.position?' · '+ERP.esc(topContact.position):'')+'</div>' : '') +
-    '<div class="crm-card-footer">'+
-      '<span class="crm-card-stat">⬡ '+orderCount+'</span>'+
-      (intCount ? '<span class="crm-card-stat">◈ '+intCount+'</span>' : '')+
-      '<span class="crm-card-arrow">→</span>'+
-    '</div>'+
-  '</div>';
-}
-
-/* ── Drawer ───────────────────────────────────────────────────────────────── */
-function openDrawer(customerId) {
-  document.getElementById('cdr-overlay').classList.add('open');
-  document.getElementById('cdr-panel').classList.add('open');
-  document.getElementById('cdr-name').textContent = '…';
-  document.getElementById('cdr-meta').innerHTML = '';
-  document.getElementById('cdr-orders-list').innerHTML = '<div class="cdr-loading">Загрузка…</div>';
-  document.getElementById('cdr-timeline').innerHTML = '';
-  document.getElementById('cdr-open-btn').onclick = function(){ window.location.href = 'customer.html?id='+customerId; };
-  switchCdrTab('orders', document.querySelector('.cdr-tab'));
-
-  ERP.authFetch('/api/customers/'+customerId).then(function(r){ return r.json(); }).then(function(c){
-    document.getElementById('cdr-name').textContent = c.name;
-    var meta = [];
-    if (c.inn)   meta.push('ИНН '+ERP.esc(c.inn));
-    if (c.email) meta.push(ERP.esc(c.email));
-    if (c.phone) meta.push(ERP.esc(c.phone));
-    document.getElementById('cdr-meta').innerHTML = meta.join(' · ');
-    renderDrawerOrders(c.orders || []);
-    renderDrawerTimeline(c.interactions || []);
-  }).catch(function(){ document.getElementById('cdr-orders-list').innerHTML = '<div class="cdr-loading">Ошибка загрузки</div>'; });
-}
-
-function closeDrawer() {
-  document.getElementById('cdr-overlay').classList.remove('open');
-  document.getElementById('cdr-panel').classList.remove('open');
-}
-
-function renderDrawerOrders(orders) {
-  var el = document.getElementById('cdr-orders-list');
-  if (!orders.length) { el.innerHTML = '<div class="cdr-empty">Заказов нет</div>'; return; }
-
-  el.innerHTML = orders.map(function(o) {
-    var rev  = o.revisions && o.revisions[0];
-    var calc = rev && rev.calculation;
-
-    // Assembly list with weights from weightBreakdown
-    var asmHtml = '';
-    if (o.assemblies && o.assemblies.length) {
-      var wb = calc && Array.isArray(calc.weightBreakdown) ? calc.weightBreakdown : [];
-      asmHtml = '<div class="cdr-asm-list">'+
-        o.assemblies.map(function(a) {
-          var entry = wb.find(function(x){ return x.assemblyName === a.name; });
-          var w = entry ? entry.totalWeight : null;
-          return '<div class="cdr-asm-row">'+
-            '<span class="cdr-asm-name">⬡ '+ERP.esc(a.name||'Узел')+(a.qty>1?' ×'+a.qty:'')+'</span>'+
-            (w != null ? '<span class="cdr-asm-weight mono">'+fmtNum(w,1)+' кг</span>' : '')+
-          '</div>';
-        }).join('')+
-      '</div>';
-    }
-
-    var statsHtml = '';
-    if (calc) {
-      statsHtml = '<div class="cdr-order-stats">'+
-        '<div class="cdr-stat"><div class="cdr-stat-label">Вес</div><div class="cdr-stat-val mono">'+fmtNum(calc.totalWeightKg,1)+' кг</div></div>'+
-        '<div class="cdr-stat"><div class="cdr-stat-label">Материалы</div><div class="cdr-stat-val mono">'+fmtMoney(calc.totalMaterialCost)+'</div></div>'+
-        '<div class="cdr-stat"><div class="cdr-stat-label">Итого КП</div><div class="cdr-stat-val mono cdr-stat-total">'+fmtMoney(calc.totalCost)+'</div></div>'+
-      '</div>';
-    }
-
-    return '<div class="cdr-order-card">'+
-      '<div class="cdr-order-head">'+
-        '<div class="cdr-order-left">'+
-          '<span class="cdr-order-num mono">'+ERP.esc(o.orderNumber)+'</span>'+
-          '<span class="cdr-order-title">'+ERP.esc(o.title)+'</span>'+
-        '</div>'+
-        '<div class="cdr-order-right">'+
-          statusBadge(o.status)+
-          '<span class="cdr-order-date mono">'+fmtDate(o.createdAt)+'</span>'+
-          '<button class="cdr-order-open-btn" onclick="event.stopPropagation();window.location.href=\'../simulator.html?orderId='+o.id+'\'">→ Расчёт</button>'+
-        '</div>'+
-      '</div>'+
-      (rev ? '<div class="cdr-rev-badge">КП rev.'+rev.revisionNumber+(rev.frozenAt?' · '+fmtDate(rev.frozenAt):'')+'</div>' : '')+
-      statsHtml+
-      asmHtml+
-    '</div>';
+function renderTable(list) {
+  var tbody = document.getElementById('crm-tbody');
+  var cnt = list.length;
+  document.getElementById('crm-count').textContent = cnt + ' клиент' + (cnt===1?'':cnt<5?'а':'ов');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Клиентов пока нет</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(c){
+    return '<tr class="clickable" onclick="window.location.href=\'customer.html?id=' + c.id + '\'">' +
+      '<td><strong>' + ERP.esc(c.name) + '</strong></td>' +
+      '<td class="mono">' + ERP.esc(c.inn || '—') + '</td>' +
+      '<td>' + ERP.esc(c.email || '—') + '</td>' +
+      '<td>' + ERP.esc(c.phone || '—') + '</td>' +
+      '<td><span class="mono">' + (c._count && c._count.orders != null ? c._count.orders : 0) + '</span></td>' +
+      '<td>' + priorityBadge(c.priority) + '</td>' +
+    '</tr>';
   }).join('');
-}
-
-function renderDrawerTimeline(list) {
-  var el = document.getElementById('cdr-timeline');
-  if (!list.length) { el.innerHTML = '<div class="cdr-empty">История пуста</div>'; return; }
-  el.innerHTML = list.map(function(item,idx){
-    var ico   = TL_ICO[item.type]   || '◉';
-    var color = TL_COLOR[item.type] || '#8b9ab0';
-    var hasBody = item.body && item.body.trim();
-    return '<div class="tl-item">'+
-      '<div class="tl-line-wrap">'+
-        '<div class="tl-dot" style="background:'+color+'">'+ico+'</div>'+
-        (idx < list.length-1 ? '<div class="tl-line"></div>' : '')+
-      '</div>'+
-      '<div class="tl-content'+(hasBody?' tl-expandable':'')+'" '+(hasBody?'onclick="toggleTl(this)"':'')+'>'+
-        '<div class="tl-header">'+
-          '<span class="tl-type" style="color:'+color+'">'+ERP.esc(item.type)+'</span>'+
-          '<span class="tl-dir">'+(item.direction==='INBOUND'?'входящее':'исходящее')+'</span>'+
-          (item.contact?'<span class="tl-contact">'+ERP.esc(item.contact.name)+'</span>':'')+
-          '<span class="tl-date mono">'+fmtDate(item.createdAt)+'</span>'+
-          (hasBody?'<span class="tl-chevron">▸</span>':'')+
-        '</div>'+
-        (item.subject?'<div class="tl-subject">'+ERP.esc(item.subject)+'</div>':'')+
-        (hasBody?'<div class="tl-body">'+ERP.esc(item.body)+'</div>':'')+
-      '</div>'+
-    '</div>';
-  }).join('');
-}
-
-function toggleTl(el) {
-  var body=el.querySelector('.tl-body'); var chevron=el.querySelector('.tl-chevron');
-  if (!body) return;
-  var open=body.classList.toggle('open');
-  if (chevron) chevron.textContent=open?'▾':'▸';
-}
-
-function switchCdrTab(name, btn) {
-  document.querySelectorAll('.cdr-tab').forEach(function(t){ t.classList.remove('on'); });
-  if (btn) btn.classList.add('on');
-  document.getElementById('cdr-tab-orders').classList.toggle('on', name==='orders');
-  document.getElementById('cdr-tab-history').classList.toggle('on', name==='history');
 }
 
 function onSearch(val) {
@@ -325,36 +125,44 @@ function onSearch(val) {
 }
 
 function openCreate() {
-  ['f-name','f-inn','f-email','f-phone','f-website'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['f-name','f-inn','f-email','f-phone','f-website'].forEach(function(id){ document.getElementById(id).value = ''; });
   document.getElementById('f-priority').value = 'NORMAL';
   document.getElementById('modal-bg').style.display = 'flex';
   setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
 }
+
 function closeModal() { document.getElementById('modal-bg').style.display = 'none'; }
 
 async function saveCustomer() {
   var name = document.getElementById('f-name').value.trim();
-  if (!name) { ERP.toast('Введите название компании','error'); return; }
-  var btn = document.getElementById('save-btn'); btn.disabled = true;
+  if (!name) { ERP.toast('Введите название компании', 'error'); return; }
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true;
   try {
-    var r = await ERP.authFetch('/api/customers',{
-      method:'POST',
+    var r = await ERP.authFetch('/api/customers', {
+      method: 'POST',
       body: JSON.stringify({
-        name, inn: document.getElementById('f-inn').value.trim()||null,
-        email: document.getElementById('f-email').value.trim()||null,
-        phone: document.getElementById('f-phone').value.trim()||null,
-        website: document.getElementById('f-website').value.trim()||null,
+        name:     name,
+        inn:      document.getElementById('f-inn').value.trim() || null,
+        email:    document.getElementById('f-email').value.trim() || null,
+        phone:    document.getElementById('f-phone').value.trim() || null,
+        website:  document.getElementById('f-website').value.trim() || null,
         priority: document.getElementById('f-priority').value,
       }),
     });
     var data = await r.json();
-    if (!r.ok) throw new Error(data.error||'Ошибка');
-    closeModal(); ERP.toast('Клиент создан','success'); loadCustomers();
-  } catch(e) { ERP.toast(e.message,'error'); }
-  finally { btn.disabled=false; }
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeModal();
+    ERP.toast('Клиент создан', 'success');
+    loadCustomers();
+  } catch(e) {
+    ERP.toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeDrawer(); closeModal(); } });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 loadCustomers();
 </script>
 </body>
