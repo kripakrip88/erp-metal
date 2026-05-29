@@ -1,10 +1,10 @@
 const materialRepo  = require('../repositories/materialRepo')
 const { getCompany } = require('../utils/company')
 
-async function listMaterials({ search, profileType, categoryId, materialDomain }) {
+async function listMaterials(params) {
   const company = await getCompany()
-  if (!company) return []
-  return materialRepo.findAll({ search, profileType, categoryId, materialDomain, companyId: company.id })
+  if (!company) return { items: [], total: 0, page: 1, limit: 50, pages: 0 }
+  return materialRepo.findAll({ ...params, companyId: company.id })
 }
 
 async function getMaterial(id) {
@@ -25,4 +25,10 @@ async function archiveMaterial(id) {
   return materialRepo.archive(id)
 }
 
-module.exports = { listMaterials, getMaterial, createMaterial, updateMaterial, archiveMaterial }
+async function getFastenerFilterOptions(fastenerType) {
+  const company = await getCompany()
+  if (!company) return {}
+  return materialRepo.findFastenerFilterOptions({ companyId: company.id, fastenerType })
+}
+
+module.exports = { listMaterials, getMaterial, createMaterial, updateMaterial, archiveMaterial, getFastenerFilterOptions }

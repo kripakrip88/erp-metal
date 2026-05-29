@@ -6,14 +6,48 @@
 <title>МеталлПро ERP — Метизы</title>
 <script src="nav.js"></script>
 <style>
-.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+/* ── tabs ── */
+.tab-row{display:flex;gap:2px;margin-bottom:16px;border-bottom:2px solid var(--brd);}
+.tab-btn{background:none;border:none;padding:10px 20px 11px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txts);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;}
+.tab-btn:hover{color:var(--txt);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;border-radius:9px;background:var(--brd);color:var(--txts);font-size:11px;font-weight:700;padding:0 5px;margin-left:6px;}
+.tab-btn.active .tab-badge{background:var(--blue);color:#fff;}
+
+/* ── search + controls ── */
+.ctrl-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
 .ctrl-search{position:relative;flex:1;min-width:200px;max-width:360px;}
 .ctrl-search input{padding-left:30px;}
-.ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;}
+.ctrl-search .ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--txts);pointer-events:none;font-size:13px;}
 .count-lbl{font-size:12px;color:var(--txts);margin-left:auto;}
-.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
-.cat-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--brd);}
-.cat-row:last-child{border-bottom:none;}
+
+/* ── filter bar ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 12px;background:var(--bg2);border:1px solid var(--brd);border-radius:8px;margin-bottom:14px;}
+.filter-bar select{font-size:12px;padding:4px 8px;min-width:110px;}
+.filter-sep{color:var(--brd);margin:0 2px;}
+.btn-reset-filters{font-size:12px;padding:4px 10px;margin-left:auto;}
+
+/* ── table sort ── */
+th.sortable{cursor:pointer;user-select:none;}
+th.sortable:hover{color:var(--blue);}
+th.sort-asc::after{content:' ▲';font-size:10px;color:var(--blue);}
+th.sort-desc::after{content:' ▼';font-size:10px;color:var(--blue);}
+
+/* ── weight warning ── */
+.warn-weight{font-size:14px;cursor:help;}
+
+/* ── pagination ── */
+.pagination{display:flex;align-items:center;gap:6px;margin-top:14px;justify-content:flex-end;}
+.pagination button{padding:4px 10px;font-size:12px;}
+.pagination .pg-info{font-size:12px;color:var(--txts);}
+
+/* ── detail modal ── */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}
+.detail-row{display:flex;flex-direction:column;padding:6px 0;border-bottom:1px solid var(--brd);}
+.detail-row:last-child{border-bottom:none;}
+.detail-label{font-size:11px;color:var(--txts);margin-bottom:2px;}
+.detail-val{font-size:13px;font-weight:500;}
+.price-tag{display:inline-block;background:rgba(0,180,120,.12);color:#0ba070;border-radius:4px;padding:2px 8px;font-size:13px;font-weight:700;font-family:var(--font-mono,monospace);}
 </style>
 </head>
 <body>
@@ -22,334 +56,389 @@
   <div class="main">
     <div class="topbar">
       <div class="topbar-title">Метизы</div>
-      <div class="topbar-right">
-        <button class="btn btn-secondary" onclick="openCatsModal()">⚙ Категории</button>
-        <button class="btn btn-primary" onclick="openCreate()">+ Добавить метиз</button>
-      </div>
     </div>
     <div class="content">
-      <div class="controls">
+
+      <!-- Tabs -->
+      <div class="tab-row" id="tab-row">
+        <button class="tab-btn active" data-type="Болт" onclick="setTab('Болт')">Болты <span class="tab-badge" id="badge-Болт">…</span></button>
+        <button class="tab-btn" data-type="Гайка" onclick="setTab('Гайка')">Гайки <span class="tab-badge" id="badge-Гайка">…</span></button>
+        <button class="tab-btn" data-type="Шайба" onclick="setTab('Шайба')">Шайбы <span class="tab-badge" id="badge-Шайба">…</span></button>
+      </div>
+
+      <!-- Search -->
+      <div class="ctrl-row">
         <div class="ctrl-search">
           <span class="ico">🔍</span>
-          <input type="text" id="search-inp" placeholder="Поиск по коду или названию..." oninput="onSearch(this.value)">
+          <input type="text" id="search-inp" placeholder="Поиск по названию..." oninput="onSearch(this.value)">
         </div>
         <span class="count-lbl" id="mat-count"></span>
       </div>
-      <div class="filter-bar" id="cat-filter"></div>
-      <div class="card">
-        <table>
-          <thead>
-            <tr><th>Код</th><th>Название</th><th>Категория</th><th>ГОСТ</th><th>Класс прочности</th><th>кг/шт</th><th>Единица</th><th></th></tr>
-          </thead>
+
+      <!-- Filters -->
+      <div class="filter-bar" id="filter-bar">
+        <!-- populated by renderFilters() -->
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="overflow-x:auto">
+        <table id="mat-table">
+          <thead id="mat-thead"><tr></tr></thead>
           <tbody id="mat-tbody"></tbody>
         </table>
       </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination"></div>
     </div>
   </div>
 </div>
 
-<!-- Fastener form modal -->
-<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
-  <div class="modal" style="max-width:500px">
+<!-- Detail modal -->
+<div id="modal-detail-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeDetail()">
+  <div class="modal" style="max-width:560px">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Добавить метиз</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-title" id="detail-title">—</div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="section-sep">Идентификация</div>
-      <div class="grid2">
-        <div class="field"><label>Код *</label><input type="text" id="f-code" placeholder="BOLT-M8x30"></div>
-        <div class="field">
-          <label>Категория</label>
-          <select id="f-category"><option value="">— не указана —</option></select>
-        </div>
-      </div>
-      <div class="field"><label>Название *</label><input type="text" id="f-name" placeholder="Болт М8×30 гр.8.8"></div>
-
-      <div class="section-sep">Параметры метиза</div>
-      <div class="grid2">
-        <div class="field"><label>ГОСТ / Стандарт</label><input type="text" id="f-standard" placeholder="ГОСТ 7798-70"></div>
-        <div class="field"><label>Класс прочности</label><input type="text" id="f-strength" placeholder="8.8, 10.9, А2..."></div>
-      </div>
-      <div class="grid2">
-        <div class="field"><label>Вес, кг/шт</label><input type="number" id="f-unitkg" placeholder="0.0320" step="0.0001" min="0"></div>
-        <div class="field">
-          <label>Единица учёта</label>
-          <select id="f-pieceunit">
-            <option value="pcs">шт — штука</option>
-            <option value="set">компл. — комплект</option>
-            <option value="pack">упак. — упаковка</option>
-            <option value="pair">пара</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" id="save-btn" onclick="submitForm()">Сохранить</button>
-    </div>
-  </div>
-</div>
-
-<!-- Category manager modal -->
-<div id="modal-cats-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeCatsModal()">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <div class="modal-title">Категории метизов</div>
-      <button class="modal-close" onclick="closeCatsModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="cats-list"></div>
-      <div style="margin-top:14px;display:flex;gap:6px">
-        <input type="text" id="new-cat-name" placeholder="Название новой категории...">
-        <button class="btn btn-primary btn-sm" style="white-space:nowrap" onclick="addCategory()">+ Добавить</button>
-      </div>
-    </div>
+    <div class="modal-body" id="detail-body"></div>
   </div>
 </div>
 
 <script>
 ERP.init('fasteners');
 
-var PIECE_UNIT_LABELS = { pcs:'шт', set:'компл.', pack:'упак.', pair:'пара' };
+// ── state ──────────────────────────────────────────────────────────────────
+var state = {
+  tab: 'Болт',
+  search: '',
+  filters: {},   // { diameter_mm:'', coating:'', ... }
+  sortBy: '',
+  sortDir: 'asc',
+  page: 1,
+  limit: 50,
+};
 
-var materials = [], categories = [], curCatId = '', editingId = null, searchTimer = null;
+var filterOptions = {};  // fetched per tab
+var counts = { 'Болт': null, 'Гайка': null, 'Шайба': null };
+var searchTimer = null;
 
+// ── columns config ──────────────────────────────────────────────────────────
+var COLUMNS = {
+  'Болт': [
+    { key: 'name',          label: 'Название',       sortKey: 'name' },
+    { key: 'diameterMm',    label: 'Диаметр',        sortKey: 'diameter_mm',    fmt: fmtMm },
+    { key: 'lengthMm',      label: 'Длина',          sortKey: 'length_mm',      fmt: fmtMm },
+    { key: 'standard',      label: 'DIN' },
+    { key: 'gost',          label: 'ГОСТ' },
+    { key: 'strengthClass', label: 'Кл. прочн.',     sortKey: 'strength_class' },
+    { key: 'threadType',    label: 'Резьба' },
+    { key: 'coating',       label: 'Покрытие' },
+    { key: '_weight',       label: 'Вес, г',         sortKey: '' },
+    { key: '_price',        label: 'Цена, руб/шт',   sortKey: '' },
+  ],
+  'Гайка': [
+    { key: 'name',          label: 'Название',       sortKey: 'name' },
+    { key: 'diameterMm',    label: 'Диаметр',        sortKey: 'diameter_mm',    fmt: fmtMm },
+    { key: 'standard',      label: 'DIN' },
+    { key: 'gost',          label: 'ГОСТ' },
+    { key: 'strengthClass', label: 'Кл. прочн.',     sortKey: 'strength_class' },
+    { key: 'coating',       label: 'Покрытие' },
+    { key: '_weight',       label: 'Вес, г',         sortKey: '' },
+    { key: '_price',        label: 'Цена, руб/шт',   sortKey: '' },
+  ],
+  'Шайба': [
+    { key: 'name',          label: 'Название',       sortKey: 'name' },
+    { key: 'diameterMm',    label: 'Диаметр',        sortKey: 'diameter_mm',    fmt: fmtMm },
+    { key: 'standard',      label: 'DIN' },
+    { key: 'gost',          label: 'ГОСТ' },
+    { key: 'coating',       label: 'Покрытие' },
+    { key: '_weight',       label: 'Вес, г',         sortKey: '' },
+    { key: '_price',        label: 'Цена, руб/шт',   sortKey: '' },
+  ],
+};
+
+var FILTER_DEFS = {
+  'Болт':  ['diameter_mm','coating','strength_class','din','thread_type','length_mm'],
+  'Гайка': ['diameter_mm','coating','strength_class','din'],
+  'Шайба': ['diameter_mm','coating','din'],
+};
+
+var FILTER_LABELS = {
+  diameter_mm: 'Диаметр',
+  length_mm:   'Длина',
+  coating:     'Покрытие',
+  strength_class: 'Класс прочн.',
+  din:         'DIN',
+  thread_type: 'Тип резьбы',
+};
+
+// ── init ────────────────────────────────────────────────────────────────────
 async function init() {
+  await Promise.all([
+    loadBadgeCounts(),
+    loadFilterOptions(),
+  ]);
+  renderFilters();
+  renderTableHead();
+  await loadMaterials();
+}
+
+async function loadBadgeCounts() {
+  var types = ['Болт','Гайка','Шайба'];
+  await Promise.all(types.map(function(t){
+    var p = new URLSearchParams({ materialDomain:'FASTENER', fastener_type:t, limit:'1', page:'1' });
+    return ERP.authFetch('/api/materials?' + p)
+      .then(function(r){ return r.json(); })
+      .then(function(d){ counts[t] = d.total || 0; updateBadge(t); })
+      .catch(function(){});
+  }));
+}
+
+function updateBadge(type) {
+  var el = document.getElementById('badge-' + type);
+  if (el && counts[type] !== null) el.textContent = counts[type];
+}
+
+async function loadFilterOptions() {
   try {
-    var results = await Promise.all([
-      ERP.authFetch('/api/material-categories?domain=FASTENER').then(function(r){ return r.json(); }),
-      ERP.authFetch('/api/materials?materialDomain=FASTENER').then(function(r){ return r.json(); }),
-    ]);
-    categories = results[0];
-    materials  = results[1];
-    renderCats();
-    renderTable();
+    var r = await ERP.authFetch('/api/materials/fastener-filters?fastener_type=' + encodeURIComponent(state.tab));
+    filterOptions = await r.json();
+  } catch(e) { filterOptions = {}; }
+}
+
+// ── tab switching ───────────────────────────────────────────────────────────
+async function setTab(type) {
+  state.tab = type;
+  state.filters = {};
+  state.sortBy = '';
+  state.sortDir = 'asc';
+  state.page = 1;
+
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.type === type);
+  });
+
+  await loadFilterOptions();
+  renderFilters();
+  renderTableHead();
+  await loadMaterials();
+}
+
+// ── filters ─────────────────────────────────────────────────────────────────
+function renderFilters() {
+  var bar = document.getElementById('filter-bar');
+  var defs = FILTER_DEFS[state.tab] || [];
+  if (!defs.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  var html = '';
+  defs.forEach(function(key) {
+    var opts = filterOptions[key] || [];
+    if (!opts.length) return;
+    var label = FILTER_LABELS[key] || key;
+    html += '<select data-filter="'+key+'" onchange="onFilterChange(this)" title="'+label+'">';
+    html += '<option value="">'+label+': Все</option>';
+    opts.forEach(function(v){
+      var sel = state.filters[key] === v ? ' selected' : '';
+      html += '<option value="'+ERP.esc(v)+'"'+sel+'>'+ERP.esc(v)+'</option>';
+    });
+    html += '</select>';
+  });
+
+  html += '<button class="btn btn-secondary btn-reset-filters" onclick="resetFilters()">Сбросить</button>';
+  bar.innerHTML = html;
+}
+
+function onFilterChange(sel) {
+  state.filters[sel.dataset.filter] = sel.value;
+  state.page = 1;
+  loadMaterials();
+}
+
+function resetFilters() {
+  state.filters = {};
+  state.page = 1;
+  renderFilters();
+  loadMaterials();
+}
+
+// ── search ───────────────────────────────────────────────────────────────────
+function onSearch(q) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function(){
+    state.search = q;
+    state.page = 1;
+    loadMaterials();
+  }, 280);
+}
+
+// ── sorting ──────────────────────────────────────────────────────────────────
+function onSort(sortKey) {
+  if (state.sortBy === sortKey) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortBy = sortKey;
+    state.sortDir = 'asc';
+  }
+  state.page = 1;
+  renderTableHead();
+  loadMaterials();
+}
+
+// ── table head ────────────────────────────────────────────────────────────────
+function renderTableHead() {
+  var cols = COLUMNS[state.tab] || [];
+  var thead = document.getElementById('mat-thead');
+  var html = '<tr>';
+  cols.forEach(function(col){
+    if (col.sortKey !== undefined && col.sortKey !== '') {
+      var cls = 'sortable';
+      if (state.sortBy === col.sortKey) cls += ' sort-' + state.sortDir;
+      html += '<th class="'+cls+'" onclick="onSort(\''+col.sortKey+'\')">'+col.label+'</th>';
+    } else {
+      html += '<th>'+col.label+'</th>';
+    }
+  });
+  html += '</tr>';
+  thead.innerHTML = html;
+}
+
+// ── load + render ─────────────────────────────────────────────────────────────
+var currentItems = [];
+
+async function loadMaterials() {
+  var p = new URLSearchParams({
+    materialDomain: 'FASTENER',
+    fastener_type:  state.tab,
+    page:           state.page,
+    limit:          state.limit,
+  });
+  if (state.search)   p.set('search',   state.search);
+  if (state.sortBy)  { p.set('sortBy',  state.sortBy); p.set('sortDir', state.sortDir); }
+  Object.keys(state.filters).forEach(function(k){
+    if (state.filters[k]) p.set(k, state.filters[k]);
+  });
+
+  try {
+    var r = await ERP.authFetch('/api/materials?' + p);
+    var data = await r.json();
+    currentItems = data.items || [];
+    renderTable(currentItems);
+    renderPagination(data);
+    var total = data.total || 0;
+    document.getElementById('mat-count').textContent = total + ' позиций';
   } catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
 }
 
-function renderCats() {
-  var el = document.getElementById('cat-filter');
-  el.innerHTML = '<button class="filter-pill'+(curCatId?'':' on')+'" onclick="setFilter(\'\')">Все</button>' +
-    categories.map(function(c){
-      return '<button class="filter-pill'+(curCatId===c.id?' on':'')+'" onclick="setFilter(\''+c.id+'\')">'+ERP.esc(c.name)+'</button>';
-    }).join('');
+function fmtMm(v) {
+  if (v == null) return '—';
+  var n = parseFloat(v);
+  return isNaN(n) ? '—' : (Number.isInteger(n) ? n : n.toFixed(1)) + ' мм';
 }
 
-function setFilter(catId) { curCatId = catId; renderCats(); loadMaterials(); }
-
-function onSearch(q) {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(function(){ loadMaterials(q); }, 300);
-}
-
-async function loadMaterials(search) {
-  if (search === undefined) search = document.getElementById('search-inp').value;
-  var p = new URLSearchParams({ materialDomain: 'FASTENER' });
-  if (search)   p.set('search', search);
-  if (curCatId) p.set('categoryId', curCatId);
-  try {
-    var r = await ERP.authFetch('/api/materials?' + p);
-    materials = await r.json();
-    renderTable();
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
-}
-
-function renderTable() {
-  var el = document.getElementById('mat-tbody');
-  document.getElementById('mat-count').textContent = materials.length + ' позиций';
-  if (!materials.length) {
-    el.innerHTML = '<tr><td colspan="8"><div class="empty">Метизов не найдено</div></td></tr>';
-    return;
-  }
-  el.innerHTML = materials.map(function(m){
+function getCellValue(m, col) {
+  if (col.key === '_weight') {
     var geo = m.geometry || {};
-    var cat = findCat(m.categoryId);
-    var unitkg = geo.unitWeightKg ? Number(geo.unitWeightKg).toFixed(4) + ' кг' : '—';
-    var unit = PIECE_UNIT_LABELS[m.pieceUnit] || m.pieceUnit || 'шт';
-    return '<tr class="clickable" onclick="openEdit(\''+m.id+'\')">' +
-      '<td><span class="mono" style="color:var(--blue);font-weight:700">'+ERP.esc(m.code)+'</span></td>' +
-      '<td>'+ERP.esc(m.name)+'</td>' +
-      '<td style="color:var(--txts);font-size:12px">'+ERP.esc(cat?cat.name:'—')+'</td>' +
-      '<td style="color:var(--txts);font-size:12px">'+ERP.esc(m.standard||'—')+'</td>' +
-      '<td style="font-size:12px"><span class="mono">'+ERP.esc(m.strengthClass||'—')+'</span></td>' +
-      '<td class="mono" style="color:var(--txts)">'+unitkg+'</td>' +
-      '<td style="font-size:12px">'+unit+'</td>' +
-      '<td style="white-space:nowrap">' +
-        '<button class="btn btn-secondary btn-xs" style="margin-right:4px" onclick="event.stopPropagation();openEdit(\''+m.id+'\')">Ред.</button>' +
-        '<button class="btn btn-danger btn-xs" onclick="event.stopPropagation();archiveMat(\''+m.id+'\')">Архив.</button>' +
-      '</td>' +
-    '</tr>';
-  }).join('');
-}
-
-function findCat(id) {
-  for (var i = 0; i < categories.length; i++) {
-    if (categories[i].id === id) return categories[i];
+    if (m.weightRequired || geo.unitWeightKg == null) {
+      return '<span title="Вес не определён — требует уточнения">⚠️</span>';
+    }
+    var kg = parseFloat(geo.unitWeightKg);
+    return isNaN(kg) ? '—' : (kg * 1000).toFixed(2) + ' г';
   }
-  return null;
+  if (col.key === '_price') {
+    var pp = m.procurementProfiles && m.procurementProfiles[0];
+    if (!pp || pp.pricePerPiece == null) return '<span style="color:var(--txts)">—</span>';
+    return '<span class="mono" style="color:var(--green,#0ba070)">' + parseFloat(pp.pricePerPiece).toFixed(2) + '</span>';
+  }
+  var v = m[col.key];
+  if (v == null || v === '') return '<span style="color:var(--txts)">—</span>';
+  if (col.fmt) return ERP.esc(col.fmt(v));
+  return ERP.esc(String(v));
 }
 
-function populateCategorySelect() {
-  var sel = document.getElementById('f-category');
-  sel.innerHTML = '<option value="">— не указана —</option>';
-  categories.forEach(function(c){
-    sel.innerHTML += '<option value="'+c.id+'">'+ERP.esc(c.name)+'</option>';
-  });
-}
+function renderTable(items) {
+  var cols = COLUMNS[state.tab] || [];
+  var tbody = document.getElementById('mat-tbody');
 
-function openCreate() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = 'Добавить метиз';
-  resetForm();
-  populateCategorySelect();
-  document.getElementById('modal-bg').style.display = 'flex';
-}
-
-async function openEdit(id) {
-  editingId = id;
-  document.getElementById('modal-title').textContent = 'Редактировать метиз';
-  populateCategorySelect();
-  try {
-    var r = await ERP.authFetch('/api/materials/' + id);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var m = await r.json();
-    fillForm(m);
-    document.getElementById('modal-bg').style.display = 'flex';
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
-}
-
-function fillForm(m) {
-  var geo = m.geometry || {};
-  document.getElementById('f-code').value     = m.code||'';
-  document.getElementById('f-name').value     = m.name||'';
-  document.getElementById('f-category').value = m.categoryId||'';
-  document.getElementById('f-standard').value = m.standard||'';
-  document.getElementById('f-strength').value = m.strengthClass||'';
-  document.getElementById('f-unitkg').value   = geo.unitWeightKg ? Number(geo.unitWeightKg) : '';
-  document.getElementById('f-pieceunit').value = m.pieceUnit||'pcs';
-}
-
-function resetForm() {
-  ['f-code','f-name','f-standard','f-strength','f-unitkg'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('f-category').value = '';
-  document.getElementById('f-pieceunit').value = 'pcs';
-}
-
-function closeModal() {
-  document.getElementById('modal-bg').style.display = 'none';
-}
-
-async function submitForm() {
-  var code = document.getElementById('f-code').value.trim();
-  var name = document.getElementById('f-name').value.trim();
-  if (!code || !name) { ERP.toast('Заполните обязательные поля (*)','error'); return; }
-  var body = {
-    code, name,
-    materialDomain: 'FASTENER',
-    categoryId:    document.getElementById('f-category').value || null,
-    standard:      document.getElementById('f-standard').value || null,
-    strengthClass: document.getElementById('f-strength').value || null,
-    unitWeightKg:  document.getElementById('f-unitkg').value || null,
-    pieceUnit:     document.getElementById('f-pieceunit').value || 'pcs',
-  };
-  var btn = document.getElementById('save-btn');
-  btn.disabled = true; btn.textContent = 'Сохранение...';
-  try {
-    var url = editingId ? '/api/materials/'+editingId : '/api/materials';
-    var r = await ERP.authFetch(url, { method: editingId?'PUT':'POST', body: JSON.stringify(body) });
-    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error||'HTTP '+r.status); }
-    localStorage.setItem('materials_changed', Date.now());
-    closeModal();
-    await loadMaterials();
-    ERP.toast(editingId ? 'Метиз обновлён' : 'Метиз добавлен', 'success');
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = 'Сохранить'; }
-}
-
-async function archiveMat(id) {
-  if (!confirm('Архивирование скроет метиз из новых заказов. Продолжить?')) return;
-  try {
-    var r = await ERP.authFetch('/api/materials/'+id, { method: 'DELETE' });
-    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error||'HTTP '+r.status); }
-    localStorage.setItem('materials_changed', Date.now());
-    await loadMaterials();
-    ERP.toast('Метиз архивирован', 'success');
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
-}
-
-// ── Category manager ──────────────────────────────────────────────────────────
-function openCatsModal() {
-  renderCatsList();
-  document.getElementById('new-cat-name').value = '';
-  document.getElementById('modal-cats-bg').style.display = 'flex';
-}
-
-function closeCatsModal() {
-  document.getElementById('modal-cats-bg').style.display = 'none';
-}
-
-function renderCatsList() {
-  var el = document.getElementById('cats-list');
-  if (!categories.length) {
-    el.innerHTML = '<div class="empty" style="padding:16px 0">Категорий нет. Создайте первую ниже.</div>';
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="'+cols.length+'"><div class="empty">Метизов не найдено</div></td></tr>';
     return;
   }
-  el.innerHTML = categories.map(function(c) {
-    var safeName = c.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<div class="cat-row">' +
-      '<span style="flex:1;font-size:13px">' + ERP.esc(c.name) + '</span>' +
-      '<button class="btn btn-secondary btn-xs" onclick="renameCat(\'' + c.id + '\',\'' + safeName + '\')">Ред.</button>' +
-      '<button class="btn btn-danger btn-xs" onclick="deleteCat(\'' + c.id + '\')">✕</button>' +
-    '</div>';
+
+  tbody.innerHTML = items.map(function(m, idx){
+    var cells = cols.map(function(col){ return '<td>'+getCellValue(m, col)+'</td>'; }).join('');
+    return '<tr class="clickable" onclick="openDetail('+idx+')">'+cells+'</tr>';
   }).join('');
 }
 
-async function addCategory() {
-  var name = document.getElementById('new-cat-name').value.trim();
-  if (!name) return;
-  var slug = name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
-  try {
-    var r = await ERP.authFetch('/api/material-categories', {
-      method: 'POST', body: JSON.stringify({ slug, name, domain: 'FASTENER' }),
-    });
-    if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.error||'Ошибка'); }
-    var c = await r.json();
-    categories.push(c);
-    document.getElementById('new-cat-name').value = '';
-    renderCatsList(); renderCats(); populateCategorySelect();
-    ERP.toast('Категория создана', 'success');
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+// ── pagination ────────────────────────────────────────────────────────────────
+function renderPagination(data) {
+  var pg = document.getElementById('pagination');
+  var pages = data.pages || 1;
+  var page  = data.page  || 1;
+  if (pages <= 1) { pg.innerHTML = ''; return; }
+
+  var html = '<button class="btn btn-secondary btn-xs" '+(page<=1?'disabled':'')+' onclick="goPage('+( page-1)+')">← Пред.</button>';
+  html += '<span class="pg-info">стр. '+page+' / '+pages+'</span>';
+  html += '<button class="btn btn-secondary btn-xs" '+(page>=pages?'disabled':'')+' onclick="goPage('+(page+1)+')">След. →</button>';
+  pg.innerHTML = html;
 }
 
-async function renameCat(id, currentName) {
-  var name = prompt('Переименовать категорию:', currentName);
-  if (!name || name === currentName) return;
-  try {
-    var r = await ERP.authFetch('/api/material-categories/' + id, {
-      method: 'PUT', body: JSON.stringify({ name }),
-    });
-    if (!r.ok) throw new Error('Ошибка');
-    categories = categories.map(function(c){ return c.id===id ? Object.assign({},c,{name:name}) : c; });
-    renderCatsList(); renderCats(); populateCategorySelect();
-    ERP.toast('Переименовано', 'success');
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+function goPage(p) {
+  state.page = p;
+  loadMaterials();
+  window.scrollTo(0, 0);
 }
 
-async function deleteCat(id) {
-  if (!confirm('Удалить категорию? Метизы останутся без категории.')) return;
-  try {
-    var r = await ERP.authFetch('/api/material-categories/' + id, { method: 'DELETE' });
-    if (!r.ok) throw new Error('Ошибка');
-    categories = categories.filter(function(c){ return c.id!==id; });
-    if (curCatId === id) curCatId = '';
-    renderCatsList(); renderCats(); populateCategorySelect();
-    ERP.toast('Категория удалена', 'success');
-  } catch(e) { ERP.toast('Ошибка: ' + e.message, 'error'); }
+// ── detail modal ──────────────────────────────────────────────────────────────
+function openDetail(idx) {
+  var m = currentItems[idx];
+  if (!m) return;
+
+  document.getElementById('detail-title').textContent = m.name;
+
+  var geo = m.geometry || {};
+  var pp  = m.procurementProfiles && m.procurementProfiles[0];
+  var weightG = (geo.unitWeightKg != null && !m.weightRequired)
+    ? (parseFloat(geo.unitWeightKg) * 1000).toFixed(3) + ' г'
+    : '⚠️ не определён';
+  var price = (pp && pp.pricePerPiece != null)
+    ? '<span class="price-tag">' + parseFloat(pp.pricePerPiece).toFixed(4) + ' руб/шт</span>'
+    : '—';
+  var supplierNote = pp && pp.notes ? '<br><small style="color:var(--txts)">'+ERP.esc(pp.notes)+'</small>' : '';
+
+  var rows = [
+    ['Тип метиза',    m.fastenerType],
+    ['Диаметр',       fmtMm(m.diameterMm)],
+    ['Длина',         fmtMm(m.lengthMm)],
+    ['DIN / Стандарт', m.standard],
+    ['ГОСТ',          m.gost],
+    ['Класс прочности', m.strengthClass],
+    ['Тип резьбы',    m.threadType],
+    ['Покрытие',      m.coating],
+    ['Вес 1 шт',      weightG + (m.weightNote ? ' <small style="color:var(--txts)">('+ERP.esc(m.weightNote)+')</small>' : '')],
+    ['Цена',          price + supplierNote],
+    ['Поставщик',     pp ? ERP.esc(pp.supplierName || '') : '—'],
+  ];
+
+  var html = '<div class="detail-grid">';
+  rows.forEach(function(row){
+    var val = row[1] == null || row[1] === '' ? '—' : row[1];
+    html += '<div class="detail-row"><span class="detail-label">'+row[0]+'</span><span class="detail-val">'+val+'</span></div>';
+  });
+  html += '</div>';
+
+  document.getElementById('detail-body').innerHTML = html;
+  document.getElementById('modal-detail-bg').style.display = 'flex';
 }
 
-document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeModal(); closeCatsModal(); } });
-document.getElementById('new-cat-name').addEventListener('keydown', function(e){ if(e.key==='Enter') addCategory(); });
+function closeDetail() {
+  document.getElementById('modal-detail-bg').style.display = 'none';
+}
+
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeDetail(); });
+
 init();
 </script>
 </body>
