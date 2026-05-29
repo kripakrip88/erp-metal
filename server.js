@@ -9,7 +9,7 @@ const { authenticate }      = require('./src/middleware/authenticate')
 const { startOutboxWorker } = require('./src/workers/outboxWorker')
 const { ensureUploadsDir }  = require('./src/services/storageService')
 
-const PUBLIC_PATHS = new Set(['/api/health', '/api/ai-health', '/api/auth/login'])
+const PUBLIC_PATHS = new Set(['/api/health', '/api/ai-health', '/api/auth/login', '/internal/bom-extracted'])
 
 // ── AI Polygon Proxy ──────────────────────────────────────────────────────────
 // Порт 4000 закрыт файрволом снаружи. Браузер не может достучаться напрямую.
@@ -80,6 +80,7 @@ const routes = [
   ...require('./src/routes/files'),
   ...require('./src/routes/ordersFromEmail'),
   ...require('./src/routes/emailCopilot'),
+  ...require('./src/routes/internalBomExtracted'),
   { method: 'GET', pathname: '/api/health', handler: async (_req, res) => {
     json(res, { status: 'ok', db: 'connected', version: '1.0.0' })
   }},
