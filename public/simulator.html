@@ -488,6 +488,9 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
               <div class="absep"></div>
               <button class="abtn" onclick="go('files')" title="Документы и чертежи по заказу">📎 Документы <span id="files-count-badge" style="display:none;background:var(--blue);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px"></span></button>
               <div class="absep"></div>
+              <button class="abtn" onclick="triggerSpecUpload()" title="Загрузить PDF/Excel со спецификацией — AI заполнит BOM узлов">📄 Загрузить спецификацию</button>
+              <input type="file" id="spec-file-input" style="display:none" onchange="uploadSpec(this)" accept=".pdf,.xlsx,.xls,.docx,.doc">
+              <div class="absep"></div>
               <input class="ai" id="new-asm-name" placeholder="Название узла (Ферма Ф-1...)" onkeydown="if(event.key==='Enter')addAsm()">
               <input class="ai-qty" id="new-asm-qty" type="number" value="1" min="1" title="Кол-во">
               <span style="font-size:10px;color:var(--txtm)">шт</span>
@@ -507,6 +510,15 @@ td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
               <span class="as as-warn" id="ai-stat-warn" style="display:none"></span>
               <span class="as as-err" id="ai-stat-err" style="display:none"></span>
             </div>
+          </div>
+          <!-- SPEC UPLOAD PROGRESS -->
+          <div id="spec-progress-banner" class="ai-banner" style="display:none">
+            <span id="spec-banner-icon" style="font-size:16px">⬆</span>
+            <div style="flex:1;min-width:0">
+              <div class="ai-banner-title" id="spec-banner-title">Загрузка спецификации</div>
+              <div class="ai-banner-sub" id="spec-banner-sub"></div>
+            </div>
+            <button onclick="cancelSpecUpload()" id="spec-banner-cancel" style="display:none">✕ Отмена</button>
           </div>
           <div id="asms-container"></div>
           <!-- DEBUG SUMMARY -->
@@ -2619,5 +2631,142 @@ function esc(s) {
 // ─── KEYBOARD: login on Enter ─────────────────────────────────────────────────
 
 refresh();
+
+// ─── SPEC UPLOAD ──────────────────────────────────────────────────────────────
+
+let _specPollTimer = null;
+let _specPollCount = 0;
+const SPEC_POLL_MAX = 60; // 3 min (60 × 3s)
+
+function triggerSpecUpload() {
+  if (!_currentOrderId) return toast('Откройте заказ перед загрузкой', 'error');
+  document.getElementById('spec-file-input').click();
+}
+
+async function uploadSpec(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = '';
+
+  const assembliesList = asms.filter(a => a.id).map(a => ({ id: a.id, name: a.name }));
+  if (!assembliesList.length) return toast('Нет узлов в КП — добавьте узлы перед загрузкой', 'error');
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('rfqId', _currentOrderId);
+  fd.append('assemblies', JSON.stringify(assembliesList));
+
+  _showSpecBanner('uploading', 'Загружаем ' + file.name + '…', '');
+
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch('/api/ai-bom/upload-and-extract-bom', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: fd,
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка загрузки (' + r.status + ')');
+
+    const jobId = data.jobId || data.extractionId || data.id;
+    if (!jobId) throw new Error('AI-сервис не вернул jobId');
+
+    _showSpecBanner('processing', 'AI анализирует спецификацию…', 'обычно 30–60 сек');
+    _startSpecPolling(jobId);
+  } catch (e) {
+    _showSpecBanner('error', e.message, '');
+  }
+}
+
+function _startSpecPolling(jobId) {
+  if (_specPollTimer) clearInterval(_specPollTimer);
+  _specPollCount = 0;
+
+  _specPollTimer = setInterval(async () => {
+    _specPollCount++;
+    if (_specPollCount >= SPEC_POLL_MAX) {
+      clearInterval(_specPollTimer); _specPollTimer = null;
+      _showSpecBanner('error', 'Таймаут — AI не ответил за 3 минуты', '');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('erp_token');
+      const r = await fetch('/api/ai-bom/extraction-status/' + encodeURIComponent(jobId), {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!r.ok) return; // временная ошибка сети, продолжаем polling
+      const data = await r.json();
+
+      if (data.status === 'completed') {
+        clearInterval(_specPollTimer); _specPollTimer = null;
+        const n = data.itemsCount || data.itemsCreated || '';
+        _showSpecBanner('completed', 'BOM заполнен' + (n ? ' — ' + n + ' позиций' : ''), 'Данные обновлены автоматически');
+        await _refreshBomFromApi();
+      } else if (data.status === 'failed') {
+        clearInterval(_specPollTimer); _specPollTimer = null;
+        _showSpecBanner('error', data.error || 'AI не смог извлечь данные из документа', '');
+      }
+      // 'processing' | 'pending' — продолжаем polling
+    } catch (_) { /* сетевая ошибка — продолжаем */ }
+  }, 3000);
+}
+
+async function _refreshBomFromApi() {
+  if (!_currentOrderId) return;
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch('/api/orders/' + encodeURIComponent(_currentOrderId), {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!r.ok) return;
+    const order = await r.json();
+    if (!order.assemblies?.length) return;
+
+    const fresh = _apiAsmsToSim(order.assemblies);
+    let updated = 0;
+    for (const freshAsm of fresh) {
+      const existing = asms.find(a => a.id === freshAsm.id);
+      if (existing) { existing.parts = freshAsm.parts; updated++; }
+    }
+    if (updated) { refresh(); toast('BOM ' + updated + ' узл. обновлён', 'success'); }
+  } catch (e) {
+    toast('Не удалось обновить BOM: ' + e.message, 'error');
+  }
+}
+
+function cancelSpecUpload() {
+  if (_specPollTimer) { clearInterval(_specPollTimer); _specPollTimer = null; }
+  document.getElementById('spec-progress-banner').style.display = 'none';
+}
+
+function _showSpecBanner(state, title, sub) {
+  const banner  = document.getElementById('spec-progress-banner');
+  const iconEl  = document.getElementById('spec-banner-icon');
+  const titleEl = document.getElementById('spec-banner-title');
+  const subEl   = document.getElementById('spec-banner-sub');
+  const cancelEl = document.getElementById('spec-banner-cancel');
+  if (!banner) return;
+
+  const cfg = {
+    uploading:  { icon: '⬆', bg: 'rgba(59,130,246,.12)',  brd: 'rgba(59,130,246,.3)',  clr: '#60a5fa' },
+    processing: { icon: '⟳', bg: 'rgba(139,92,246,.12)', brd: 'rgba(139,92,246,.3)',  clr: '#a78bfa' },
+    completed:  { icon: '✓', bg: 'rgba(16,185,129,.1)',   brd: 'rgba(16,185,129,.3)',  clr: '#34d399' },
+    error:      { icon: '✕', bg: 'rgba(239,68,68,.1)',    brd: 'rgba(239,68,68,.25)', clr: '#f87171' },
+  };
+  const c = cfg[state] || cfg.processing;
+
+  banner.style.display     = 'flex';
+  banner.style.background  = c.bg;
+  banner.style.borderColor = c.brd;
+  iconEl.textContent       = c.icon;
+  iconEl.style.color       = c.clr;
+  titleEl.textContent      = title;
+  subEl.textContent        = sub || '';
+  cancelEl.style.display   = state === 'processing' ? '' : 'none';
+
+  if (state === 'completed' || state === 'error') {
+    setTimeout(() => { banner.style.display = 'none'; }, 6000);
+  }
+}
 </script>
 <div id="pt-col-picker"></div>
