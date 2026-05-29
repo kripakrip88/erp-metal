@@ -44,7 +44,19 @@ async function getCustomer(id) {
     },
     take: 30,
     orderBy: { createdAt: 'desc' },
-    select: { id: true, orderNumber: true, title: true, status: true, createdAt: true, customerId: true },
+    include: {
+      assemblies: { select: { id: true, name: true, qty: true }, orderBy: { position: 'asc' } },
+      revisions: {
+        take: 1,
+        orderBy: { revisionNumber: 'desc' },
+        select: {
+          id: true, revisionNumber: true, status: true, frozenAt: true,
+          calculation: {
+            select: { totalWeightKg: true, totalMaterialCost: true, totalCost: true, currency: true, weightBreakdown: true },
+          },
+        },
+      },
+    },
   })
 
   return { ...customer, orders }

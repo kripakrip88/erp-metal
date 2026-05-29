@@ -1,6 +1,101 @@
 /* CRM module — isolated styles */
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CUSTOMER DRAWER (index.html — slide-in panel)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cdr-panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 460px; max-width: 100vw;
+  background: var(--panel); border-left: 1px solid var(--brd);
+  z-index: 201; display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+}
+.cdr-panel.open { transform: translateX(0); }
+
+.cdr-head {
+  padding: 16px 18px; border-bottom: 1px solid var(--brd);
+  display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0;
+}
+.cdr-company { font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+.cdr-meta-row { font-size: 11.5px; color: var(--txts); }
+
+.cdr-tabs {
+  display: flex; border-bottom: 1px solid var(--brd); flex-shrink: 0;
+}
+.cdr-tab {
+  padding: 9px 18px; font-size: 12.5px; font-weight: 600; color: var(--txts);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .12s;
+}
+.cdr-tab.on { color: var(--green); border-bottom-color: var(--green); }
+
+.cdr-tab-pane { display: none; }
+.cdr-tab-pane.on { display: block; }
+
+.cdr-body { flex: 1; overflow-y: auto; }
+
+.cdr-loading { padding: 24px; text-align: center; color: var(--txts); font-size: 12.5px; }
+.cdr-empty   { padding: 24px; text-align: center; color: var(--txtm); font-size: 12.5px; }
+
+.cdr-footer {
+  padding: 12px 18px; border-top: 1px solid var(--brd);
+  display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0;
+}
+
+/* Order cards inside drawer */
+.cdr-order-card {
+  border-bottom: 1px solid var(--brd);
+  padding: 14px 18px;
+}
+.cdr-order-card:last-child { border-bottom: none; }
+
+.cdr-order-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.cdr-order-left  { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cdr-order-num   { font-size: 10.5px; font-weight: 700; color: var(--blue); }
+.cdr-order-title { font-size: 13px; font-weight: 600; color: var(--txt); line-height: 1.3; }
+.cdr-order-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cdr-order-date  { font-size: 10.5px; color: var(--txts); }
+.cdr-order-open-btn {
+  font-size: 11px; font-weight: 600; color: var(--blue); background: rgba(59,130,246,.1);
+  border: 1px solid rgba(59,130,246,.2); border-radius: 4px; padding: 2px 8px;
+  cursor: pointer; white-space: nowrap; font-family: var(--ff);
+  transition: background .1s;
+}
+.cdr-order-open-btn:hover { background: rgba(59,130,246,.2); }
+
+.cdr-rev-badge {
+  font-size: 10.5px; color: var(--txts); margin-bottom: 8px;
+  font-family: var(--ffm);
+}
+
+/* Stats row */
+.cdr-order-stats {
+  display: flex; gap: 8px; margin-bottom: 10px;
+}
+.cdr-stat {
+  flex: 1; background: var(--card); border: 1px solid var(--brd);
+  border-radius: 6px; padding: 7px 10px;
+}
+.cdr-stat-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+                  letter-spacing: .5px; color: var(--txts); margin-bottom: 3px; }
+.cdr-stat-val   { font-size: 12.5px; color: var(--txt); }
+.cdr-stat-total { color: var(--green); font-weight: 700; }
+
+/* Assembly list */
+.cdr-asm-list { display: flex; flex-direction: column; gap: 3px; }
+.cdr-asm-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 8px; background: var(--card); border: 1px solid var(--brd);
+  border-radius: 5px;
+}
+.cdr-asm-name   { font-size: 12px; color: var(--txt); }
+.cdr-asm-weight { font-size: 11px; color: var(--txts); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SHARED
    ═══════════════════════════════════════════════════════════════════════════ */
 
