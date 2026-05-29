@@ -10,7 +10,7 @@ module.exports = [
     if (!canCreate(req, res)) return
     try {
       const body = await parseBody(req)
-      const { messageId, title, fromAddress, fromName, subject, normalizationResults } = body
+      const { messageId, title, fromAddress, fromName, subject, normalizationResults, assembliesFromEmail } = body
 
       if (!messageId)   return json(res, { error: 'messageId is required' }, 400)
       if (!fromAddress) return json(res, { error: 'fromAddress is required' }, 400)
@@ -21,7 +21,8 @@ module.exports = [
         fromAddress,
         fromName,
         subject,
-        normalizationResults: Array.isArray(normalizationResults) ? normalizationResults : [],
+        normalizationResults:  Array.isArray(normalizationResults)  ? normalizationResults  : [],
+        assembliesFromEmail:   Array.isArray(assembliesFromEmail)   ? assembliesFromEmail   : [],
         actorId:   req.context?.userId    || null,
         companyId: req.context?.companyId || null,
       })

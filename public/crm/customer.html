@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Карточка клиента</title>
+<script src="../nav.js?v=20260529"></script>
+<link rel="stylesheet" href="crm.css?v=20260529">
+</head>
+<body>
+<div class="shell">
+  <aside class="sb" id="erp-nav"></aside>
+  <div class="main">
+    <div class="topbar">
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='index.html'">← Клиенты</button>
+      <div class="topbar-title" id="page-title">Клиент</div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal()">Редактировать</button>
+        <button class="btn btn-secondary btn-sm" onclick="openContactModal()">+ Контакт</button>
+        <button class="btn btn-primary btn-sm" onclick="openRfqModal()">+ Заявка на КП</button>
+      </div>
+    </div>
+    <div class="content" id="main-content">
+      <div id="loading" style="text-align:center;padding:40px;color:var(--txts)">Загрузка...</div>
+      <div id="customer-layout" class="crm-layout" style="display:none">
+
+        <!-- Left sidebar -->
+        <div>
+          <div class="card info-card">
+            <div class="info-title" id="c-name"></div>
+            <div class="info-row"><div class="info-label">ИНН</div><div class="info-value" id="c-inn"></div></div>
+            <div class="info-row"><div class="info-label">Email</div><div class="info-value" id="c-email"></div></div>
+            <div class="info-row"><div class="info-label">Телефон</div><div class="info-value" id="c-phone"></div></div>
+            <div class="info-row"><div class="info-label">Сайт</div><div class="info-value" id="c-website"></div></div>
+            <div class="info-row"><div class="info-label">Приоритет</div><div class="info-value" id="c-priority"></div></div>
+          </div>
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-head-title">Контакты</div>
+              <button class="btn btn-secondary btn-xs" onclick="openContactModal()">+ Контакт</button>
+            </div>
+            <div id="contacts-list"></div>
+          </div>
+        </div>
+
+        <!-- Right content -->
+        <div class="card" style="overflow:hidden">
+          <div class="tabs">
+            <div class="tab on" onclick="switchTab('orders',this)">Заказы</div>
+            <div class="tab" onclick="switchTab('interactions',this)">История</div>
+          </div>
+          <div class="tab-pane on" id="tab-orders">
+            <div id="orders-list"></div>
+          </div>
+          <div class="tab-pane" id="tab-interactions">
+            <div class="tl-wrap" id="timeline-list"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order drawer -->
+<div id="drawer-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="order-drawer" class="order-drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-order-num" id="dr-num"></div>
+      <div class="drawer-order-title" id="dr-title"></div>
+    </div>
+    <button class="modal-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-row">
+      <span class="drawer-label">Статус</span>
+      <span id="dr-status"></span>
+    </div>
+    <div class="drawer-row">
+      <span class="drawer-label">Дата создания</span>
+      <span class="mono" id="dr-date"></span>
+    </div>
+    <div class="drawer-row">
+      <span class="drawer-label">Узлов в BOM</span>
+      <span class="mono" id="dr-asm"></span>
+    </div>
+    <div class="drawer-row">
+      <span class="drawer-label">Ревизий КП</span>
+      <span class="mono" id="dr-rev"></span>
+    </div>
+    <div id="dr-assemblies-wrap" style="margin-top:14px"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" onclick="closeDrawer()">Закрыть</button>
+    <button class="btn btn-primary btn-sm" id="dr-open-btn">Открыть в расчёте →</button>
+  </div>
+</div>
+
+<!-- Edit customer modal -->
+<div id="edit-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Редактировать клиента</div><button class="modal-close" onclick="closeEditModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Название компании *</label><input type="text" id="e-name" placeholder="ООО Металлконструкция"></div>
+      <div class="grid2">
+        <div class="field"><label>ИНН</label><input type="text" id="e-inn" placeholder="7700000000"></div>
+        <div class="field">
+          <label>Приоритет</label>
+          <select id="e-priority">
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="VIP">VIP</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="e-email" placeholder="info@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="e-phone" placeholder="+7 (999) 000-00-00"></div>
+      </div>
+      <div class="field"><label>Сайт</label><input type="url" id="e-website" placeholder="https://company.ru"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Отмена</button>
+      <button class="btn btn-primary" id="e-save-btn" onclick="saveEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add contact modal -->
+<div id="contact-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeContactModal()">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Добавить контакт</div><button class="modal-close" onclick="closeContactModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Имя *</label><input type="text" id="ct-name" placeholder="Иван Иванов"></div>
+      <div class="field"><label>Должность</label><input type="text" id="ct-position" placeholder="Менеджер по закупкам"></div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="ct-email" placeholder="ivan@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="ct-phone" placeholder="+7 (999) 000-00-00"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeContactModal()">Отмена</button>
+      <button class="btn btn-primary" id="ct-save-btn" onclick="saveContact()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- RFQ modal -->
+<div id="rfq-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeRfqModal()">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Заявка на КП</div><button class="modal-close" onclick="closeRfqModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Название объекта *</label><input type="text" id="rfq-title" placeholder="Металлоконструкции склада №3"></div>
+      <div class="field"><label>Примечание</label><textarea id="rfq-desc" placeholder="Дополнительная информация..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeRfqModal()">Отмена</button>
+      <button class="btn btn-primary" id="rfq-save-btn" onclick="saveRfq()">Создать заявку</button>
+    </div>
+  </div>
+</div>
+
+<script>
+ERP.init('crm');
+
+var params = new URLSearchParams(location.search);
+var customerId = params.get('id');
+var customer = null;
+
+var STATUS_RU = {
+  DRAFT:'Новый запрос', QUOTATION:'На рассмотрении', AWAITING_APPROVAL:'Расчёт цены',
+  APPROVED:'КП отправлено', PRODUCTION:'В производстве', COMPLETED:'Готово',
+  DELIVERED:'Сдан', CANCELLED:'Отменён'
+};
+var STATUS_CLS = {
+  DRAFT:'b-draft', QUOTATION:'b-quotation', AWAITING_APPROVAL:'b-awaiting',
+  APPROVED:'b-approved', PRODUCTION:'b-production', COMPLETED:'b-completed',
+  DELIVERED:'b-delivered', CANCELLED:'b-cancelled'
+};
+
+function priorityBadge(p) {
+  var map = { VIP:'b-vip', HIGH:'b-high', NORMAL:'b-normal', LOW:'b-low' };
+  return '<span class="badge '+(map[p]||'b-normal')+'">'+p+'</span>';
+}
+function statusBadge(s) {
+  return '<span class="badge '+(STATUS_CLS[s]||'b-draft')+'">'+(STATUS_RU[s]||s)+'</span>';
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function fmtDateLong(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+}
+
+/* ── Load ─────────────────────────────────────────────────────────────────── */
+async function loadCustomer() {
+  if (!customerId) { document.getElementById('loading').textContent = 'Не указан ID клиента'; return; }
+  try {
+    var r = await ERP.authFetch('/api/customers/' + customerId);
+    if (r.status === 404) { document.getElementById('loading').textContent = 'Клиент не найден'; return; }
+    customer = await r.json();
+    renderCustomer();
+  } catch(e) {
+    document.getElementById('loading').textContent = 'Ошибка загрузки';
+  }
+}
+
+function renderCustomer() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('customer-layout').style.display = 'grid';
+  document.getElementById('page-title').textContent = customer.name;
+  document.title = 'МеталлПро ERP — ' + customer.name;
+  document.getElementById('c-name').textContent = customer.name;
+  document.getElementById('c-inn').textContent = customer.inn || '—';
+  document.getElementById('c-email').textContent = customer.email || '—';
+  document.getElementById('c-phone').textContent = customer.phone || '—';
+  document.getElementById('c-website').innerHTML = customer.website
+    ? '<a href="'+ERP.esc(customer.website)+'" target="_blank" rel="noopener" style="color:var(--blue)">'+ERP.esc(customer.website)+'</a>' : '—';
+  document.getElementById('c-priority').innerHTML = priorityBadge(customer.priority);
+  renderContacts(customer.contacts || []);
+  renderOrders(customer.orders || []);
+  renderTimeline(customer.interactions || []);
+}
+
+/* ── Contacts ─────────────────────────────────────────────────────────────── */
+function renderContacts(list) {
+  var el = document.getElementById('contacts-list');
+  if (!list.length) { el.innerHTML = '<div class="empty" style="padding:16px">Контактов нет</div>'; return; }
+  el.innerHTML = list.map(function(c){
+    return '<div class="contact-item">' +
+      '<div class="contact-name">'+ERP.esc(c.name)+(c.position?' <span style="font-weight:400;color:var(--txts)">· '+ERP.esc(c.position)+'</span>':'')+'</div>' +
+      (c.email ? '<div class="contact-meta">'+ERP.esc(c.email)+'</div>' : '') +
+      (c.phone ? '<div class="contact-meta">'+ERP.esc(c.phone)+'</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+/* ── Orders list (drawer trigger) ─────────────────────────────────────────── */
+function renderOrders(list) {
+  var el = document.getElementById('orders-list');
+  if (!list.length) { el.innerHTML = '<div class="empty" style="padding:24px">Заказов нет</div>'; return; }
+  el.innerHTML = list.map(function(o){
+    return '<div class="order-row" onclick="openDrawer(\''+o.id+'\')">' +
+      '<div class="order-row-left">' +
+        '<span class="order-row-num mono">'+ERP.esc(o.orderNumber)+'</span>' +
+        '<span class="order-row-title">'+ERP.esc(o.title)+'</span>' +
+      '</div>' +
+      '<div class="order-row-right">' +
+        statusBadge(o.status) +
+        '<span class="order-row-date mono">'+fmtDate(o.createdAt)+'</span>' +
+        '<span class="order-row-arrow">→</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ── Interactions timeline ────────────────────────────────────────────────── */
+var TL_ICO = { EMAIL:'✉', CALL:'☎', MEETING:'◈', NOTE:'◉' };
+var TL_COLOR = { EMAIL:'#3b82f6', CALL:'#10b981', MEETING:'#8b5cf6', NOTE:'#8b9ab0' };
+
+function renderTimeline(list) {
+  var el = document.getElementById('timeline-list');
+  if (!list.length) { el.innerHTML = '<div class="empty" style="padding:24px">История пуста</div>'; return; }
+  el.innerHTML = list.map(function(item, idx) {
+    var ico    = TL_ICO[item.type]   || '◉';
+    var color  = TL_COLOR[item.type] || '#8b9ab0';
+    var dirLbl = item.direction === 'INBOUND' ? 'входящее' : 'исходящее';
+    var hasBody = item.body && item.body.trim();
+
+    return '<div class="tl-item">' +
+      '<div class="tl-line-wrap">' +
+        '<div class="tl-dot" style="background:'+color+';border-color:'+color+'20">'+ico+'</div>' +
+        (idx < list.length - 1 ? '<div class="tl-line"></div>' : '') +
+      '</div>' +
+      '<div class="tl-content'+(hasBody?' tl-expandable':'')+'" '+(hasBody?'onclick="toggleTl(this)"':'')+'>' +
+        '<div class="tl-header">' +
+          '<span class="tl-type" style="color:'+color+'">'+ERP.esc(item.type)+'</span>' +
+          '<span class="tl-dir">'+dirLbl+'</span>' +
+          (item.contact ? '<span class="tl-contact">'+ERP.esc(item.contact.name)+'</span>' : '') +
+          '<span class="tl-date mono">'+fmtDate(item.createdAt)+'</span>' +
+          (hasBody ? '<span class="tl-chevron">▸</span>' : '') +
+        '</div>' +
+        (item.subject ? '<div class="tl-subject">'+ERP.esc(item.subject)+'</div>' : '') +
+        (hasBody ? '<div class="tl-body">'+ERP.esc(item.body)+'</div>' : '') +
+        (item.createdBy ? '<div class="tl-author">'+ERP.esc(item.createdBy.firstName+' '+item.createdBy.lastName)+'</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleTl(el) {
+  var body    = el.querySelector('.tl-body');
+  var chevron = el.querySelector('.tl-chevron');
+  if (!body) return;
+  var open = body.classList.toggle('open');
+  if (chevron) chevron.textContent = open ? '▾' : '▸';
+}
+
+/* ── Order drawer ─────────────────────────────────────────────────────────── */
+function openDrawer(orderId) {
+  var overlay = document.getElementById('drawer-overlay');
+  var drawer  = document.getElementById('order-drawer');
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+
+  // Reset
+  ['dr-num','dr-title','dr-status','dr-date','dr-asm','dr-rev'].forEach(function(id){
+    document.getElementById(id).innerHTML = '<span style="color:var(--txts)">…</span>';
+  });
+  document.getElementById('dr-assemblies-wrap').innerHTML = '';
+  document.getElementById('dr-open-btn').onclick = function(){
+    window.location.href = '../simulator.html?orderId=' + orderId;
+  };
+
+  ERP.authFetch('/api/orders/' + orderId).then(function(r){ return r.json(); }).then(function(o){
+    document.getElementById('dr-num').textContent = o.orderNumber || '—';
+    document.getElementById('dr-title').textContent = o.title || '—';
+    document.getElementById('dr-status').innerHTML = statusBadge(o.status);
+    document.getElementById('dr-date').textContent = fmtDateLong(o.createdAt);
+    var asmCount = o.assemblies ? o.assemblies.length : 0;
+    var revCount = o.revisions  ? o.revisions.length  : 0;
+    document.getElementById('dr-asm').textContent = asmCount;
+    document.getElementById('dr-rev').textContent = revCount;
+
+    if (asmCount) {
+      var wrap = document.getElementById('dr-assemblies-wrap');
+      wrap.innerHTML = '<div class="drawer-section-title">Узлы BOM</div>' +
+        o.assemblies.map(function(a){
+          return '<div class="drawer-asm-item">' +
+            '<span class="drawer-asm-name">'+ERP.esc(a.name||'Узел')+'</span>' +
+            (a.parts && a.parts.length ? '<span class="drawer-asm-parts">'+a.parts.length+' поз.</span>' : '') +
+          '</div>';
+        }).join('');
+    }
+  }).catch(function(){ /* drawer already open, silent fail */ });
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('order-drawer').classList.remove('open');
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  btn.classList.add('on');
+  document.getElementById('tab-orders').classList.toggle('on', name === 'orders');
+  document.getElementById('tab-interactions').classList.toggle('on', name === 'interactions');
+}
+
+/* ── Edit customer ────────────────────────────────────────────────────────── */
+function openEditModal() {
+  if (!customer) return;
+  document.getElementById('e-name').value     = customer.name     || '';
+  document.getElementById('e-inn').value      = customer.inn      || '';
+  document.getElementById('e-email').value    = customer.email    || '';
+  document.getElementById('e-phone').value    = customer.phone    || '';
+  document.getElementById('e-website').value  = customer.website  || '';
+  document.getElementById('e-priority').value = customer.priority || 'NORMAL';
+  document.getElementById('edit-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('e-name').focus(); }, 50);
+}
+function closeEditModal() { document.getElementById('edit-modal-bg').style.display = 'none'; }
+
+async function saveEdit() {
+  var name = document.getElementById('e-name').value.trim();
+  if (!name) { ERP.toast('Введите название компании', 'error'); return; }
+  var btn = document.getElementById('e-save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/customers/' + customerId, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name:     name,
+        inn:      document.getElementById('e-inn').value.trim()     || null,
+        email:    document.getElementById('e-email').value.trim()   || null,
+        phone:    document.getElementById('e-phone').value.trim()   || null,
+        website:  document.getElementById('e-website').value.trim() || null,
+        priority: document.getElementById('e-priority').value,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeEditModal();
+    ERP.toast('Сохранено', 'success');
+    loadCustomer();
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
+}
+
+/* ── Add contact ──────────────────────────────────────────────────────────── */
+function openContactModal() {
+  ['ct-name','ct-position','ct-email','ct-phone'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('contact-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('ct-name').focus(); }, 50);
+}
+function closeContactModal() { document.getElementById('contact-modal-bg').style.display = 'none'; }
+
+async function saveContact() {
+  var name = document.getElementById('ct-name').value.trim();
+  if (!name) { ERP.toast('Введите имя контакта', 'error'); return; }
+  var btn = document.getElementById('ct-save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/customers/' + customerId + '/contacts', {
+      method: 'POST',
+      body: JSON.stringify({
+        name:     name,
+        position: document.getElementById('ct-position').value.trim() || null,
+        email:    document.getElementById('ct-email').value.trim()    || null,
+        phone:    document.getElementById('ct-phone').value.trim()    || null,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeContactModal();
+    ERP.toast('Контакт добавлен', 'success');
+    loadCustomer();
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
+}
+
+/* ── RFQ ──────────────────────────────────────────────────────────────────── */
+function openRfqModal() {
+  document.getElementById('rfq-title').value = '';
+  document.getElementById('rfq-desc').value  = '';
+  document.getElementById('rfq-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('rfq-title').focus(); }, 50);
+}
+function closeRfqModal() { document.getElementById('rfq-modal-bg').style.display = 'none'; }
+
+async function saveRfq() {
+  var title = document.getElementById('rfq-title').value.trim();
+  if (!title) { ERP.toast('Введите название объекта', 'error'); return; }
+  var btn = document.getElementById('rfq-save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        orderNumber:  'RFQ-' + Date.now(),
+        customerName: customer.name,
+        customerId:   customer.id,
+        title:        title,
+        description:  document.getElementById('rfq-desc').value.trim() || null,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeRfqModal();
+    ERP.toast('Заявка создана', 'success');
+    window.location.href = '../simulator.html?orderId=' + data.id;
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { closeDrawer(); closeEditModal(); closeContactModal(); closeRfqModal(); }
+});
+
+loadCustomer();
+</script>
+</body>
+</html>
