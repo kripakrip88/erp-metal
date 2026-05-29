@@ -4,6 +4,21 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase()
 }
 
+async function createAssembliesFromEmailNodes(tx, orderId, assemblies) {
+  for (let i = 0; i < assemblies.length; i++) {
+    const asm = assemblies[i];
+    await tx.assembly.create({
+      data: {
+        orderId,
+        name:        asm.name        || `Узел ${i + 1}`,
+        description: asm.designation || null,
+        qty:         asm.quantity    || 1,
+        position:    i,
+      },
+    });
+  }
+}
+
 async function createAssembliesFromResults(tx, orderId, normalizationResults) {
   const groups = new Map()
   for (const item of normalizationResults) {
@@ -44,7 +59,7 @@ async function createAssembliesFromResults(tx, orderId, normalizationResults) {
 // Creates a DRAFT order from an inbound email.
 // Idempotent on messageId: returns existing order.
 // If existing order has no assemblies and normalizationResults provided, adds them retroactively.
-async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId, normalizationResults }) {
+async function createOrderFromEmail({ messageId, title, fromAddress, fromName, subject, actorId, companyId, normalizationResults, assembliesFromEmail }) {
   const email = normalizeEmail(fromAddress)
 
   // Idempotency: if this email already spawned an order, return it
@@ -54,10 +69,16 @@ async function createOrderFromEmail({ messageId, title, fromAddress, fromName, s
   })
   if (existing?.orderId) {
     // Retroactively add assemblies if the order was created before AI parts existed
-    if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
+    const hasNodes  = Array.isArray(assembliesFromEmail)    && assembliesFromEmail.length    > 0
+    const hasNorm   = Array.isArray(normalizationResults)   && normalizationResults.length   > 0
+    if (hasNodes || hasNorm) {
       const asmCount = await prisma.assembly.count({ where: { orderId: existing.orderId } })
       if (asmCount === 0) {
-        await prisma.$transaction(tx => createAssembliesFromResults(tx, existing.orderId, normalizationResults))
+        if (hasNodes) {
+          await prisma.$transaction(tx => createAssembliesFromEmailNodes(tx, existing.orderId, assembliesFromEmail))
+        } else {
+          await prisma.$transaction(tx => createAssembliesFromResults(tx, existing.orderId, normalizationResults))
+        }
       }
     }
     return {
@@ -143,8 +164,10 @@ async function createOrderFromEmail({ messageId, title, fromAddress, fromName, s
       },
     })
 
-    // 5. Create Assembly + Parts from normalization results (if provided)
-    if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
+    // 5. Create Assemblies (nodes or material parts) — assembliesFromEmail takes priority
+    if (Array.isArray(assembliesFromEmail) && assembliesFromEmail.length > 0) {
+      await createAssembliesFromEmailNodes(tx, order.id, assembliesFromEmail)
+    } else if (Array.isArray(normalizationResults) && normalizationResults.length > 0) {
       await createAssembliesFromResults(tx, order.id, normalizationResults)
     }
 

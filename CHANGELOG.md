@@ -6,6 +6,13 @@
 
 ---
 
+## 2026-05-29
+
+### erp-metal
+- [feat] "КП из письма" теперь создаёт Узлы (Assembly) вместо материалов — каждая строка из письма становится изделием с пустым BOM, который заполняется позже из PDF/Excel
+- [feat] createOrderFromEmailService: добавлена `createAssembliesFromEmailNodes()` — если пришли `assembliesFromEmail`, создаются Assembly-записи; старый путь через `normalizationResults` сохранён
+- [feat] email-inbox.html: `createRfqFromEmail` вызывает `POST /api/ai-bom/extract-assemblies-from-text` с текстом письма вместо нормализации материалов
+
 ## 2026-05-28
 
 ### erp-metal
