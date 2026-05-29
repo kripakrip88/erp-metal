@@ -4,9 +4,10 @@ async function findAll({ search, profileType, categoryId, materialDomain, compan
   fastener_type, diameter_mm, coating, strength_class, din, thread_type, length_mm,
   page, limit, sortBy, sortDir }) {
 
-  const pageNum  = Math.max(1, parseInt(page)  || 1)
-  const pageSize = Math.min(200, Math.max(1, parseInt(limit) || 50))
-  const skip     = (pageNum - 1) * pageSize
+  const paginated = page != null && page !== ''
+  const pageNum   = Math.max(1, parseInt(page)  || 1)
+  const pageSize  = Math.min(200, Math.max(1, parseInt(limit) || 50))
+  const skip      = (pageNum - 1) * pageSize
 
   const SORTABLE = { diameter_mm: 'diameterMm', length_mm: 'lengthMm', strength_class: 'strengthClass', name: 'name', code: 'code' }
   const orderField = SORTABLE[sortBy] || null
@@ -30,22 +31,25 @@ async function findAll({ search, profileType, categoryId, materialDomain, compan
     ]} : {})
   }
 
+  const queryOpts = {
+    where,
+    include: { geometry: true, procurementProfiles: {
+      where: { isActive: true },
+      include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } }
+    }},
+    orderBy: orderField
+      ? [{ [orderField]: orderDir }]
+      : [{ profileType: 'asc' }, { code: 'asc' }],
+  }
+
+  if (!paginated) {
+    return prisma.materialDefinition.findMany(queryOpts)
+  }
+
   const [items, total] = await Promise.all([
-    prisma.materialDefinition.findMany({
-      where,
-      include: { geometry: true, procurementProfiles: {
-        where: { isActive: true },
-        include: { prices: { where: { validTo: null }, orderBy: { validFrom: 'desc' }, take: 1 } }
-      }},
-      orderBy: orderField
-        ? [{ [orderField]: orderDir }]
-        : [{ profileType: 'asc' }, { code: 'asc' }],
-      skip,
-      take: pageSize,
-    }),
+    prisma.materialDefinition.findMany({ ...queryOpts, skip, take: pageSize }),
     prisma.materialDefinition.count({ where }),
   ])
-
   return { items, total, page: pageNum, limit: pageSize, pages: Math.ceil(total / pageSize) }
 }
 

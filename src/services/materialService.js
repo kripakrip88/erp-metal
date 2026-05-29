@@ -3,7 +3,7 @@ const { getCompany } = require('../utils/company')
 
 async function listMaterials(params) {
   const company = await getCompany()
-  if (!company) return { items: [], total: 0, page: 1, limit: 50, pages: 0 }
+  if (!company) return []
   return materialRepo.findAll({ ...params, companyId: company.id })
 }
 
