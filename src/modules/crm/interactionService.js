@@ -1,5 +1,5 @@
-const prisma     = require('../repositories/prisma')
-const { getCompany } = require('../utils/company')
+const prisma     = require('../../repositories/prisma')
+const { getCompany } = require('../../utils/company')
 
 async function listInteractions(customerId, { limit = 50 } = {}) {
   return prisma.interaction.findMany({

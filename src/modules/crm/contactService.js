@@ -1,4 +1,4 @@
-const prisma = require('../repositories/prisma')
+const prisma = require('../../repositories/prisma')
 
 async function listContacts(customerId) {
   return prisma.contact.findMany({ where: { customerId }, orderBy: { name: 'asc' } })

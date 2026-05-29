@@ -76,7 +76,7 @@ const routes = [
   ...require('./src/routes/procurement'),
   ...require('./src/routes/inventory'),
   ...require('./src/routes/templates'),
-  ...require('./src/routes/customers'),
+  ...require('./src/modules/crm/routes'),
   ...require('./src/routes/files'),
   ...require('./src/routes/ordersFromEmail'),
   ...require('./src/routes/emailCopilot'),

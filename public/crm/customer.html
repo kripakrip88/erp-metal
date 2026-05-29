@@ -4,49 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>МеталлПро ERP — Карточка клиента</title>
-<script src="nav.js"></script>
-<style>
-.layout{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;}
-.info-card{padding:16px;}
-.info-title{font-weight:700;font-size:15px;margin-bottom:12px;}
-.info-row{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;}
-.info-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txts);}
-.info-value{font-size:13px;}
-.section-card{background:var(--panel);border:1px solid var(--brd);border-radius:8px;margin-top:12px;}
-.section-head{padding:10px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;}
-.section-head-title{font-weight:700;font-size:12.5px;}
-.contact-item{padding:10px 14px;border-bottom:1px solid var(--brd);}
-.contact-item:last-child{border-bottom:none;}
-.contact-name{font-weight:600;}
-.contact-meta{font-size:11.5px;color:var(--txts);}
-.tabs{display:flex;border-bottom:1px solid var(--brd);}
-.tab{padding:10px 18px;font-size:12.5px;font-weight:600;color:var(--txts);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;}
-.tab.on{color:var(--green);border-bottom-color:var(--green);}
-.tab-pane{display:none;}
-.tab-pane.on{display:block;}
-.interaction-item{padding:12px 14px;border-bottom:1px solid var(--brd);}
-.interaction-item:last-child{border-bottom:none;}
-.interaction-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.interaction-subject{font-weight:600;font-size:13px;}
-.interaction-body{font-size:12.5px;color:var(--txts);white-space:pre-wrap;}
-.interaction-meta{font-size:11px;color:var(--txts);margin-top:4px;}
-</style>
+<script src="../nav.js"></script>
+<link rel="stylesheet" href="crm.css">
 </head>
 <body>
 <div class="shell">
   <aside class="sb" id="erp-nav"></aside>
   <div class="main">
     <div class="topbar">
-      <button class="btn btn-secondary btn-sm" onclick="window.location.href='crm.html'">← Клиенты</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.location.href='index.html'">← Клиенты</button>
       <div class="topbar-title" id="page-title">Клиент</div>
       <div class="topbar-right">
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal()">Редактировать</button>
         <button class="btn btn-secondary btn-sm" onclick="openContactModal()">+ Контакт</button>
         <button class="btn btn-primary btn-sm" onclick="openRfqModal()">+ Заявка на КП</button>
       </div>
     </div>
     <div class="content">
       <div id="loading" style="text-align:center;padding:40px;color:var(--txts)">Загрузка...</div>
-      <div id="customer-layout" class="layout" style="display:none">
+      <div id="customer-layout" class="crm-layout" style="display:none">
         <div>
           <div class="card info-card">
             <div class="info-title" id="c-name"></div>
@@ -84,6 +60,38 @@
   </div>
 </div>
 
+<!-- Edit customer modal -->
+<div id="edit-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Редактировать клиента</div><button class="modal-close" onclick="closeEditModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Название компании *</label><input type="text" id="e-name" placeholder="ООО Металлконструкция"></div>
+      <div class="grid2">
+        <div class="field"><label>ИНН</label><input type="text" id="e-inn" placeholder="7700000000"></div>
+        <div class="field">
+          <label>Приоритет</label>
+          <select id="e-priority">
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="VIP">VIP</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Email</label><input type="email" id="e-email" placeholder="info@company.ru"></div>
+        <div class="field"><label>Телефон</label><input type="tel" id="e-phone" placeholder="+7 (999) 000-00-00"></div>
+      </div>
+      <div class="field"><label>Сайт</label><input type="url" id="e-website" placeholder="https://company.ru"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Отмена</button>
+      <button class="btn btn-primary" id="e-save-btn" onclick="saveEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add contact modal -->
 <div id="contact-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeContactModal()">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Добавить контакт</div><button class="modal-close" onclick="closeContactModal()">✕</button></div>
@@ -102,6 +110,7 @@
   </div>
 </div>
 
+<!-- RFQ modal -->
 <div id="rfq-modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeRfqModal()">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Заявка на КП</div><button class="modal-close" onclick="closeRfqModal()">✕</button></div>
@@ -189,7 +198,7 @@ function renderOrders(list) {
   var tbody = document.getElementById('orders-tbody');
   if (!list.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Заказов нет</div></td></tr>'; return; }
   tbody.innerHTML = list.map(function(o){
-    return '<tr class="clickable" onclick="window.location.href=\'orders.html\'">' +
+    return '<tr class="clickable" onclick="window.location.href=\'../simulator.html?orderId=' + o.id + '\'">' +
       '<td class="mono" style="color:var(--blue);font-weight:700">'+ERP.esc(o.orderNumber)+'</td>' +
       '<td>'+ERP.esc(o.title)+'</td>' +
       '<td>'+statusBadge(o.status)+'</td>' +
@@ -201,14 +210,23 @@ function renderOrders(list) {
 function renderInteractions(list) {
   var el = document.getElementById('interactions-list');
   if (!list.length) { el.innerHTML = '<div class="empty">Взаимодействий нет</div>'; return; }
-  el.innerHTML = list.map(function(i){
-    return '<div class="interaction-item">' +
-      '<div class="interaction-head">'+typeBadge(i.type)+dirBadge(i.direction)+(i.contact?'<span style="font-size:11.5px;color:var(--txts)">'+ERP.esc(i.contact.name)+'</span>':'')+'</div>' +
+  el.innerHTML = list.map(function(i, idx){
+    var hasBody = i.body && i.body.trim();
+    return '<div class="interaction-item" onclick="toggleInteraction('+idx+')">' +
+      '<div class="interaction-head">'+typeBadge(i.type)+dirBadge(i.direction)+(i.contact?'<span style="font-size:11.5px;color:var(--txts)">'+ERP.esc(i.contact.name)+'</span>':'')+(hasBody?'<span class="interaction-expand" id="expand-icon-'+idx+'">▸</span>':'')+'</div>' +
       (i.subject ? '<div class="interaction-subject">'+ERP.esc(i.subject)+'</div>' : '') +
-      (i.body ? '<div class="interaction-body">'+ERP.esc(i.body)+'</div>' : '') +
+      (hasBody ? '<div class="interaction-body" id="interaction-body-'+idx+'">'+ERP.esc(i.body)+'</div>' : '') +
       '<div class="interaction-meta">'+fmtDate(i.createdAt)+(i.createdBy?' · '+ERP.esc(i.createdBy.firstName+' '+i.createdBy.lastName):'')+'</div>' +
     '</div>';
   }).join('');
+}
+
+function toggleInteraction(idx) {
+  var body = document.getElementById('interaction-body-' + idx);
+  var icon = document.getElementById('expand-icon-' + idx);
+  if (!body) return;
+  var expanded = body.classList.toggle('expanded');
+  if (icon) icon.textContent = expanded ? '▾' : '▸';
 }
 
 function switchTab(name, btn) {
@@ -218,6 +236,47 @@ function switchTab(name, btn) {
   document.getElementById('tab-interactions').classList.toggle('on', name==='interactions');
 }
 
+/* Edit customer */
+function openEditModal() {
+  if (!customer) return;
+  document.getElementById('e-name').value = customer.name || '';
+  document.getElementById('e-inn').value = customer.inn || '';
+  document.getElementById('e-email').value = customer.email || '';
+  document.getElementById('e-phone').value = customer.phone || '';
+  document.getElementById('e-website').value = customer.website || '';
+  document.getElementById('e-priority').value = customer.priority || 'NORMAL';
+  document.getElementById('edit-modal-bg').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('e-name').focus(); }, 50);
+}
+function closeEditModal() { document.getElementById('edit-modal-bg').style.display = 'none'; }
+
+async function saveEdit() {
+  var name = document.getElementById('e-name').value.trim();
+  if (!name) { ERP.toast('Введите название компании', 'error'); return; }
+  var btn = document.getElementById('e-save-btn');
+  btn.disabled = true;
+  try {
+    var r = await ERP.authFetch('/api/customers/' + customerId, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: name,
+        inn:      document.getElementById('e-inn').value.trim() || null,
+        email:    document.getElementById('e-email').value.trim() || null,
+        phone:    document.getElementById('e-phone').value.trim() || null,
+        website:  document.getElementById('e-website').value.trim() || null,
+        priority: document.getElementById('e-priority').value,
+      }),
+    });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    closeEditModal();
+    ERP.toast('Сохранено', 'success');
+    loadCustomer();
+  } catch(e) { ERP.toast(e.message, 'error'); }
+  finally { btn.disabled = false; }
+}
+
+/* Add contact */
 function openContactModal() {
   ['ct-name','ct-position','ct-email','ct-phone'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('contact-modal-bg').style.display = 'flex';
@@ -249,6 +308,7 @@ async function saveContact() {
   finally { btn.disabled = false; }
 }
 
+/* RFQ */
 function openRfqModal() {
   document.getElementById('rfq-title').value = '';
   document.getElementById('rfq-desc').value = '';
@@ -277,13 +337,13 @@ async function saveRfq() {
     if (!r.ok) throw new Error(data.error || 'Ошибка');
     closeRfqModal();
     ERP.toast('Заявка создана', 'success');
-    window.location.href = 'simulator.html?orderId=' + data.id;
+    window.location.href = '../simulator.html?orderId=' + data.id;
   } catch(e) { ERP.toast(e.message, 'error'); }
   finally { btn.disabled = false; }
 }
 
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape') { closeContactModal(); closeRfqModal(); }
+  if (e.key === 'Escape') { closeEditModal(); closeContactModal(); closeRfqModal(); }
 });
 
 loadCustomer();
