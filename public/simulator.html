@@ -1177,10 +1177,11 @@ function flatCats(cats, depth = 0) {
 async function loadMats() {
   try {
     showLoader(true);
-    const [catsData, matsData] = await Promise.all([
+    const [catsData, matsRaw] = await Promise.all([
       fetch(`${API}/api/material-categories`).then(r => r.json()),
-      fetch(`${API}/api/materials`).then(r => r.json()),
+      fetch(`${API}/api/materials?limit=9999`).then(r => r.json()),
     ]);
+    const matsData = Array.isArray(matsRaw) ? matsRaw : (matsRaw.items || []);
     _catSlugMap = {};
     CATS = [{ id: 'all', label: 'Все' }, ...flatCats(catsData), { id: 'uncategorized', label: 'Без категории' }];
     MATS = matsData.map(m => {
