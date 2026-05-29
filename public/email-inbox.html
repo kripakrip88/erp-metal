@@ -696,69 +696,27 @@ async function createRfqFromEmail(id) {
   if (!title) return;
 
   try {
-    var extractedItems = (msg.aiExtracted && msg.aiExtracted.items) ? msg.aiExtracted.items : [];
-
-    // Всегда строим fallback из сырых позиций — они попадут в расчёт даже без нормализации
-    function buildFallback(items) {
-      return items.map(function(item) {
-        return {
-          normalization_result_id:   null,
-          raw_text:                  item.name || item.description || item.raw_text || '',
-          confirmed_material_erp_id: null,
-          confirmed_material_name:   null,
-          quantity:                  item.qty || item.quantity || 1,
-          unit:                      item.unit || 'м',
-          confidence:                0,
-          match_method:              'no_match',
-          status:                    'no_match',
-          assembly_name:             'Основной узел',
-        };
-      });
-    }
-
-    var normalizationResults = extractedItems.length ? buildFallback(extractedItems) : [];
-
-    // Попытка нормализации — улучшаем fallback если AI Polygon доступен
-    if (extractedItems.length) {
+    // Extract assemblies from email body via AI Polygon.
+    // bodyText may be absent when email is HTML-only — fall back to bodyHtml stripped of tags.
+    var assembliesFromEmail = [];
+    var rawForAi = msg.bodyText || (msg.bodyHtml || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (rawForAi.trim()) {
       try {
-        var normResp = await ERP.authFetch('/api/normalization/match', {
+        var aiResp = await ERP.authFetch('/api/ai-bom/extract-assemblies-from-text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: extractedItems.map(function(item) {
-              return {
-                extraction_item_id: item.id || null,
-                raw_text:           item.name || item.description || item.raw_text || '',
-                quantity:           item.qty  || item.quantity    || 1,
-                unit:               item.unit || 'м',
-                supplier_name:      (msg.aiExtracted && msg.aiExtracted.company) || null,
-              };
-            })
-          })
+          body: JSON.stringify({ text: rawForAi }),
         });
-        if (normResp.ok) {
-          var normData = await normResp.json();
-          var mapped = (normData.results || []).map(function(r, i) {
-            var bestCandidate = r.candidates && r.candidates[0];
-            var autoConfirm   = r.best_score >= 0.85 && bestCandidate;
-            var src = extractedItems[i] || {};
-            return {
-              normalization_result_id:   r.normalization_result_id || null,
-              raw_text:                  r.raw_text || src.name || src.description || '',
-              confirmed_material_erp_id: autoConfirm ? bestCandidate.material_erp_id : null,
-              confirmed_material_name:   autoConfirm ? bestCandidate.name : null,
-              quantity:                  src.qty || src.quantity || 1,
-              unit:                      src.unit || 'м',
-              confidence:                r.best_score || 0,
-              match_method:              r.match_method || null,
-              status:                    autoConfirm ? 'confirmed' : (r.match_method === 'no_match' ? 'no_match' : 'pending'),
-              assembly_name:             'Основной узел',
-            };
-          });
-          if (mapped.length) normalizationResults = mapped;
+        if (aiResp.ok) {
+          var aiData = await aiResp.json();
+          assembliesFromEmail = aiData.assemblies || [];
+        } else {
+          console.warn('[ERP] extract-assemblies-from-text returned', aiResp.status);
+          ERP.toast('AI не смог распознать позиции (' + aiResp.status + ')', 'warn');
         }
-      } catch(ne) {
-        console.warn('[ERP] Normalization unavailable, using raw items as no_match:', ne.message);
+      } catch(ae) {
+        console.warn('[ERP] extract-assemblies-from-text unavailable:', ae.message);
+        ERP.toast('AI-сервис недоступен, заказ будет создан без узлов', 'warn');
       }
     }
 
@@ -768,19 +726,21 @@ async function createRfqFromEmail(id) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
       body: JSON.stringify({
-        messageId:   id,
-        title:       title,
-        fromAddress: msg.fromAddress || '',
-        fromName:    msg.fromName    || '',
-        subject:     msg.subject     || '',
-        normalizationResults: normalizationResults.length ? normalizationResults : undefined,
+        messageId:          id,
+        title:              title,
+        fromAddress:        msg.fromAddress || '',
+        fromName:           msg.fromName    || '',
+        subject:            msg.subject     || '',
+        assembliesFromEmail: assembliesFromEmail.length ? assembliesFromEmail : undefined,
       }),
     });
     var data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Ошибка');
 
     var label = data.created ? 'Заказ создан' : 'Заказ уже существует';
-    var posMsg = normalizationResults.length ? ' · ' + normalizationResults.length + ' позиций' : '';
+    var posMsg = assembliesFromEmail.length
+      ? ' · ' + assembliesFromEmail.length + ' узлов'
+      : ' · узлы не распознаны';
     ERP.toast(label + ' — ' + data.orderNumber + posMsg, 'success');
     if (data.orderId && confirm(label + ': ' + data.orderNumber + '\n\nОткрыть в калькуляторе КП?'))
       window.location.href = 'simulator.html?orderId=' + data.orderId;
