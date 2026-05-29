@@ -6,6 +6,13 @@
 
 ---
 
+## 2026-05-29 (Step D)
+
+### erp-metal
+- [feat] POST /internal/bom-extracted — принимает callback от metalpro-ai-polygon, создаёт Part-записи в BOM узла из items[], обновляет description узла на "BOM требует подтверждения"
+- [feat] Graceful degradation: при status=failed записывает ошибку в description узла, не падает
+- [config] /internal/bom-extracted добавлен в PUBLIC_PATHS (вызывается сервером без JWT)
+
 ## 2026-05-29
 
 ### erp-metal
