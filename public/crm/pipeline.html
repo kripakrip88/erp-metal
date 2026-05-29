@@ -12,7 +12,7 @@
   <aside class="sb" id="erp-nav"></aside>
   <div class="main">
     <div class="topbar">
-      <span class="topbar-title">CRM <span style="font-size:10px;color:var(--txts);font-weight:400">v2</span></span>
+      <span class="topbar-title">CRM</span>
       <div class="tb-filter">
         <input type="text" id="search-inp" placeholder="Поиск по названию или клиенту…" oninput="filterCards(this.value)">
         <span class="tb-total" id="total-badge">—</span>
@@ -109,6 +109,11 @@ function renderCard(o) {
 
 function bindDrag() {
   document.querySelectorAll('.pl-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (!card.classList.contains('dragging')) {
+        openOrder(e, card.dataset.id);
+      }
+    });
     card.addEventListener('dragstart', function(e) {
       onDragStart(e, card.dataset.id, card.dataset.status);
     });
