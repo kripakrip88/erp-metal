@@ -149,19 +149,19 @@
   // ── Nav items ─────────────────────────────────────────────────────────────────
   var NAV = [
     { group: 'Workflow', items: [
-      { id: 'orders',    href: 'orders.html',       ico: '▤',  label: 'Журнал заказов' },
-      { id: 'simulator', href: 'simulator.html',    ico: '◈',  label: 'Расчёт КП' },
+      { id: 'orders',    href: '/orders.html',       ico: '▤',  label: 'Журнал заказов' },
+      { id: 'simulator', href: '/simulator.html',    ico: '◈',  label: 'Расчёт КП' },
     ]},
     { group: 'CRM', items: [
-      { id: 'pipeline',  href: 'pipeline.html',     ico: '⬛',  label: 'CRM' },
-      { id: 'crm',       href: 'crm.html',          ico: '◉',  label: 'Клиенты' },
-      { id: 'email',     href: 'email-inbox.html',  ico: '✉',  label: 'Входящие' },
+      { id: 'pipeline',  href: '/crm/pipeline.html',  ico: '⬛',  label: 'CRM' },
+      { id: 'crm',       href: '/crm/index.html',    ico: '◉',  label: 'Клиенты' },
+      { id: 'email',     href: '/email-inbox.html',  ico: '✉',  label: 'Входящие' },
     ]},
     { group: 'Справочники', items: [
-      { id: 'materials',         href: 'materials.html',          ico: '⬡',  label: 'Металлопрокат' },
-      { id: 'fasteners',         href: 'fasteners.html',          ico: '⬡',  label: 'Метизы' },
-      { id: 'coating-materials', href: 'coating-materials.html',  ico: '◫',  label: 'ЛКМ' },
-      { id: 'templates',         href: 'templates.html',          ico: '⬤',  label: 'Шаблоны' },
+      { id: 'materials',         href: '/materials.html',          ico: '⬡',  label: 'Металлопрокат' },
+      { id: 'fasteners',         href: '/fasteners.html',          ico: '⬡',  label: 'Метизы' },
+      { id: 'coating-materials', href: '/coating-materials.html',  ico: '◫',  label: 'ЛКМ' },
+      { id: 'templates',         href: '/templates.html',          ico: '⬤',  label: 'Шаблоны' },
     ]},
   ];
 

@@ -16,6 +16,11 @@
 ## 2026-05-29
 
 ### erp-metal
+- [migration] prisma — добавлены fastener-поля в `material_definitions`: `gost`, `fastenerType`, `diameterMm`, `lengthMm`, `threadType`, `coating`, `weightRequired`, `weightNote`
+- [feat] scripts/import-metiz.js — скрипт импорта метизов из IMPORT_METIZ_FINAL.csv (1170 позиций, дедупликация, ProcurementProfile для "Метиз Центр")
+- [feat] GET /api/materials — расширен фильтрами по характеристикам метизов + пагинация + сортировка
+- [feat] GET /api/materials/fastener-filters — новый эндпоинт: уникальные значения для динамических фильтров
+- [feat] fasteners.html — полный редизайн: табы Болты/Гайки/Шайбы с количеством, динамические фильтры, таблицы с колонками по типу, сортировка, пагинация 50/стр, детальная карточка метиза
 - [feat] "КП из письма" теперь создаёт Узлы (Assembly) вместо материалов — каждая строка из письма становится изделием с пустым BOM, который заполняется позже из PDF/Excel
 - [feat] createOrderFromEmailService: добавлена `createAssembliesFromEmailNodes()` — если пришли `assembliesFromEmail`, создаются Assembly-записи; старый путь через `normalizationResults` сохранён
 - [feat] email-inbox.html: `createRfqFromEmail` вызывает `POST /api/ai-bom/extract-assemblies-from-text` с текстом письма вместо нормализации материалов

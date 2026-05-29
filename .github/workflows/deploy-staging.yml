@@ -22,5 +22,18 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /var/www/erp-metal-staging
+            git pull origin develop
+            npm install --production
+            set -a; [ -f .env ] && source .env; set +a
+            npx prisma migrate deploy
+            npx prisma generate
             bash deploy.sh
             node scripts/emergency-reset-staging.js
+            node -e "
+              const { PrismaClient } = require('@prisma/client');
+              const p = new PrismaClient();
+              p.materialDefinition.count({ where: { materialDomain: 'FASTENER', deletedAt: null } })
+                .then(n => { console.log('Fasteners in DB:', n); process.exit(n > 0 ? 0 : 1); })
+                .catch(() => process.exit(1))
+                .finally(() => p.\$disconnect());
+            " || node scripts/import-metiz.js IMPORT_METIZ_FINAL.csv

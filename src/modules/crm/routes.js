@@ -1,10 +1,10 @@
-const { json }      = require('../utils/response')
-const { parseBody } = require('../utils/parseBody')
+const { json }      = require('../../utils/response')
+const { parseBody } = require('../../utils/parseBody')
 const {
   listCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer,
-} = require('../services/customerService')
-const { listContacts, createContact, updateContact, deleteContact } = require('../services/contactService')
-const { listInteractions, createInteraction } = require('../services/interactionService')
+} = require('./customerService')
+const { listContacts, createContact, updateContact, deleteContact } = require('./contactService')
+const { listInteractions, createInteraction } = require('./interactionService')
 
 module.exports = [
   { method: 'GET', pathname: '/api/customers', handler: async (req, res, params, query) => {
