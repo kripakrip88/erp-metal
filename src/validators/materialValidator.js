@@ -45,6 +45,14 @@ function validateMaterial(body) {
     weightPerSquareMeter:      num(body.weightPerSquareMeter),
     paintSurfacePerMeter:      num(body.paintSurfacePerMeter),
     unitWeightKg,
+    gost:          body.gost         || null,
+    fastenerType:  body.fastenerType  || null,
+    diameterMm:    num(body.diameterMm),
+    lengthMm:      num(body.lengthMm),
+    threadType:    body.threadType    || null,
+    coating:       body.coating       || null,
+    weightRequired: Boolean(body.weightRequired),
+    weightNote:    body.weightNote    || null,
   }
 }
 
