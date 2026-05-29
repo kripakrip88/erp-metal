@@ -14,36 +14,53 @@
     <div class="topbar">
       <div class="topbar-title">Клиенты</div>
       <div class="topbar-right">
+        <div class="crm-search-wrap">
+          <span class="crm-search-ico">⌕</span>
+          <input type="text" id="search-inp" class="crm-search-inp" placeholder="Поиск..." oninput="onSearch(this.value)">
+        </div>
+        <span class="crm-total-badge" id="crm-count"></span>
         <button class="btn btn-primary" onclick="openCreate()">+ Новый клиент</button>
       </div>
     </div>
-    <div class="content">
-      <div class="controls">
-        <div class="ctrl-search">
-          <span class="ico">🔍</span>
-          <input type="text" id="search-inp" placeholder="Поиск по названию..." oninput="onSearch(this.value)">
+
+    <div class="crm-board" id="crm-board">
+      <div class="crm-col" data-priority="VIP">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#f59e0b"></span>
+          <span class="crm-col-title">VIP</span>
+          <span class="crm-col-count" id="cnt-VIP">0</span>
         </div>
-        <span class="count-lbl" id="crm-count"></span>
+        <div class="crm-col-body" id="col-VIP"></div>
       </div>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Компания</th>
-              <th>ИНН</th>
-              <th>Email</th>
-              <th>Телефон</th>
-              <th>Заказов</th>
-              <th>Приоритет</th>
-            </tr>
-          </thead>
-          <tbody id="crm-tbody"></tbody>
-        </table>
+      <div class="crm-col" data-priority="HIGH">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#3b82f6"></span>
+          <span class="crm-col-title">High</span>
+          <span class="crm-col-count" id="cnt-HIGH">0</span>
+        </div>
+        <div class="crm-col-body" id="col-HIGH"></div>
+      </div>
+      <div class="crm-col" data-priority="NORMAL">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#8b9ab0"></span>
+          <span class="crm-col-title">Normal</span>
+          <span class="crm-col-count" id="cnt-NORMAL">0</span>
+        </div>
+        <div class="crm-col-body" id="col-NORMAL"></div>
+      </div>
+      <div class="crm-col" data-priority="LOW">
+        <div class="crm-col-head">
+          <span class="crm-col-dot" style="background:#4a5568"></span>
+          <span class="crm-col-title">Low</span>
+          <span class="crm-col-count" id="cnt-LOW">0</span>
+        </div>
+        <div class="crm-col-body" id="col-LOW"></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- New customer modal -->
 <div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
@@ -80,43 +97,71 @@
 <script>
 ERP.init('crm');
 
+var allCustomers = [];
 var searchTimer = null;
 
-function priorityBadge(p) {
-  var map = { VIP: 'b-vip', HIGH: 'b-high', NORMAL: 'b-normal', LOW: 'b-low' };
-  return '<span class="badge ' + (map[p] || 'b-normal') + '">' + p + '</span>';
-}
+var PRIORITY_ORDER = ['VIP', 'HIGH', 'NORMAL', 'LOW'];
+
+var STATUS_RU = {
+  DRAFT:'Новый запрос', QUOTATION:'На рассмотрении', AWAITING_APPROVAL:'Расчёт цены',
+  APPROVED:'КП отправлено', PRODUCTION:'В производстве', COMPLETED:'Готово',
+  DELIVERED:'Сдан', CANCELLED:'Отменён'
+};
+
+var STATUS_COLOR = {
+  DRAFT:'#8b9ab0', QUOTATION:'#3b82f6', AWAITING_APPROVAL:'#f59e0b',
+  APPROVED:'#06b6d4', PRODUCTION:'#10b981', COMPLETED:'#10b981',
+  DELIVERED:'#8b5cf6', CANCELLED:'#ef4444'
+};
 
 async function loadCustomers(search) {
-  search = search || '';
   try {
     var url = '/api/customers' + (search ? '?search=' + encodeURIComponent(search) : '');
     var r = await ERP.authFetch(url);
     var data = await r.json();
-    renderTable(Array.isArray(data) ? data : []);
+    allCustomers = Array.isArray(data) ? data : [];
+    renderBoard(allCustomers);
   } catch(e) {
     ERP.toast('Ошибка загрузки', 'error');
   }
 }
 
-function renderTable(list) {
-  var tbody = document.getElementById('crm-tbody');
-  var cnt = list.length;
-  document.getElementById('crm-count').textContent = cnt + ' клиент' + (cnt===1?'':cnt<5?'а':'ов');
-  if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Клиентов пока нет</div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = list.map(function(c){
-    return '<tr class="clickable" onclick="window.location.href=\'customer.html?id=' + c.id + '\'">' +
-      '<td><strong>' + ERP.esc(c.name) + '</strong></td>' +
-      '<td class="mono">' + ERP.esc(c.inn || '—') + '</td>' +
-      '<td>' + ERP.esc(c.email || '—') + '</td>' +
-      '<td>' + ERP.esc(c.phone || '—') + '</td>' +
-      '<td><span class="mono">' + (c._count && c._count.orders != null ? c._count.orders : 0) + '</span></td>' +
-      '<td>' + priorityBadge(c.priority) + '</td>' +
-    '</tr>';
-  }).join('');
+function renderBoard(list) {
+  var total = list.length;
+  document.getElementById('crm-count').textContent = total + ' клиент' + (total===1?'':total<5?'а':'ов');
+
+  PRIORITY_ORDER.forEach(function(p) {
+    var items = list.filter(function(c){ return c.priority === p; });
+    document.getElementById('cnt-' + p).textContent = items.length;
+    var col = document.getElementById('col-' + p);
+    if (!items.length) {
+      col.innerHTML = '<div class="crm-col-empty">Нет клиентов</div>';
+      return;
+    }
+    col.innerHTML = items.map(renderCard).join('');
+  });
+}
+
+function renderCard(c) {
+  var orderCount = c._count && c._count.orders != null ? c._count.orders : 0;
+  var intCount   = c._count && c._count.interactions != null ? c._count.interactions : 0;
+  var topContact = c.contacts && c.contacts[0];
+
+  var meta = [];
+  if (c.inn)   meta.push('<span class="crm-card-meta-item">ИНН ' + ERP.esc(c.inn) + '</span>');
+  if (c.email) meta.push('<span class="crm-card-meta-item">' + ERP.esc(c.email) + '</span>');
+  if (c.phone) meta.push('<span class="crm-card-meta-item">' + ERP.esc(c.phone) + '</span>');
+
+  return '<div class="crm-card" onclick="window.location.href=\'customer.html?id=' + c.id + '\'">' +
+    '<div class="crm-card-name">' + ERP.esc(c.name) + '</div>' +
+    (meta.length ? '<div class="crm-card-meta">' + meta.join('') + '</div>' : '') +
+    (topContact ? '<div class="crm-card-contact">◉ ' + ERP.esc(topContact.name) + (topContact.position ? ' · ' + ERP.esc(topContact.position) : '') + '</div>' : '') +
+    '<div class="crm-card-footer">' +
+      '<span class="crm-card-stat" title="Заказов">⬡ ' + orderCount + '</span>' +
+      (intCount ? '<span class="crm-card-stat" title="Взаимодействий">◈ ' + intCount + '</span>' : '') +
+      '<span class="crm-card-arrow">→</span>' +
+    '</div>' +
+  '</div>';
 }
 
 function onSearch(val) {
@@ -124,9 +169,9 @@ function onSearch(val) {
   searchTimer = setTimeout(function(){ loadCustomers(val); }, 300);
 }
 
-function openCreate() {
+function openCreate(priority) {
   ['f-name','f-inn','f-email','f-phone','f-website'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('f-priority').value = 'NORMAL';
+  document.getElementById('f-priority').value = priority || 'NORMAL';
   document.getElementById('modal-bg').style.display = 'flex';
   setTimeout(function(){ document.getElementById('f-name').focus(); }, 50);
 }
@@ -142,7 +187,7 @@ async function saveCustomer() {
     var r = await ERP.authFetch('/api/customers', {
       method: 'POST',
       body: JSON.stringify({
-        name: name,
+        name:     name,
         inn:      document.getElementById('f-inn').value.trim() || null,
         email:    document.getElementById('f-email').value.trim() || null,
         phone:    document.getElementById('f-phone').value.trim() || null,
