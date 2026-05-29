@@ -6,7 +6,7 @@ async function findAll({ search, profileType, categoryId, materialDomain, compan
 
   const paginated = page != null && page !== ''
   const pageNum   = Math.max(1, parseInt(page)  || 1)
-  const pageSize  = Math.min(200, Math.max(1, parseInt(limit) || 50))
+  const pageSize  = Math.min(9999, Math.max(1, parseInt(limit) || 50))
   const skip      = (pageNum - 1) * pageSize
 
   const SORTABLE = { diameter_mm: 'diameterMm', length_mm: 'lengthMm', strength_class: 'strengthClass', name: 'name', code: 'code' }
