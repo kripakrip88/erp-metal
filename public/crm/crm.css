@@ -1,6 +1,74 @@
 /* CRM module — isolated styles */
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   DEAL DRAWER (pipeline.html)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dr-section {
+  border-bottom: 1px solid var(--brd);
+  padding: 14px 18px;
+}
+.dr-section:last-child { border-bottom: none; }
+
+.dr-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--txts); margin-bottom: 10px;
+}
+
+.dr-description {
+  font-size: 12.5px; color: var(--txts); white-space: pre-wrap;
+  line-height: 1.55; max-height: 160px; overflow-y: auto;
+  background: var(--card); border: 1px solid var(--brd);
+  border-radius: 6px; padding: 10px 12px;
+}
+
+/* Stats */
+.dr-stats-row { display: flex; gap: 8px; }
+.dr-stat-box {
+  flex: 1; background: var(--card); border: 1px solid var(--brd);
+  border-radius: 6px; padding: 8px 10px;
+}
+.dr-stat-box--accent { border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.05); }
+.dr-stat-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--txts); margin-bottom: 4px; }
+.dr-stat-val   { font-size: 13px; font-weight: 700; color: var(--txt); font-family: var(--ffm); }
+.dr-stat-box--accent .dr-stat-val { color: var(--green); }
+
+/* Assembly blocks */
+.dr-asm-block { margin-bottom: 8px; }
+.dr-asm-block:last-child { margin-bottom: 0; }
+
+.dr-asm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; background: var(--panel); border: 1px solid var(--brd);
+  border-radius: 6px 6px 0 0; margin-bottom: 1px;
+}
+.dr-asm-name   { font-size: 12px; font-weight: 700; color: var(--txt); }
+.dr-asm-totals { font-size: 11px; color: var(--txts); font-family: var(--ffm); }
+
+.dr-parts-list {
+  border: 1px solid var(--brd); border-top: none;
+  border-radius: 0 0 6px 6px; overflow: hidden;
+}
+.dr-part-row {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  gap: 8px; align-items: center;
+  padding: 6px 8px; border-bottom: 1px solid var(--brd);
+  font-size: 11.5px;
+}
+.dr-part-row:last-child { border-bottom: none; }
+.dr-part-row:nth-child(even) { background: rgba(255,255,255,.02); }
+.dr-part-name   { color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-part-qty    { color: var(--txts); font-size: 11px; }
+.dr-part-weight { color: var(--txts); font-size: 11px; }
+.dr-part-cost   { color: var(--txt); font-size: 11px; text-align: right; }
+
+/* Contacts */
+.dr-contact-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.dr-contact-row:last-child { margin-bottom: 0; }
+.dr-contact-name   { font-size: 12.5px; font-weight: 600; color: var(--txt); }
+.dr-contact-detail { font-size: 11.5px; color: var(--txts); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CUSTOMER DRAWER (index.html — slide-in panel)
    ═══════════════════════════════════════════════════════════════════════════ */
 

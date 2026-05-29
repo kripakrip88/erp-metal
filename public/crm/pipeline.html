@@ -22,6 +22,28 @@
   </div>
 </div>
 
+<!-- Deal drawer -->
+<div id="deal-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="deal-drawer" class="order-drawer">
+
+  <div class="drawer-head">
+    <div style="min-width:0;flex:1">
+      <div class="drawer-order-num" id="dr-num"></div>
+      <div class="drawer-order-title" id="dr-title"></div>
+    </div>
+    <button class="modal-close" onclick="closeDrawer()">✕</button>
+  </div>
+
+  <div class="drawer-body" id="dr-body">
+    <div style="padding:24px;text-align:center;color:var(--txts)">Загрузка…</div>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" onclick="closeDrawer()">Закрыть</button>
+    <button class="btn btn-primary btn-sm" id="dr-calc-btn">Открыть расчёт →</button>
+  </div>
+</div>
+
 <script>
 ERP.init('pipeline');
 
@@ -34,11 +56,37 @@ var COLS = [
   { status: 'CANCELLED',         label: 'Потеряно',        hint: 'Отклонено или отменено' },
 ];
 
+var STATUS_RU = {
+  DRAFT:'Новый запрос', QUOTATION:'На рассмотрении', AWAITING_APPROVAL:'Расчёт цены',
+  APPROVED:'КП отправлено', PRODUCTION:'В производстве', COMPLETED:'Готово',
+  DELIVERED:'Сдан', CANCELLED:'Отменён'
+};
+var STATUS_CLS = {
+  DRAFT:'b-draft', QUOTATION:'b-quotation', AWAITING_APPROVAL:'b-awaiting',
+  APPROVED:'b-approved', PRODUCTION:'b-production', COMPLETED:'b-completed',
+  DELIVERED:'b-delivered', CANCELLED:'b-cancelled'
+};
+
 var allOrders = [];
 var filterQ   = '';
 var draggingId = null;
 var draggingFromStatus = null;
+var isDragging = false;
 
+function statusBadge(s) {
+  return '<span class="badge '+(STATUS_CLS[s]||'b-draft')+'">'+(STATUS_RU[s]||s)+'</span>';
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function fmtNum(n, dec) {
+  if (n == null || n === '') return '—';
+  return Number(n).toLocaleString('ru-RU',{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0});
+}
+function fmtMoney(n) { return n == null ? '—' : fmtNum(n,0)+' ₽'; }
+
+/* ── Load ─────────────────────────────────────────────────────────────────── */
 async function load() {
   try {
     var r = await ERP.authFetch('/api/orders');
@@ -50,6 +98,7 @@ async function load() {
   } catch(e) { ERP.toast('Ошибка загрузки: ' + e.message, 'error'); }
 }
 
+/* ── Render board ─────────────────────────────────────────────────────────── */
 function render() {
   var q = filterQ.toLowerCase();
   var pipeline = document.getElementById('pipeline');
@@ -103,19 +152,22 @@ function renderCard(o) {
       '<span class="pl-card-age">' + ageStr + '</span>' +
       (asmCount ? '<span class="pl-card-asm">⬡ ' + asmCount + '</span>' : '') +
     '</div>' +
-    '<button class="pl-card-open" onclick="openOrder(event,\'' + o.id + '\')">→</button>' +
   '</div>';
 }
 
+/* ── Drag & drop ──────────────────────────────────────────────────────────── */
 function bindDrag() {
   document.querySelectorAll('.pl-card').forEach(function(card) {
-    card.addEventListener('click', function(e) {
-      if (!card.classList.contains('dragging')) {
-        openOrder(e, card.dataset.id);
-      }
-    });
+    card.addEventListener('mousedown', function() { isDragging = false; });
     card.addEventListener('dragstart', function(e) {
+      isDragging = true;
       onDragStart(e, card.dataset.id, card.dataset.status);
+    });
+    card.addEventListener('click', function() {
+      if (!isDragging) openDrawer(card.dataset.id);
+    });
+    card.addEventListener('dragend', function() {
+      setTimeout(function(){ isDragging = false; }, 50);
     });
   });
 }
@@ -146,8 +198,7 @@ async function onDrop(e, targetStatus) {
   e.preventDefault();
   document.querySelectorAll('.pl-col-body').forEach(function(b){ b.classList.remove('drag-over'); });
   document.querySelectorAll('.pl-card.dragging').forEach(function(c){ c.classList.remove('dragging'); });
-
-  if (!draggingId || targetStatus === draggingFromStatus) return;
+  if (!draggingId || targetStatus === draggingFromStatus) { draggingId = null; return; }
 
   try {
     var resp = await ERP.authFetch('/api/orders/' + draggingId + '/status', {
@@ -165,27 +216,154 @@ async function onDrop(e, targetStatus) {
     ERP.toast(e.message || 'Ошибка перемещения', 'error');
     render();
   }
-
   draggingId = null;
-  draggingFromStatus = null;
 }
 
-function openOrder(e, id) {
-  e.stopPropagation();
-  window.location.href = '../simulator.html?orderId=' + id;
+/* ── Drawer ───────────────────────────────────────────────────────────────── */
+function openDrawer(orderId) {
+  var overlay = document.getElementById('deal-overlay');
+  var drawer  = document.getElementById('deal-drawer');
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+
+  document.getElementById('dr-num').textContent   = '…';
+  document.getElementById('dr-title').textContent = '…';
+  document.getElementById('dr-body').innerHTML    = '<div style="padding:24px;text-align:center;color:var(--txts)">Загрузка…</div>';
+  document.getElementById('dr-calc-btn').onclick  = function(){ window.location.href = '../simulator.html?orderId=' + orderId; };
+
+  // Load order + revisions in parallel
+  Promise.all([
+    ERP.authFetch('/api/orders/' + orderId).then(function(r){ return r.json(); }),
+    ERP.authFetch('/api/orders/' + orderId + '/revisions').then(function(r){ return r.json(); }),
+  ]).then(function(results) {
+    var order = results[0];
+    var revisions = Array.isArray(results[1]) ? results[1] : [];
+    var rev = revisions[0]; // latest revision
+
+    document.getElementById('dr-num').textContent   = order.orderNumber || '—';
+    document.getElementById('dr-title').textContent = order.title || '—';
+
+    renderDrawerBody(order, rev);
+
+    // Load customer contacts if customerId exists
+    if (order.customerId) {
+      ERP.authFetch('/api/customers/' + order.customerId).then(function(r){ return r.json(); }).then(function(c){
+        var contactsEl = document.getElementById('dr-contacts');
+        if (!contactsEl) return;
+        if (c.contacts && c.contacts.length) {
+          contactsEl.innerHTML = c.contacts.map(function(ct){
+            return '<div class="dr-contact-row">' +
+              '<span class="dr-contact-name">' + ERP.esc(ct.name) + (ct.position ? ' <span style="font-weight:400;color:var(--txts)">· ' + ERP.esc(ct.position) + '</span>' : '') + '</span>' +
+              (ct.phone ? '<span class="dr-contact-detail">' + ERP.esc(ct.phone) + '</span>' : '') +
+              (ct.email ? '<span class="dr-contact-detail">' + ERP.esc(ct.email) + '</span>' : '') +
+            '</div>';
+          }).join('');
+        } else {
+          contactsEl.innerHTML = '<span style="color:var(--txtm);font-size:12px">Контакты не добавлены</span>';
+        }
+      }).catch(function(){});
+    }
+  }).catch(function() {
+    document.getElementById('dr-body').innerHTML = '<div style="padding:24px;text-align:center;color:var(--red)">Ошибка загрузки</div>';
+  });
 }
 
-function filterCards(q) {
-  filterQ = q;
-  render();
+function renderDrawerBody(order, rev) {
+  var calc = rev && rev.calculation;
+  var parts = rev && rev.parts ? rev.parts : [];
+
+  // Group parts by assembly
+  var byAsm = {};
+  parts.forEach(function(p) {
+    var key = p.assemblyName || 'Без узла';
+    if (!byAsm[key]) byAsm[key] = { parts: [], weight: 0, cost: 0 };
+    byAsm[key].parts.push(p);
+    byAsm[key].weight += Number(p.totalWeight || 0);
+    byAsm[key].cost   += Number(p.materialCost || 0);
+  });
+
+  var html = '';
+
+  // ── Статус и клиент ───────────────────────────────────────────────────────
+  html += '<div class="dr-section">' +
+    '<div class="drawer-row"><span class="drawer-label">Статус</span>' + statusBadge(order.status) + '</div>' +
+    '<div class="drawer-row"><span class="drawer-label">Клиент</span><span style="font-weight:600">' + ERP.esc(order.customerName || '—') + '</span></div>' +
+    '<div class="drawer-row"><span class="drawer-label">Дата</span><span class="mono">' + fmtDate(order.createdAt) + '</span></div>' +
+  '</div>';
+
+  // ── Контакты клиента ──────────────────────────────────────────────────────
+  if (order.customerId) {
+    html += '<div class="dr-section">' +
+      '<div class="dr-section-title">Контакты клиента</div>' +
+      '<div id="dr-contacts" style="color:var(--txts);font-size:12px">Загрузка…</div>' +
+    '</div>';
+  }
+
+  // ── Текст запроса ─────────────────────────────────────────────────────────
+  if (order.description) {
+    html += '<div class="dr-section">' +
+      '<div class="dr-section-title">Текст запроса</div>' +
+      '<div class="dr-description">' + ERP.esc(order.description) + '</div>' +
+    '</div>';
+  }
+
+  // ── Итоги расчёта ─────────────────────────────────────────────────────────
+  if (calc) {
+    html += '<div class="dr-section">' +
+      '<div class="dr-section-title">Расчёт КП' + (rev ? ' · rev.' + rev.revisionNumber : '') + '</div>' +
+      '<div class="dr-stats-row">' +
+        '<div class="dr-stat-box"><div class="dr-stat-label">Общий вес</div><div class="dr-stat-val">' + fmtNum(calc.totalWeightKg,1) + ' кг</div></div>' +
+        '<div class="dr-stat-box"><div class="dr-stat-label">Материалы</div><div class="dr-stat-val">' + fmtMoney(calc.totalMaterialCost) + '</div></div>' +
+        '<div class="dr-stat-box dr-stat-box--accent"><div class="dr-stat-label">Итого КП</div><div class="dr-stat-val">' + fmtMoney(calc.totalCost) + '</div></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── Список узлов ─────────────────────────────────────────────────────────
+  if (Object.keys(byAsm).length) {
+    html += '<div class="dr-section">' +
+      '<div class="dr-section-title">Состав изделия</div>' +
+      Object.keys(byAsm).map(function(asmName) {
+        var asm = byAsm[asmName];
+        return '<div class="dr-asm-block">' +
+          '<div class="dr-asm-header">' +
+            '<span class="dr-asm-name">⬡ ' + ERP.esc(asmName) + '</span>' +
+            '<span class="dr-asm-totals">' + fmtNum(asm.weight,1) + ' кг · ' + fmtMoney(asm.cost) + '</span>' +
+          '</div>' +
+          '<div class="dr-parts-list">' +
+            asm.parts.map(function(p) {
+              return '<div class="dr-part-row">' +
+                '<span class="dr-part-name">' + ERP.esc(p.materialName || p.materialCode || '—') + '</span>' +
+                '<span class="dr-part-qty mono">×' + p.quantity + '</span>' +
+                '<span class="dr-part-weight mono">' + fmtNum(p.totalWeight,2) + ' кг</span>' +
+                '<span class="dr-part-cost mono">' + fmtMoney(p.materialCost) + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  } else if (!rev) {
+    html += '<div class="dr-section"><div style="color:var(--txtm);font-size:12.5px;padding:4px 0">Расчёт КП ещё не создан</div></div>';
+  }
+
+  document.getElementById('dr-body').innerHTML = html;
 }
+
+function closeDrawer() {
+  document.getElementById('deal-overlay').classList.remove('open');
+  document.getElementById('deal-drawer').classList.remove('open');
+}
+
+/* ── Utils ────────────────────────────────────────────────────────────────── */
+function filterCards(q) { filterQ = q; render(); }
 
 function daysDiff(dateStr) {
   if (!dateStr) return 0;
-  var diff = Date.now() - new Date(dateStr).getTime();
-  return Math.floor(diff / 86400000);
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDrawer(); });
 load();
 </script>
 </body>
