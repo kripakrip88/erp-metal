@@ -37,3 +37,12 @@ jobs:
                 .catch(() => process.exit(1))
                 .finally(() => p.\$disconnect());
             " || node scripts/import-metiz.js IMPORT_METIZ_FINAL.csv
+            # Allow large file uploads (PDFs, specs) through nginx
+            NGINX_CONF=$(nginx -T 2>/dev/null | grep -o 'configuration file [^ ]*' | awk '{print $3}' | head -1)
+            SITES_CONF=$(find /etc/nginx/sites-enabled /etc/nginx/conf.d -type f 2>/dev/null | head -1)
+            TARGET=${SITES_CONF:-$NGINX_CONF}
+            if [ -n "$TARGET" ] && ! grep -q "client_max_body_size 100m" "$TARGET"; then
+              sed -i 's/client_max_body_size [^;]*/client_max_body_size 100m/g' "$TARGET"
+              grep -q "client_max_body_size" "$TARGET" || sed -i '/^http {/a\\    client_max_body_size 100m;' /etc/nginx/nginx.conf
+              nginx -t && nginx -s reload && echo "nginx: client_max_body_size set to 100m"
+            fi

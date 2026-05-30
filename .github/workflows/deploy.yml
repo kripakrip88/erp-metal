@@ -22,3 +22,10 @@ jobs:
             npx prisma migrate deploy
             npx prisma generate
             bash deploy.sh
+            # Allow large file uploads (PDFs, specs) through nginx
+            SITES_CONF=$(find /etc/nginx/sites-enabled /etc/nginx/conf.d -type f 2>/dev/null | head -1)
+            if [ -n "$SITES_CONF" ] && ! grep -q "client_max_body_size 100m" "$SITES_CONF"; then
+              sed -i 's/client_max_body_size [^;]*/client_max_body_size 100m/g' "$SITES_CONF"
+              grep -q "client_max_body_size" "$SITES_CONF" || sed -i '/^http {/a\\    client_max_body_size 100m;' /etc/nginx/nginx.conf
+              nginx -t && nginx -s reload && echo "nginx: client_max_body_size set to 100m"
+            fi
