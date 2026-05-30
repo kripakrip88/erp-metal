@@ -13,20 +13,31 @@ module.exports = [
 
     const { rfqId, erpAssemblyId, status, items, error } = body
 
-    if (!erpAssemblyId) return json(res, { error: 'erpAssemblyId is required' }, 400)
-    if (!status)        return json(res, { error: 'status is required' }, 400)
+    if (!status) return json(res, { error: 'status is required' }, 400)
 
-    const assembly = await prisma.assembly.findUnique({ where: { id: erpAssemblyId } })
-    if (!assembly) return json(res, { error: 'Assembly not found' }, 404)
-
-    // Optional: verify assembly belongs to the given RFQ
-    if (rfqId && assembly.orderId !== rfqId) {
-      return json(res, { error: 'Assembly does not belong to rfqId' }, 400)
+    let assembly
+    if (erpAssemblyId) {
+      assembly = await prisma.assembly.findUnique({ where: { id: erpAssemblyId } })
+      if (!assembly) return json(res, { error: 'Assembly not found' }, 404)
+      if (rfqId && assembly.orderId !== rfqId) {
+        return json(res, { error: 'Assembly does not belong to rfqId' }, 400)
+      }
+    } else if (rfqId) {
+      // No specific assembly — auto-create "Основной узел" for this order
+      const order = await prisma.order.findUnique({ where: { id: rfqId } })
+      if (!order) return json(res, { error: 'Order not found' }, 404)
+      assembly = await prisma.assembly.create({
+        data: { orderId: rfqId, name: 'Основной узел', description: null, qty: 1, position: 0 },
+      })
+    } else {
+      return json(res, { error: 'erpAssemblyId or rfqId is required' }, 400)
     }
+
+    const asmId = assembly.id
 
     if (status === 'failed') {
       await prisma.assembly.update({
-        where: { id: erpAssemblyId },
+        where: { id: asmId },
         data:  { description: `[AI ошибка] ${error || 'AI extraction failed'}` },
       })
       return json(res, { ok: true })
@@ -40,7 +51,7 @@ module.exports = [
 
     // Delete any existing AI-generated parts to avoid duplicates on re-delivery
     await prisma.part.deleteMany({
-      where: { assemblyId: erpAssemblyId, aiGenerated: true },
+      where: { assemblyId: asmId, aiGenerated: true },
     })
 
     // Create Part records from BOM items
@@ -48,7 +59,7 @@ module.exports = [
       rows.map((item, idx) =>
         prisma.part.create({
           data: {
-            assemblyId:      erpAssemblyId,
+            assemblyId:      asmId,
             name:            item.name        || `Позиция ${item.position ?? idx + 1}`,
             measurementType: item.lengthMm != null ? 'LINEAR' : 'WEIGHT',
             length:          item.lengthMm != null ? parseFloat((item.lengthMm / 1000).toFixed(4)) : null,
@@ -74,11 +85,11 @@ module.exports = [
 
     // Update assembly status
     await prisma.assembly.update({
-      where: { id: erpAssemblyId },
+      where: { id: asmId },
       data:  { description: 'BOM требует подтверждения' },
     })
 
-    console.log(`[bom-extracted] assembly ${erpAssemblyId}: ${rows.length} parts created`)
+    console.log(`[bom-extracted] assembly ${asmId}: ${rows.length} parts created`)
     return json(res, { ok: true, itemsCreated: rows.length })
   }},
 ]

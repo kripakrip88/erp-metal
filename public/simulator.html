@@ -2649,8 +2649,25 @@ async function uploadSpec(input) {
   const file = input.files[0];
   input.value = '';
 
-  const assembliesList = asms.filter(a => a.id).map(a => ({ id: a.id, name: a.name }));
-  if (!assembliesList.length) return toast('Нет узлов в КП — добавьте узлы перед загрузкой', 'error');
+  let assembliesList = asms.filter(a => a.id && !String(a.id).startsWith('a')).map(a => ({ id: a.id, name: a.name }));
+
+  // If no saved assemblies — create a default one in the DB before uploading
+  if (!assembliesList.length && _currentOrderId) {
+    try {
+      const token = localStorage.getItem('erp_token');
+      const cr = await fetch('/api/orders/' + encodeURIComponent(_currentOrderId) + '/assemblies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ name: 'Основной узел', qty: 1 }),
+      });
+      if (cr.ok) {
+        const newAsm = await cr.json();
+        asms.push({ id: newAsm.id, name: newAsm.name, qty: newAsm.qty || 1, parts: [] });
+        assembliesList = [{ id: newAsm.id, name: newAsm.name }];
+        refresh();
+      }
+    } catch (_) { /* proceed without — backend will create default */ }
+  }
 
   const fd = new FormData();
   fd.append('file', file);
