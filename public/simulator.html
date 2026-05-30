@@ -2649,8 +2649,8 @@ async function uploadSpec(input) {
   const file = input.files[0];
   input.value = '';
 
+  // Send assemblies if available; if empty — AI will create a default node
   const assembliesList = asms.filter(a => a.id).map(a => ({ id: a.id, name: a.name }));
-  if (!assembliesList.length) return toast('Нет узлов в КП — добавьте узлы перед загрузкой', 'error');
 
   const fd = new FormData();
   fd.append('file', file);
