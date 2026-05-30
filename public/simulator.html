@@ -2666,7 +2666,14 @@ async function uploadSpec(input) {
       headers: { Authorization: 'Bearer ' + token },
       body: fd,
     });
-    const data = await r.json();
+    let data;
+    const ct = r.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      data = await r.json();
+    } else {
+      const text = await r.text();
+      throw new Error('AI-сервис недоступен (HTTP ' + r.status + '): endpoint не найден или не готов');
+    }
     if (!r.ok) throw new Error(data.error || 'Ошибка загрузки (' + r.status + ')');
 
     const jobId = data.jobId || data.extractionId || data.id;
