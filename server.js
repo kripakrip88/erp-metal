@@ -22,35 +22,26 @@ const AI_POLYGON_PORT = parseInt(process.env.AI_POLYGON_PORT || '4000', 10)
 const NATIVE_EMAIL_PATHS = new Set(['/api/email-copilot/log-reply'])
 
 function proxyToAI(req, res) {
-  const chunks = []
-  req.on('data', chunk => chunks.push(chunk))
-  req.on('end', () => {
-    const bodyBuf = Buffer.concat(chunks)
-    const headers = Object.assign({}, req.headers, {
-      host: AI_POLYGON_HOST + ':' + AI_POLYGON_PORT,
-    })
-    delete headers['authorization']   // erp-metal JWT не нужен AI-полигону
-    if (bodyBuf.length > 0) headers['content-length'] = bodyBuf.length
-    else delete headers['content-length']
-
-    const proxyReq = http.request(
-      { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: req.url, method: req.method, headers },
-      (proxyRes) => {
-        // 401 от AI Polygon — его внутренняя ошибка, не ERP-авторизация.
-        // Меняем на 503 чтобы ERP.authFetch не выбрасывал пользователя из сессии.
-        const statusCode = proxyRes.statusCode === 401 ? 503 : proxyRes.statusCode
-        const fwdHeaders  = Object.assign({}, proxyRes.headers)
-        res.writeHead(statusCode, fwdHeaders)
-        proxyRes.pipe(res)
-      }
-    )
-    proxyReq.on('error', () => {
-      if (!res.headersSent)
-        json(res, { error: 'AI-сервис недоступен', detail: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}` }, 503)
-    })
-    if (bodyBuf.length > 0) proxyReq.write(bodyBuf)
-    proxyReq.end()
+  const headers = Object.assign({}, req.headers, {
+    host: AI_POLYGON_HOST + ':' + AI_POLYGON_PORT,
   })
+  delete headers['authorization'] // erp-metal JWT не нужен AI-полигону
+
+  const proxyReq = http.request(
+    { hostname: AI_POLYGON_HOST, port: AI_POLYGON_PORT, path: req.url, method: req.method, headers },
+    (proxyRes) => {
+      // 401 от AI Polygon — его внутренняя ошибка, не ERP-авторизация.
+      // Меняем на 503 чтобы ERP.authFetch не выбрасывал пользователя из сессии.
+      const statusCode = proxyRes.statusCode === 401 ? 503 : proxyRes.statusCode
+      res.writeHead(statusCode, proxyRes.headers)
+      proxyRes.pipe(res)
+    }
+  )
+  proxyReq.on('error', () => {
+    if (!res.headersSent)
+      json(res, { error: 'AI-сервис недоступен', detail: `${AI_POLYGON_HOST}:${AI_POLYGON_PORT}` }, 503)
+  })
+  req.pipe(proxyReq)
   req.on('error', () => { if (!res.headersSent) json(res, { error: 'request error' }, 400) })
 }
 
