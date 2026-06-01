@@ -1275,7 +1275,7 @@ function cCost(wKg, price) {
 function cAll() {
   let tW = 0, tC = 0, tP = 0, tPts = 0, tFw = 0, tFc = 0; const bM = {}, ws = [];
   for (const a of asms) { for (const p of a.parts) {
-    const mat = MATS.find(m => m.id === p.mid); if (!mat) continue;
+    const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) continue;
     const { tot, pm2 } = cPW(p, mat); const mu = a.qty || 1;
     const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
     const { cost } = cCost(wT, pr);
@@ -1290,7 +1290,7 @@ function cAll() {
 
 function calcAsmPaintArea(a) {
   let area = 0; const mu = a.qty || 1;
-  for (const p of a.parts) { const mat = MATS.find(m => m.id === p.mid); if (!mat) continue; const { pm2 } = cPW(p, mat); area += r4((pm2 || 0) * mu); }
+  for (const p of a.parts) { const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) continue; const { pm2 } = cPW(p, mat); area += r4((pm2 || 0) * mu); }
   return r4(area);
 }
 
@@ -1512,7 +1512,7 @@ function renderAsms() {
   c.innerHTML = asms.map(a => {
     let aW = 0, aP = 0, aC = 0;
     for (const p of a.parts) {
-      const mat = MATS.find(m => m.id === p.mid); if (!mat) continue;
+      const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) continue;
       const { tot, pm2 } = cPW(p, mat); const mu = a.qty;
       const wT = r4(tot * mu); aW += wT; aP += r4((pm2 || 0) * mu);
       const { cost } = cCost(wT, gP(p.mid)); aC += cost;
@@ -1526,7 +1526,7 @@ function renderAsms() {
 
     // Compute section summaries
     let matW = 0, matC = 0;
-    for (const p of materialParts) { const mat = MATS.find(m => m.id === p.mid); if (!mat) continue; const { tot } = cPW(p, mat); const wT = r4(tot * (a.qty || 1)); matW += wT; const { cost } = cCost(wT, gP(p.mid)); matC += cost; }
+    for (const p of materialParts) { const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) continue; const { tot } = cPW(p, mat); const wT = r4(tot * (a.qty || 1)); matW += wT; const { cost } = cCost(wT, gP(p.mid)); matC += cost; }
 
     return `<div class="ac">
       <div class="ah">
@@ -1694,10 +1694,10 @@ function renderLKMTab(a) {
 
 function calcLKMRow(layer, mat, areaM2) {
   const actualDFT = layer.selectedDftMkm ?? mat.referenceDftMkm;
-  const dilution = layer.dilutionPercent != null ? Number(layer.dilutionPercent) : (mat.recommendedDilutionPercent != null ? Number(mat.recommendedDilutionPercent) : 0);
+  const loss = layer.lossFactorPercent != null ? Number(layer.lossFactorPercent) : 0;
   const cKg = r4(Number(areaM2) * Number(mat.consumptionGm2) * (actualDFT / mat.referenceDftMkm) / 1000);
   const cL = Number(mat.densityKgL) > 0 ? r4(cKg / Number(mat.densityKgL)) : null;
-  const tKg = r4(cKg * (1 + dilution / 100));
+  const tKg = r4(cKg * (1 + loss / 100));
   const tCost = mat.pricePerKg != null ? r4(tKg * Number(mat.pricePerKg)) : null;
   return { cKg, cL, tKg, tCost };
 }

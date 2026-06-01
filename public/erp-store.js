@@ -194,6 +194,7 @@ const ERPStore = (() => {
           manualAreaM2:      c.manualAreaM2 ?? null,
           selectedDftMkm:    c.selectedDftMkm ?? null,
           dilutionPercent:   c.dilutionPercent ?? null,
+          lossFactorPercent: c.lossFactorPercent ?? null,
           notes:             c.notes ?? null,
         })
       }

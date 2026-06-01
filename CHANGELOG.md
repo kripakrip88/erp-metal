@@ -6,6 +6,19 @@
 
 ---
 
+## 2026-06-01
+
+### erp-metal
+- [fix] simulator.html — `calcLKMRow`: стоимость ЛКМ теперь учитывает `lossFactorPercent`, а не `dilutionPercent`
+  - Причина: `tKg * pricePerKg` использовал `dilutionPercent` как множитель — не соответствует бэкенду (`coatingCalc.js` использует `lossFactorPercent`)
+  - Исправлено: `loss = layer.lossFactorPercent ?? 0`, `tKg = cKg * (1 + loss/100)`
+- [fix] erp-store.js — `syncAndRevise` теперь сохраняет `lossFactorPercent` слоёв покрытия
+  - Причина: каждая фиксация ревизии обнуляла `lossFactorPercent` для всех слоёв ЛКМ
+- [fix] simulator.html — `cAll()`, `calcAsmPaintArea()`, `renderAsms()`: добавлен fallback на `_archivedMats`
+  - Причина: детали с архивными материалами не учитывались в расчёте площади покраски, веса и стоимости
+
+---
+
 ## 2026-05-28
 
 ### erp-metal
