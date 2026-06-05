@@ -1,4 +1,5 @@
 require('dotenv').config()
+require('./src/core/events')
 
 const http = require('http')
 const fs   = require('fs')

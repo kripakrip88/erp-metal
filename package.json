@@ -15,6 +15,7 @@
     "bcryptjs": "^3.0.2",
     "busboy": "^1.6.0",
     "dotenv": "^16.5.0",
+    "eventemitter2": "^6.4.9",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.20.0",
     "prisma": "^5.22.0"

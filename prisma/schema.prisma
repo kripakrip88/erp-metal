@@ -1196,6 +1196,23 @@ model Contact {
   @@map("crm_contacts")
 }
 
+model EventLog {
+  id            String    @id @default(uuid())
+  correlationId String
+  eventType     String
+  source        String
+  payload       Json
+  status        String    @default("PENDING")
+  error         String?
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+
+  @@index([correlationId])
+  @@index([eventType])
+  @@index([status])
+  @@map("event_logs")
+}
+
 model Interaction {
   id             String               @id @default(uuid())
   customerId     String

@@ -52,6 +52,7 @@
 | Материалы | ✅ Готов | main | Профили, нормы веса |
 | Калькуляция / QuoteRevision | ✅ Готов | main | Снепшоты цен |
 | Покрытия (ЛКМ) | ✅ Готов | main | Расчёт расхода по площади |
+| Core Event System | 🔄 В работе | claude/event-system-erp-metal-Fgqgf | EventBus + EventLog, демо-сценарий |
 | Склад / Закупки | 🔄 Частично | develop | Резервирование |
 | LKP Calculator | ✅ Готов | main | — |
 | AI Mail Intake | 🔲 Концепт | — | UI концепт готов, интеграция — нет |

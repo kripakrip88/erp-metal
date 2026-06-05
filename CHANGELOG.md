@@ -6,6 +6,24 @@
 
 ---
 
+## 2026-06-05
+
+### erp-metal
+- [feat] Core Event System — in-process EventBus на базе eventemitter2
+  - `src/core/events/event-bus.js` — единственная точка pub/sub (wildcard)
+  - `src/core/events/event-types.js` — константы всех доменных событий
+  - `src/core/events/correlation-id.js` — AsyncLocalStorage для correlationId
+  - `src/core/events/event-log.service.js` — запись событий в таблицу event_logs (PENDING → PROCESSED / FAILED)
+  - `src/core/events/index.js` — регистрация handlers при старте
+- [feat] Демо-сценарий: createOrder() → order.created → warehouse + production handlers
+  - `src/modules/crm/order.service.js`
+  - `src/modules/warehouse/order-created.handler.js` — эмитит warehouse.stock.reserved
+  - `src/modules/production/order-created.handler.js` — эмитит production.order.created
+- [migration] add_event_log — таблица event_logs с индексами по correlationId, eventType, status
+- [config] eventemitter2 добавлен в зависимости
+
+---
+
 ## 2026-05-28
 
 ### erp-metal
