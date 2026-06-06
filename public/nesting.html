@@ -251,6 +251,8 @@ svg.layout-svg{border:1px solid #ccc;}
 </div>
 
 <script>
+(function(){if(!localStorage.getItem('erp_token'))location.replace('login.html');})();
+
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -303,11 +305,21 @@ async function loadMaterials(modeKey) {
         fetch('/api/materials?profileType=SHEET&materialDomain=STRUCTURAL&limit=200',   { headers: hdrs }),
         fetch('/api/materials?profileType=PLATE&materialDomain=STRUCTURAL&limit=200',   { headers: hdrs }),
       ]);
+      if (r1.status === 401 || r2.status === 401) {
+        localStorage.removeItem('erp_token');
+        location.replace('login.html');
+        return [];
+      }
       const [d1,d2] = await Promise.all([r1.json(),r2.json()]);
       items = [...(d1.data??d1??[]),...(d2.data??d2??[])]
         .filter(m=>m.isActive!==false).map(normalizeMaterial);
     } else {
       const r = await fetch('/api/materials?materialDomain=STRUCTURAL&limit=500', { headers: hdrs });
+      if (r.status === 401) {
+        localStorage.removeItem('erp_token');
+        location.replace('login.html');
+        return [];
+      }
       const d = await r.json();
       items = (d.data??d??[])
         .filter(m=>m.isActive!==false && LINEAR_TYPES.includes(m.profileType))
