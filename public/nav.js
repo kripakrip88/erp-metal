@@ -151,6 +151,7 @@
     { group: 'Workflow', items: [
       { id: 'orders',    href: '/orders.html',       ico: '▤',  label: 'Журнал заказов' },
       { id: 'simulator', href: '/simulator.html',    ico: '◈',  label: 'Расчёт КП' },
+      { id: 'nesting',   href: '/nesting.html',      ico: '⬛',  label: 'Раскрой' },
     ]},
     { group: 'CRM', items: [
       { id: 'pipeline',  href: '/crm/pipeline.html',  ico: '⬛',  label: 'CRM' },

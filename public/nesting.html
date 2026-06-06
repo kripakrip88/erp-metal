@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MetalPro — Раскрой материала</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep:#0e1014; --bg-base:#13151a; --bg-card:#1a1d24; --bg-elevated:#20242e; --bg-hover:#252932;
+  --border:#2a2f3d; --border-light:#323847; --text-primary:#e8eaf0; --text-secondary:#8a93a8; --text-muted:#555e72;
+  --cyan:#00d4ff; --cyan-dim:rgba(0,212,255,.12); --green:#00e676; --amber:#ffab00; --red:#ff1744;
+  --red-dim:rgba(255,23,68,.1); --radius:6px; --radius-lg:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Mono',monospace;background:var(--bg-deep);color:var(--text-primary);min-height:100vh;font-size:13px;}
+
+/* NAV */
+.nav{background:var(--bg-base);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+.nav-logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--cyan);letter-spacing:.05em;text-transform:uppercase;}
+.nav-sep{color:var(--border-light);}
+.nav-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:500;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;}
+.nav-spacer{flex:1;}
+.nav-badge{font-size:10px;padding:3px 8px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);color:var(--cyan);border-radius:20px;letter-spacing:.08em;text-transform:uppercase;}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:420px 1fr;height:calc(100vh - 52px);}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg-base);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px;}
+
+.sidebar-top{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;}
+.sidebar-top-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;flex:1;}
+.btn-add-group{padding:7px 14px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.25);color:var(--cyan);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:var(--radius);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-add-group:hover{background:rgba(0,212,255,.2);}
+
+.groups-list{flex:1;overflow-y:auto;}
+.groups-list::-webkit-scrollbar{width:3px;}
+.groups-list::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px;}
+
+/* GROUP CARD */
+.group-card{border-bottom:1px solid var(--border);}
+.group-card.active{background:var(--bg-card);}
+.group-header{display:flex;align-items:center;gap:8px;padding:10px 16px;cursor:pointer;user-select:none;}
+.group-header:hover{background:var(--bg-hover);}
+.group-type-badge{font-size:9px;padding:2px 6px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;flex-shrink:0;}
+.badge-sheet{background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:#5c9bff;}
+.badge-linear{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:#4dd97a;}
+.group-mat-name{font-size:12px;color:var(--text-primary);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-mat-name.empty{color:var(--text-muted);font-style:italic;}
+.group-parts-count{font-size:10px;color:var(--text-muted);flex-shrink:0;}
+.group-chevron{color:var(--text-muted);font-size:10px;transition:transform .2s;flex-shrink:0;}
+.group-card.open .group-chevron{transform:rotate(90deg);}
+.btn-del-group{width:22px;height:22px;border:1px solid transparent;background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;flex-shrink:0;}
+.btn-del-group:hover{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.group-body{display:none;padding:0 16px 14px;}
+.group-card.open .group-body{display:block;}
+
+/* SEARCH */
+.section-label{font-family:'Syne',sans-serif;font-size:9px;font-weight:600;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;margin:10px 0 6px;}
+.search-wrap{position:relative;}
+.search-input{width:100%;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-primary);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px 8px 32px;border-radius:var(--radius);outline:none;transition:border-color .15s;}
+.search-input:focus{border-color:var(--cyan);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;}
+.search-dropdown{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);z-index:200;max-height:220px;overflow-y:auto;display:none;}
+.search-dropdown.open{display:block;}
+.search-item{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.search-item:last-child{border-bottom:none;}
+.search-item:hover{background:var(--bg-hover);}
+.search-item-name{color:var(--text-primary);font-size:11px;}
+.search-item-meta{color:var(--text-muted);font-size:10px;margin-top:1px;}
+
+/* MAT PARAMS */
+.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.mat-field label{display:block;font-size:9px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.mat-field input{width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-family:'DM Mono',monospace;font-size:11px;padding:5px 7px;border-radius:4px;outline:none;transition:border-color .15s;}
+.mat-field input:focus{border-color:var(--cyan);}
+.mat-field.span2{grid-column:span 2;}
+
+/* PARTS */
+.parts-header-row{display:grid;gap:5px;padding:0 2px;color:var(--text-muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.ph-sheet{grid-template-columns:20px 1fr 60px 60px 42px 22px;}
+.ph-linear{grid-template-columns:20px 1fr 72px 42px 22px;}
+.part-row{display:grid;gap:5px;align-items:center;margin-bottom:4px;}
+.pr-sheet{grid-template-columns:20px 1fr 60px 60px 42px 22px;}
+.pr-linear{grid-template-columns:20px 1fr 72px 42px 22px;}
+.part-num{width:20px;height:20px;border-radius:50%;background:var(--bg-elevated);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-muted);flex-shrink:0;}
+.part-input{width:100%;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-primary);font-family:'DM Mono',monospace;font-size:11px;padding:4px 6px;border-radius:4px;outline:none;transition:border-color .15s;}
+.part-input:focus{border-color:var(--cyan);}
+.btn-del{width:22px;height:22px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;flex-shrink:0;}
+.btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-dim);}
+.btn-add-part{width:100%;padding:6px;border:1px dashed var(--border-light);background:transparent;color:var(--text-muted);font-family:'DM Mono',monospace;font-size:11px;border-radius:var(--radius);cursor:pointer;transition:all .15s;margin-top:4px;}
+.btn-add-part:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+.rotate-row{display:flex;align-items:center;gap:6px;padding:6px 0 0;cursor:pointer;}
+.rotate-row input[type=checkbox]{accent-color:var(--cyan);width:13px;height:13px;}
+.rotate-row span{color:var(--text-secondary);font-size:11px;}
+
+/* GLOBAL PARAMS */
+.global-params{padding:12px 16px;border-top:1px solid var(--border);}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.param-field label{display:block;font-size:9px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+.param-field input{width:100%;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-primary);font-family:'DM Mono',monospace;font-size:12px;padding:7px 9px;border-radius:4px;outline:none;transition:border-color .15s;}
+.param-field input:focus{border-color:var(--cyan);}
+
+.btn-calc{width:calc(100% - 32px);margin:12px 16px;padding:13px;background:linear-gradient(135deg,#00aacc,#0077aa);border:none;border-radius:var(--radius);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.btn-calc:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,170,204,.3);}
+.btn-calc:active{transform:none;}
+
+/* MAIN */
+.main{overflow-y:auto;background:var(--bg-deep);display:flex;flex-direction:column;}
+.main::-webkit-scrollbar{width:4px;}
+.main::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px;}
+
+/* SUMMARY BAR */
+.summary-bar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:11px 24px;display:none;}
+.summary-bar.visible{display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+.summary-item .s-label{font-size:9px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;}
+.summary-item .s-val{font-size:17px;font-weight:500;color:var(--text-primary);}
+.summary-item .s-val.cyan{color:var(--cyan);}
+.summary-item .s-val.green{color:var(--green);}
+.summary-item .s-val.amber{color:var(--amber);}
+.summary-spacer{flex:1;}
+.btn-print{padding:8px 16px;background:var(--bg-elevated);border:1px solid var(--border-light);color:var(--text-primary);font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:var(--radius);cursor:pointer;transition:all .15s;}
+.btn-print:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+
+/* EMPTY */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-muted);}
+.empty-icon{font-size:44px;opacity:.25;}
+.empty-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:600;color:var(--text-muted);}
+.empty-sub{font-size:11px;opacity:.6;}
+
+/* RESULTS */
+.results-area{padding:20px 24px;display:none;flex-direction:column;gap:24px;}
+.results-area.visible{display:flex;}
+
+/* MATERIAL SECTION */
+.mat-section{display:flex;flex-direction:column;gap:10px;}
+.mat-section-header{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.mat-section-badge{font-size:9px;padding:2px 7px;border-radius:3px;font-family:'Syne',sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+.mat-section-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);flex:1;}
+.mat-section-stats{display:flex;gap:20px;}
+.mss{text-align:right;}
+.mss-label{font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;}
+.mss-val{font-size:13px;color:var(--text-primary);}
+.mss-val.green{color:var(--green);}
+.mss-val.amber{color:var(--amber);}
+.mss-val.cyan{color:var(--cyan);}
+
+/* STOCK CARD */
+.stock-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.stock-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg-elevated);}
+.stock-num{width:28px;height:28px;border-radius:50%;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--cyan);font-weight:600;flex-shrink:0;}
+.stock-num.dedup{background:rgba(255,171,0,.12);border-color:rgba(255,171,0,.3);color:var(--amber);}
+.stock-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:var(--text-primary);letter-spacing:.04em;text-transform:uppercase;}
+.dedup-badge{font-size:11px;padding:3px 10px;background:rgba(255,171,0,.12);border:1px solid rgba(255,171,0,.3);color:var(--amber);border-radius:20px;font-weight:700;font-family:'Syne',sans-serif;letter-spacing:.04em;}
+.stock-stats{margin-left:auto;display:flex;gap:14px;}
+.stock-stat .ss-label{font-size:9px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;}
+.stock-stat .ss-val{font-size:12px;color:var(--text-primary);}
+.stock-stat .ss-val.green{color:var(--green);}
+.stock-stat .ss-val.amber{color:var(--amber);}
+.svg-container{padding:14px;overflow-x:auto;}
+svg.layout-svg{display:block;border-radius:4px;}
+.legend{padding:9px 14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary);}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* GRAND TOTAL */
+.grand-total{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.grand-total-header{padding:12px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);letter-spacing:.06em;text-transform:uppercase;}
+.gt-table{width:100%;border-collapse:collapse;}
+.gt-table th{padding:8px 14px;text-align:left;font-size:9px;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:600;}
+.gt-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;}
+.gt-table tr:last-child td{border-bottom:none;}
+.td-name{color:var(--text-primary);}
+.td-num{color:var(--text-secondary);font-family:'DM Mono',monospace;text-align:right;}
+.td-num.cyan{color:var(--cyan);}
+.td-num.green{color:var(--green);}
+.td-num.amber{color:var(--amber);}
+.gt-total-row td{background:var(--bg-elevated);font-weight:600;border-top:1px solid var(--border-light);}
+
+.groups-empty{padding:32px 20px;text-align:center;color:var(--text-muted);}
+.groups-empty-icon{font-size:32px;opacity:.3;margin-bottom:8px;}
+.groups-empty-text{font-size:11px;line-height:1.6;}
+
+@media print {
+body{background:#fff;color:#000;}
+.nav,.sidebar{display:none!important;}
+.layout{display:block;height:auto;}
+.main{overflow:visible;}
+.results-area{display:flex!important;padding:0;}
+.summary-bar{display:none!important;}
+.mat-section{break-inside:avoid;page-break-inside:avoid;margin-bottom:20px;}
+.stock-card{break-inside:avoid;page-break-inside:avoid;border:1px solid #ccc;margin-bottom:12px;}
+.stock-header,.grand-total-header{background:#f5f5f5!important;}
+.grand-total{border:1px solid #ccc;}
+svg.layout-svg{border:1px solid #ccc;}
+.empty-state{display:none;}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="nav-logo">MetalPro</span>
+  <span class="nav-sep">/</span>
+  <span class="nav-title">Раскрой материала</span>
+  <div class="nav-spacer"></div>
+  <span class="nav-badge">Nesting v2</span>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <span class="sidebar-top-title">Материалы сессии</span>
+      <button class="btn-add-group" onclick="addGroup()">+ Добавить материал</button>
+    </div>
+    <div class="groups-list" id="groups-list">
+      <div class="groups-empty" id="groups-empty">
+        <div class="groups-empty-icon">⬛</div>
+        <div class="groups-empty-text">Добавьте материалы<br>для расчёта раскроя</div>
+      </div>
+    </div>
+    <div class="global-params">
+      <div class="section-label">Глобальные параметры</div>
+      <div class="params-grid">
+        <div class="param-field"><label>Зазор, мм</label><input type="number" id="param-gap" value="5" min="0"></div>
+        <div class="param-field"><label>Ширина реза, мм</label><input type="number" id="param-kerf" value="3" min="0"></div>
+      </div>
+    </div>
+    <button class="btn-calc" onclick="calculateAll()">&#9881; Рассчитать раскрой</button>
+  </aside>
+
+  <main class="main">
+    <div class="summary-bar" id="summary-bar">
+      <div class="summary-item"><div class="s-label">Материалов</div><div class="s-val cyan" id="sum-groups">0</div></div>
+      <div class="summary-item"><div class="s-label">Листов/прутков</div><div class="s-val cyan" id="sum-stocks">0</div></div>
+      <div class="summary-item"><div class="s-label">Использование</div><div class="s-val green" id="sum-use">0%</div></div>
+      <div class="summary-item"><div class="s-label">Общий вес, кг</div><div class="s-val" id="sum-weight">0</div></div>
+      <div class="summary-item"><div class="s-label">Общая стоимость, ₽</div><div class="s-val" id="sum-cost">0</div></div>
+      <div class="summary-spacer"></div>
+      <button class="btn-print" onclick="window.print()">&#128424; Печать карты раскроя</button>
+    </div>
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">⬛</div>
+      <div class="empty-title">Карта раскроя</div>
+      <div class="empty-sub">Добавьте материалы и детали, затем нажмите «Рассчитать»</div>
+    </div>
+    <div class="results-area" id="results-area"></div>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const SHEET_TYPES  = ['SHEET','PLATE'];
+const LINEAR_TYPES = ['RECTANGULAR_TUBE','ROUND_TUBE','ANGLE','CHANNEL','BEAM','FLAT_BAR','ROUND_BAR'];
+const PROFILE_LABELS = {
+  SHEET:'Лист',PLATE:'Плита',RECTANGULAR_TUBE:'Труба пр.',ROUND_TUBE:'Труба кр.',
+  ANGLE:'Уголок',CHANNEL:'Швеллер',BEAM:'Балка',FLAT_BAR:'Полоса',ROUND_BAR:'Круг'
+};
+const PART_COLORS = [
+  '#1a6b8a','#1a7a5c','#5a4a8a','#7a4a2a','#1a5a7a','#6a7a1a','#7a1a4a','#2a6a5a',
+  '#4a2a7a','#6a4a1a','#1a4a6a','#3a7a2a','#7a2a2a','#2a4a7a','#5a6a1a','#4a6a3a',
+];
+
+// ═══════════════════════════════════════════════════════════════
+// API + CACHE
+// ═══════════════════════════════════════════════════════════════
+const _matCache = { sheet: null, linear: null };
+let   _searchTimers = {};
+
+function normalizeMaterial(raw) {
+  const geo   = raw.geometry || {};
+  const price = raw.procurementProfiles?.[0]?.pricePerTon ?? 0;
+  if (SHEET_TYPES.includes(raw.profileType)) {
+    return {
+      id: raw.id, name: raw.name, code: raw.code, profileType: raw.profileType,
+      width:  geo.width  ?? geo.sheetWidth  ?? 1500,
+      height: geo.height ?? geo.sheetLength ?? geo.sheetHeight ?? 6000,
+      thick:  geo.thickness ?? geo.thick ?? 0,
+      kgM2:   geo.weightPerSquareMeter ?? geo.weight_per_m2 ?? 0,
+      price,
+    };
+  }
+  return {
+    id: raw.id, name: raw.name, code: raw.code, profileType: raw.profileType,
+    length: geo.standardLength ?? geo.length ?? 6000,
+    kgM:    geo.weightPerMeter ?? geo.weight_per_meter ?? geo.theoreticalWeightPerMeter ?? 0,
+    price,
+  };
+}
+
+async function loadMaterials(modeKey) {
+  if (_matCache[modeKey]) return _matCache[modeKey];
+  let items = [];
+  try {
+    const token = localStorage.getItem('erp_token') || '';
+    const hdrs  = token ? { 'Authorization': 'Bearer ' + token } : {};
+    if (modeKey === 'sheet') {
+      const [r1,r2] = await Promise.all([
+        fetch('/api/materials?profileType=SHEET&materialDomain=STRUCTURAL&limit=200',   { headers: hdrs }),
+        fetch('/api/materials?profileType=PLATE&materialDomain=STRUCTURAL&limit=200',   { headers: hdrs }),
+      ]);
+      const [d1,d2] = await Promise.all([r1.json(),r2.json()]);
+      items = [...(d1.data??d1??[]),...(d2.data??d2??[])]
+        .filter(m=>m.isActive!==false).map(normalizeMaterial);
+    } else {
+      const r = await fetch('/api/materials?materialDomain=STRUCTURAL&limit=500', { headers: hdrs });
+      const d = await r.json();
+      items = (d.data??d??[])
+        .filter(m=>m.isActive!==false && LINEAR_TYPES.includes(m.profileType))
+        .map(normalizeMaterial);
+    }
+  } catch(e) {
+    console.warn('API недоступен, fallback', e);
+    items = getFallback(modeKey);
+  }
+  _matCache[modeKey] = items;
+  return items;
+}
+
+function getFallback(mk) {
+  if (mk==='sheet') return [
+    {id:'f1',name:'Лист г/к 4мм Ст3сп',profileType:'SHEET',width:1500,height:6000,thick:4,kgM2:31.4,price:85000},
+    {id:'f2',name:'Лист г/к 6мм Ст3сп',profileType:'SHEET',width:1500,height:6000,thick:6,kgM2:47.1,price:84000},
+    {id:'f3',name:'Лист г/к 8мм Ст3сп',profileType:'SHEET',width:1500,height:6000,thick:8,kgM2:62.8,price:83000},
+    {id:'f4',name:'Лист г/к 10мм Ст3сп',profileType:'SHEET',width:1500,height:6000,thick:10,kgM2:78.5,price:82500},
+    {id:'f5',name:'Лист н/к 3мм AISI304',profileType:'SHEET',width:1500,height:3000,thick:3,kgM2:23.6,price:335000},
+    {id:'f6',name:'Лист рифлёный 4мм',profileType:'SHEET',width:1250,height:6000,thick:4,kgM2:36,price:92000},
+  ];
+  return [
+    {id:'f10',name:'Труба 50×50×4 Ст3',profileType:'RECTANGULAR_TUBE',length:6000,kgM:5.84,price:88000},
+    {id:'f11',name:'Труба 60×60×4 Ст3',profileType:'RECTANGULAR_TUBE',length:6000,kgM:7.09,price:87000},
+    {id:'f12',name:'Труба 80×80×5 Ст3',profileType:'RECTANGULAR_TUBE',length:6000,kgM:11.7,price:86000},
+    {id:'f13',name:'Труба круг Ø57×4',profileType:'ROUND_TUBE',length:6000,kgM:5.29,price:90000},
+    {id:'f14',name:'Уголок 50×50×5 Ст3',profileType:'ANGLE',length:6000,kgM:3.77,price:86000},
+    {id:'f15',name:'Уголок 75×75×6 Ст3',profileType:'ANGLE',length:6000,kgM:6.98,price:85000},
+    {id:'f16',name:'Уголок 100×100×8',profileType:'ANGLE',length:6000,kgM:12.2,price:84000},
+    {id:'f17',name:'Швеллер 10П Ст3',profileType:'CHANNEL',length:6000,kgM:8.59,price:85000},
+    {id:'f18',name:'Швеллер 14П Ст3',profileType:'CHANNEL',length:6000,kgM:12.3,price:84500},
+    {id:'f19',name:'Балка 20Б1 Ст3',profileType:'BEAM',length:12000,kgM:26.7,price:83000},
+    {id:'f20',name:'Полоса 40×4 Ст3',profileType:'FLAT_BAR',length:6000,kgM:1.26,price:86000},
+    {id:'f21',name:'Полоса 60×6 Ст3',profileType:'FLAT_BAR',length:6000,kgM:2.83,price:85500},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let groups = [];
+let _groupCounter = 0;
+let _groupSearchLists = {};
+
+// ═══════════════════════════════════════════════════════════════
+// GROUPS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function addGroup() {
+  _groupCounter++;
+  const gid = _groupCounter;
+  groups.push({ id:gid, mode:'sheet', material:null, matOverride:{}, parts:[], allowRotate:true, _partCounter:0 });
+  _groupSearchLists[gid] = [];
+  renderGroups();
+  setTimeout(() => openGroup(gid), 20);
+}
+
+function removeGroup(gid) {
+  groups = groups.filter(g => g.id !== gid);
+  delete _groupSearchLists[gid];
+  renderGroups();
+  clearResults();
+}
+
+function toggleGroup(gid) {
+  document.getElementById(`gcard-${gid}`)?.classList.toggle('open');
+}
+
+function openGroup(gid) {
+  document.getElementById(`gcard-${gid}`)?.classList.add('open');
+}
+
+function setGroupMode(gid, newMode) {
+  const g = groups.find(g => g.id === gid);
+  if (!g) return;
+  g.mode = newMode; g.material = null; g.matOverride = {}; g.parts = []; g._partCounter = 0;
+  _groupSearchLists[gid] = [];
+  renderGroupBody(gid);
+  updateGroupHeader(gid);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER SIDEBAR
+// ═══════════════════════════════════════════════════════════════
+function renderGroups() {
+  const list  = document.getElementById('groups-list');
+  const empty = document.getElementById('groups-empty');
+  if (groups.length === 0) { list.innerHTML=''; list.appendChild(empty); empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  const openIds = new Set(groups.map(g=>g.id).filter(id => document.getElementById(`gcard-${id}`)?.classList.contains('open')));
+  list.innerHTML = groups.map(g => buildGroupCard(g)).join('');
+  openIds.forEach(id => document.getElementById(`gcard-${id}`)?.classList.add('open'));
+}
+
+function buildGroupCard(g) {
+  const isSheet  = g.mode === 'sheet';
+  const matName  = g.material?.name ?? null;
+  const badgeCls = isSheet ? 'badge-sheet' : 'badge-linear';
+  const badgeTxt = isSheet ? 'Лист' : 'Линейный';
+  return `
+  <div class="group-card" id="gcard-${g.id}">
+    <div class="group-header" onclick="toggleGroup(${g.id})">
+      <span class="group-type-badge ${badgeCls}">${badgeTxt}</span>
+      <span class="group-mat-name ${matName?'':'empty'}">${matName ? esc(matName) : 'Материал не выбран'}</span>
+      <span class="group-parts-count">${g.parts.length} дет.</span>
+      <span class="group-chevron">&#9654;</span>
+      <button class="btn-del-group" onclick="event.stopPropagation();removeGroup(${g.id})">&times;</button>
+    </div>
+    <div class="group-body" id="gbody-${g.id}">${buildGroupBody(g)}</div>
+  </div>`;
+}
+
+function buildGroupBody(g) {
+  const isSheet = g.mode === 'sheet';
+  const mo = g.matOverride;
+
+  const sheetParams = `
+    <div class="mat-grid">
+      <div class="mat-field"><label>Ширина листа, мм</label>
+        <input type="number" value="${mo.width??g.material?.width??1500}" onchange="setOvr(${g.id},'width',+this.value)"></div>
+      <div class="mat-field"><label>Длина листа, мм</label>
+        <input type="number" value="${mo.height??g.material?.height??6000}" onchange="setOvr(${g.id},'height',+this.value)"></div>
+      <div class="mat-field"><label>Толщина, мм</label>
+        <input type="number" value="${mo.thick??g.material?.thick??0}" onchange="setOvr(${g.id},'thick',+this.value)"></div>
+      <div class="mat-field"><label>Цена, ₽/т</label>
+        <input type="number" value="${mo.price??g.material?.price??0}" onchange="setOvr(${g.id},'price',+this.value)"></div>
+    </div>
+    <label class="rotate-row">
+      <input type="checkbox" ${g.allowRotate?'checked':''} onchange="setRotate(${g.id},this.checked)">
+      <span>Разрешить поворот деталей (90°)</span>
+    </label>`;
+
+  const linearParams = `
+    <div class="mat-grid">
+      <div class="mat-field span2"><label>Длина прутка / хлыста, мм</label>
+        <input type="number" value="${mo.length??g.material?.length??6000}" onchange="setOvr(${g.id},'length',+this.value)"></div>
+      <div class="mat-field"><label>Вес, кг/м</label>
+        <input type="number" step="0.01" value="${mo.kgM??g.material?.kgM??0}" onchange="setOvr(${g.id},'kgM',+this.value)"></div>
+      <div class="mat-field"><label>Цена, ₽/т</label>
+        <input type="number" value="${mo.price??g.material?.price??0}" onchange="setOvr(${g.id},'price',+this.value)"></div>
+    </div>`;
+
+  const phSheet  = `<div class="parts-header-row ph-sheet"><span></span><span>Название</span><span>Шир</span><span>Дл</span><span>Кол</span><span></span></div>`;
+  const phLinear = `<div class="parts-header-row ph-linear"><span></span><span>Название</span><span>Длина, мм</span><span>Кол</span><span></span></div>`;
+
+  const modeSheetStyle  = isSheet  ? 'border:1px solid rgba(0,212,255,.2);background:var(--bg-elevated);color:var(--cyan)'  : 'border:none;background:transparent;color:var(--text-muted)';
+  const modeLinStyle    = !isSheet ? 'border:1px solid rgba(0,212,255,.2);background:var(--bg-elevated);color:var(--cyan)' : 'border:none;background:transparent;color:var(--text-muted)';
+
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg-deep);padding:4px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px">
+      <button onclick="setGroupMode(${g.id},'sheet')" style="padding:7px;${modeSheetStyle};border-radius:4px;font-family:Syne,sans-serif;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer">&#11035; Листовой</button>
+      <button onclick="setGroupMode(${g.id},'linear')" style="padding:7px;${modeLinStyle};border-radius:4px;font-family:Syne,sans-serif;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer">&#9644; Линейный</button>
+    </div>
+    <div class="section-label">Материал из каталога</div>
+    <div class="search-wrap">
+      <span class="search-icon">&#8981;</span>
+      <input class="search-input" id="gsearch-${g.id}" type="text" placeholder="Поиск по каталогу…" autocomplete="off"
+        value="${g.material ? esc(g.material.name) : ''}"
+        oninput="onGSearch(${g.id},this.value)"
+        onfocus="showGDD(${g.id})"
+        onblur="setTimeout(()=>hideGDD(${g.id}),200)">
+      <div class="search-dropdown" id="gdd-${g.id}"></div>
+    </div>
+    <div class="section-label" style="margin-top:10px">Параметры материала</div>
+    <div style="background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+      ${isSheet ? sheetParams : linearParams}
+    </div>
+    <div class="section-label" style="margin-top:10px">Детали</div>
+    ${isSheet ? phSheet : phLinear}
+    <div id="gparts-${g.id}">${buildPartRows(g)}</div>
+    <button class="btn-add-part" onclick="addPart(${g.id})">+ Добавить деталь</button>`;
+}
+
+function renderGroupBody(gid) {
+  const g = groups.find(g=>g.id===gid);
+  const body = document.getElementById(`gbody-${gid}`);
+  if (g && body) body.innerHTML = buildGroupBody(g);
+}
+
+function updateGroupHeader(gid) {
+  const g = groups.find(g=>g.id===gid);
+  const card = document.getElementById(`gcard-${gid}`);
+  if (!g || !card) return;
+  const isSheet = g.mode === 'sheet';
+  card.querySelector('.group-type-badge').className = `group-type-badge ${isSheet?'badge-sheet':'badge-linear'}`;
+  card.querySelector('.group-type-badge').textContent = isSheet ? 'Лист' : 'Линейный';
+  const nm = card.querySelector('.group-mat-name');
+  nm.textContent = g.material ? g.material.name : 'Материал не выбран';
+  nm.className   = `group-mat-name ${g.material?'':'empty'}`;
+  card.querySelector('.group-parts-count').textContent = `${g.parts.length} дет.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATERIAL SEARCH per group
+// ═══════════════════════════════════════════════════════════════
+async function onGSearch(gid, q) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  clearTimeout(_searchTimers[gid]);
+  _searchTimers[gid] = setTimeout(async () => {
+    const list = await loadMaterials(g.mode);
+    _groupSearchLists[gid] = list;
+    renderGDD(gid, filterList(list,q), g.mode);
+  }, 180);
+}
+
+async function showGDD(gid) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  const dd = document.getElementById(`gdd-${gid}`); if (!dd) return;
+  dd.innerHTML = '<div class="search-item" style="color:var(--text-muted);cursor:default;font-size:11px">Загрузка…</div>';
+  dd.classList.add('open');
+  const list = await loadMaterials(g.mode);
+  _groupSearchLists[gid] = list;
+  const q = document.getElementById(`gsearch-${gid}`)?.value || '';
+  renderGDD(gid, filterList(list,q), g.mode);
+}
+
+function hideGDD(gid) { document.getElementById(`gdd-${gid}`)?.classList.remove('open'); }
+
+function filterList(list, q) {
+  if (!q) return list;
+  const lq = q.toLowerCase();
+  return list.filter(m => m.name.toLowerCase().includes(lq) || (m.code&&m.code.toLowerCase().includes(lq)));
+}
+
+function renderGDD(gid, list, mode) {
+  const dd = document.getElementById(`gdd-${gid}`); if (!dd) return;
+  if (!list.length) {
+    dd.innerHTML='<div class="search-item" style="color:var(--text-muted);cursor:default;font-size:11px">Ничего не найдено</div>';
+    dd.classList.add('open'); return;
+  }
+  dd.innerHTML = list.slice(0,50).map(m=>`
+    <div class="search-item" onclick="selectGMat(${gid},'${m.id}')">
+      <div class="search-item-name">${esc(m.name)}${m.code?` <span style="color:var(--text-muted);font-size:9px">[${esc(m.code)}]</span>`:''}</div>
+      <div class="search-item-meta">${mode==='sheet'
+        ?`${m.width}&times;${m.height}мм &middot; ${m.thick}мм &middot; ${m.kgM2||'—'}кг/м²`
+        :`${PROFILE_LABELS[m.profileType]||''} &middot; L=${m.length}мм &middot; ${m.kgM||'—'}кг/м`
+      }${m.price?` &middot; ${m.price.toLocaleString('ru')}₽/т`:''}</div>
+    </div>`).join('');
+  dd.classList.add('open');
+}
+
+function selectGMat(gid, mid) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  const mat = (_groupSearchLists[gid]||[]).find(m=>String(m.id)===String(mid)); if (!mat) return;
+  g.material = mat; g.matOverride = {};
+  hideGDD(gid);
+  renderGroupBody(gid);
+  updateGroupHeader(gid);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARTS
+// ═══════════════════════════════════════════════════════════════
+function setOvr(gid,f,v)  { const g=groups.find(g=>g.id===gid); if(g) g.matOverride[f]=v; }
+function setRotate(gid,v) { const g=groups.find(g=>g.id===gid); if(g) g.allowRotate=v; }
+
+function addPart(gid) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  g._partCounter++;
+  const pid = g._partCounter;
+  g.parts.push(g.mode==='sheet'
+    ? {id:pid,name:`Деталь ${pid}`,w:200,h:300,qty:1}
+    : {id:pid,name:`Деталь ${pid}`,len:1500,qty:1});
+  const c = document.getElementById(`gparts-${gid}`);
+  if (c) c.innerHTML = buildPartRows(g);
+  updateGroupHeader(gid);
+}
+
+function removePart(gid,pid) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  g.parts = g.parts.filter(p=>p.id!==pid);
+  const c = document.getElementById(`gparts-${gid}`);
+  if (c) c.innerHTML = buildPartRows(g);
+  updateGroupHeader(gid);
+}
+
+function updatePart(gid,pid,f,v) {
+  const g = groups.find(g=>g.id===gid); if (!g) return;
+  const p = g.parts.find(p=>p.id===pid); if (p) p[f]=v;
+}
+
+function buildPartRows(g) {
+  return g.parts.map((p,i) => {
+    const col = PART_COLORS[i%PART_COLORS.length];
+    const num = `<div class="part-num" style="background:${col}22;border-color:${col}44;color:${col}">${i+1}</div>`;
+    if (g.mode==='sheet') return `
+      <div class="part-row pr-sheet">
+        ${num}
+        <input class="part-input" value="${esc(p.name)}" onchange="updatePart(${g.id},${p.id},'name',this.value)">
+        <input class="part-input" type="number" value="${p.w}" onchange="updatePart(${g.id},${p.id},'w',+this.value)">
+        <input class="part-input" type="number" value="${p.h}" onchange="updatePart(${g.id},${p.id},'h',+this.value)">
+        <input class="part-input" type="number" value="${p.qty}" onchange="updatePart(${g.id},${p.id},'qty',+this.value)">
+        <button class="btn-del" onclick="removePart(${g.id},${p.id})">&times;</button>
+      </div>`;
+    return `
+      <div class="part-row pr-linear">
+        ${num}
+        <input class="part-input" value="${esc(p.name)}" onchange="updatePart(${g.id},${p.id},'name',this.value)">
+        <input class="part-input" type="number" value="${p.len}" onchange="updatePart(${g.id},${p.id},'len',+this.value)">
+        <input class="part-input" type="number" value="${p.qty}" onchange="updatePart(${g.id},${p.id},'qty',+this.value)">
+        <button class="btn-del" onclick="removePart(${g.id},${p.id})">&times;</button>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ALGORITHMS
+// ═══════════════════════════════════════════════════════════════
+
+// 2D shelf packing
+function packSheet(items, W, H, gap) {
+  const sheets = []; let remaining = [...items]; let guard = 0;
+  while (remaining.length > 0 && guard++ < 500) {
+    const sheet = {placed:[], usedArea:0};
+    let curY=0, curX=0, rowH=0;
+    const unplaced = [];
+    for (const item of remaining) {
+      let ok = false;
+      if (curX+item.w<=W && curY+item.h<=H) {
+        sheet.placed.push({...item,px:curX,py:curY});
+        sheet.usedArea += item.w*item.h; rowH = Math.max(rowH,item.h); curX += item.w+gap; ok=true;
+      } else if (curY+rowH+gap+item.h<=H && item.w<=W) {
+        curY+=rowH+gap; curX=0; rowH=item.h;
+        sheet.placed.push({...item,px:curX,py:curY});
+        sheet.usedArea += item.w*item.h; curX+=item.w+gap; ok=true;
+      }
+      if (!ok) unplaced.push(item);
+    }
+    if (sheet.placed.length===0 && remaining.length>0) {
+      sheet.placed.push({...remaining[0],px:0,py:0}); remaining=remaining.slice(1);
+    } else { remaining=unplaced; }
+    sheets.push(sheet);
+  }
+  return sheets;
+}
+
+// 1D FFD bin packing
+function packLinear(items, barLen, kerf) {
+  let pieces = [];
+  for (const item of items) for (let i=0;i<item.qty;i++) pieces.push({...item,qty:1});
+  pieces.sort((a,b)=>b.len-a.len);
+  const bars = [];
+  for (const piece of pieces) {
+    let placed=false;
+    for (const bar of bars) {
+      if (bar.remaining>=piece.len) {
+        bar.placed.push({...piece,pos:barLen-bar.remaining});
+        bar.remaining-=(piece.len+kerf); bar.usedLen+=piece.len; placed=true; break;
+      }
+    }
+    if (!placed) {
+      const bar={placed:[],remaining:barLen-piece.len-kerf,usedLen:piece.len};
+      bar.placed.push({...piece,pos:0}); bars.push(bar);
+    }
+  }
+  return bars;
+}
+
+// Дедупликация: одинаковые раскладки → одна карта ×N
+function stockSig(stock) {
+  const c={};
+  for (const p of stock.placed) c[p.name]=(c[p.name]||0)+1;
+  return Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0])).map(([n,v])=>`${n}:${v}`).join('|');
+}
+
+function dedup(stocks) {
+  const map=new Map();
+  stocks.forEach((s,idx)=>{
+    const sig=stockSig(s);
+    if (map.has(sig)) { const e=map.get(sig); e.count++; e.indices.push(idx); }
+    else map.set(sig,{stock:s,count:1,indices:[idx]});
+  });
+  return Array.from(map.values());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CALCULATE ALL
+// ═══════════════════════════════════════════════════════════════
+function calculateAll() {
+  const valid = groups.filter(g=>g.parts.length>0);
+  if (!valid.length) { alert('Добавьте хотя бы одну деталь в любой материал'); return; }
+  const gap  = +document.getElementById('param-gap').value  || 5;
+  const kerf = +document.getElementById('param-kerf').value || 3;
+
+  const results = valid.map(g => {
+    const mo=g.matOverride;
+    if (g.mode==='sheet') {
+      const W=mo.width??g.material?.width??1500, H=mo.height??g.material?.height??6000;
+      const thick=mo.thick??g.material?.thick??4, price=mo.price??g.material?.price??0;
+      const kgM2=g.material?.kgM2||(thick*7.85);
+      let expanded=[];
+      for (const p of g.parts) for (let i=0;i<p.qty;i++) {
+        let it={...p,qty:1};
+        if (g.allowRotate && p.h>W && p.w<=W) it={...p,qty:1,w:p.h,h:p.w};
+        expanded.push(it);
+      }
+      expanded.sort((a,b)=>(b.w*b.h)-(a.w*a.h));
+      const stocks=packSheet(expanded,W,H,gap);
+      const dd=dedup(stocks);
+      const totalArea=stocks.length*(W/1000)*(H/1000);
+      const usedArea=stocks.reduce((s,sh)=>s+sh.usedArea,0)/1e6;
+      const use=totalArea>0?usedArea/totalArea*100:0;
+      const wt=totalArea*kgM2, cost=wt/1000*price;
+      return {g,mode:'sheet',dd,totalStocks:stocks.length,W,H,use,wt,cost,kgM2,price};
+    } else {
+      const barLen=mo.length??g.material?.length??6000;
+      const kgM=mo.kgM??g.material?.kgM??0, price=mo.price??g.material?.price??0;
+      const stocks=packLinear(g.parts,barLen,kerf);
+      const ddStocks=dedup(stocks);
+      const usedLen=stocks.reduce((s,b)=>s+b.usedLen,0);
+      const totalLen=stocks.length*barLen;
+      const use=totalLen>0?usedLen/totalLen*100:0;
+      const wt=totalLen/1000*kgM, cost=wt/1000*price;
+      return {g,mode:'linear',dd:ddStocks,totalStocks:stocks.length,barLen,use,wt,cost,kgM,price};
+    }
+  });
+
+  renderAll(results);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderAll(results) {
+  const totalStocks = results.reduce((s,r)=>s+r.totalStocks,0);
+  const totalWt     = results.reduce((s,r)=>s+r.wt,0);
+  const totalCost   = results.reduce((s,r)=>s+r.cost,0);
+  const avgUse      = results.reduce((s,r)=>s+r.use,0)/results.length;
+
+  const sb=document.getElementById('summary-bar'); sb.classList.add('visible');
+  document.getElementById('sum-groups').textContent  = results.length;
+  document.getElementById('sum-stocks').textContent  = totalStocks;
+  document.getElementById('sum-use').textContent     = avgUse.toFixed(1)+'%';
+  document.getElementById('sum-weight').textContent  = totalWt.toFixed(1)+' кг';
+  document.getElementById('sum-cost').textContent    = Math.round(totalCost).toLocaleString('ru')+' ₽';
+
+  document.getElementById('empty-state').style.display='none';
+  const area=document.getElementById('results-area'); area.classList.add('visible');
+
+  let html='';
+
+  for (const r of results) {
+    const matName=r.g.material?.name||(r.mode==='sheet'?'Листовой':'Линейный');
+    const isSheet=r.mode==='sheet';
+    const badgeCls=isSheet?'badge-sheet':'badge-linear';
+    const uniqueCards=r.dd.length;
+    const dedupNote=uniqueCards<r.totalStocks
+      ? ` <span style="font-size:10px;color:var(--text-muted)">(${uniqueCards} уник.)</span>`:'';
+
+    html+=`<div class="mat-section">
+  <div class="mat-section-header">
+    <span class="mat-section-badge ${badgeCls}">${PROFILE_LABELS[r.g.material?.profileType]||(isSheet?'Лист':'Линейный')}</span>
+    <span class="mat-section-name">${esc(matName)}</span>
+    <div class="mat-section-stats">
+      <div class="mss"><div class="mss-label">${isSheet?'Листов':'Прутков'}</div>
+        <div class="mss-val cyan">${r.totalStocks}${dedupNote}</div></div>
+      <div class="mss"><div class="mss-label">Использование</div>
+        <div class="mss-val ${r.use>=70?'green':'amber'}">${r.use.toFixed(1)}%</div></div>
+      <div class="mss"><div class="mss-label">Вес, кг</div><div class="mss-val">${r.wt.toFixed(1)}</div></div>
+      <div class="mss"><div class="mss-label">Стоимость, ₽</div><div class="mss-val">${Math.round(r.cost).toLocaleString('ru')}</div></div>
+    </div>
+  </div>`;
+
+    r.dd.forEach(({stock,count,indices},ci)=>{
+      html += isSheet
+        ? renderSheetCard(stock, ci+1, r, count, indices)
+        : renderBarCard(stock, ci+1, r, count, indices);
+    });
+
+    html+=`</div>`;
+  }
+
+  // Итоговая таблица
+  html+=`<div class="grand-total">
+  <div class="grand-total-header">Итого по спецификации</div>
+  <table class="gt-table"><thead><tr>
+    <th>Материал</th><th>Профиль</th>
+    <th style="text-align:right">Листов/прутков</th>
+    <th style="text-align:right">Уник. раскроев</th>
+    <th style="text-align:right">Использование</th>
+    <th style="text-align:right">Вес, кг</th>
+    <th style="text-align:right">Стоимость, ₽</th>
+  </tr></thead><tbody>
+  ${results.map(r=>`<tr>
+    <td class="td-name">${esc(r.g.material?.name||'—')}</td>
+    <td class="td-num">${PROFILE_LABELS[r.g.material?.profileType]||'—'}</td>
+    <td class="td-num cyan">${r.totalStocks}</td>
+    <td class="td-num">${r.dd.length}</td>
+    <td class="td-num ${r.use>=70?'green':'amber'}">${r.use.toFixed(1)}%</td>
+    <td class="td-num">${r.wt.toFixed(1)}</td>
+    <td class="td-num">${Math.round(r.cost).toLocaleString('ru')}</td>
+  </tr>`).join('')}
+  <tr class="gt-total-row">
+    <td class="td-name" colspan="2">ИТОГО</td>
+    <td class="td-num cyan">${totalStocks}</td>
+    <td class="td-num">${results.reduce((s,r)=>s+r.dd.length,0)}</td>
+    <td class="td-num green">${avgUse.toFixed(1)}%</td>
+    <td class="td-num">${totalWt.toFixed(1)}</td>
+    <td class="td-num">${Math.round(totalCost).toLocaleString('ru')}</td>
+  </tr>
+  </tbody></table>
+</div>`;
+
+  area.innerHTML=html;
+}
+
+function clearResults() {
+  document.getElementById('summary-bar').classList.remove('visible');
+  document.getElementById('empty-state').style.display='flex';
+  const a=document.getElementById('results-area'); a.classList.remove('visible'); a.innerHTML='';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SVG — SHEET
+// ═══════════════════════════════════════════════════════════════
+function renderSheetCard(sh, idx, r, count, indices) {
+  const MAXW=660, SCALE=Math.min(MAXW/r.W, 300/r.H);
+  const svgW=Math.round(r.W*SCALE), svgH=Math.round(r.H*SCALE);
+  const used=(sh.usedArea/(r.W*r.H)*100).toFixed(1);
+  const nc=buildColorMap(sh.placed);
+  const rects=sh.placed.map(p=>sheetRect(p,SCALE,nc)).join('');
+  const hid=`hs-${r.g.id}-${idx}`;
+  const isDedup=count>1;
+  const numCls=isDedup?'class="stock-num dedup"':'class="stock-num"';
+  const numTxt=isDedup?`&times;${count}`:idx;
+  const dedupBadge=isDedup?`<span class="dedup-badge">&times;${count} шт &mdash; листа ${indices.map(i=>i+1).join(', ')}</span>`:'';
+  return `<div class="stock-card">
+  <div class="stock-header">
+    <div ${numCls}>${numTxt}</div>
+    <div class="stock-title">${isDedup?'Повторяющийся раскрой':'Лист'} &mdash; ${r.W}&times;${r.H} мм</div>
+    ${dedupBadge}
+    <div class="stock-stats">
+      <div class="stock-stat"><div class="ss-label">Деталей на листе</div><div class="ss-val">${sh.placed.length}</div></div>
+      <div class="stock-stat"><div class="ss-label">Использовано</div>
+        <div class="ss-val ${+used>=70?'green':'amber'}">${used}%</div></div>
+    </div>
+  </div>
+  <div class="svg-container">
+    <svg class="layout-svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="background:#1a1d24;border:1px solid #2a2f3d">
+      <defs><pattern id="${hid}" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#2a2f3d" stroke-width="2"/>
+      </pattern></defs>
+      <rect width="${svgW}" height="${svgH}" fill="url(#${hid})"/>
+      ${rects}
+    </svg>
+  </div>
+  <div class="legend">${buildLegend(sh.placed,nc)}</div>
+</div>`;
+}
+
+function sheetRect(p, S, nc) {
+  const px=Math.round(p.px*S), py=Math.round(p.py*S), pw=Math.round(p.w*S), ph=Math.round(p.h*S);
+  const col=nc[p.name], cx=px+pw/2, cy=py+ph/2;
+  const fs=Math.max(7,Math.min(11,pw/9,ph/3));
+  return `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-width="1.5" rx="2"/>
+  ${pw>36&&ph>22?`
+  <text x="${cx}" y="${cy-fs*.5}" text-anchor="middle" font-family="DM Mono,monospace" font-size="${fs}" fill="#e8eaf0" font-weight="500">${trunc(p.name,13)}</text>
+  <text x="${cx}" y="${cy+fs*.9}" text-anchor="middle" font-family="DM Mono,monospace" font-size="${Math.max(6,fs-2)}" fill="#8a93a8">${p.w}&times;${p.h}</text>
+  `:''}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SVG — LINEAR
+// ═══════════════════════════════════════════════════════════════
+function renderBarCard(bar, idx, r, count, indices) {
+  const SVG_W=660, BAR_H=46, SCALE=SVG_W/r.barLen;
+  const used=(bar.usedLen/r.barLen*100).toFixed(1);
+  const remain=Math.max(0,bar.remaining);
+  const nc=buildColorMap(bar.placed);
+  const segs=bar.placed.map(p=>barSeg(p,SCALE,BAR_H,nc)).join('');
+  const hid=`hl-${r.g.id}-${idx}`;
+  const isDedup=count>1;
+  const numCls=isDedup?'class="stock-num dedup"':'class="stock-num"';
+  const numTxt=isDedup?`&times;${count}`:idx;
+  const dedupBadge=isDedup?`<span class="dedup-badge">&times;${count} шт &mdash; прутки ${indices.map(i=>i+1).join(', ')}</span>`:'';
+  return `<div class="stock-card">
+  <div class="stock-header">
+    <div ${numCls}>${numTxt}</div>
+    <div class="stock-title">${isDedup?'Повторяющийся раскрой':'Пруток'} &mdash; L=${r.barLen} мм</div>
+    ${dedupBadge}
+    <div class="stock-stats">
+      <div class="stock-stat"><div class="ss-label">Деталей</div><div class="ss-val">${bar.placed.length}</div></div>
+      <div class="stock-stat"><div class="ss-label">Остаток</div><div class="ss-val amber">${remain} мм</div></div>
+      <div class="stock-stat"><div class="ss-label">Использовано</div>
+        <div class="ss-val ${+used>=70?'green':'amber'}">${used}%</div></div>
+    </div>
+  </div>
+  <div class="svg-container">
+    <svg class="layout-svg" width="${SVG_W}" height="${BAR_H}" viewBox="0 0 ${SVG_W} ${BAR_H}" style="background:#1a1d24;border:1px solid #2a2f3d">
+      <defs><pattern id="${hid}" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="#2a2f3d" stroke-width="2"/>
+      </pattern></defs>
+      <rect width="${SVG_W}" height="${BAR_H}" fill="url(#${hid})"/>
+      ${segs}
+    </svg>
+  </div>
+  <div class="legend">${buildLegend(bar.placed,nc)}</div>
+</div>`;
+}
+
+function barSeg(p, S, BAR_H, nc) {
+  const px=Math.round(p.pos*S), pw=Math.round(p.len*S);
+  const col=nc[p.name], cx=px+pw/2;
+  const fs=Math.min(11,Math.max(7,pw/11));
+  return `<rect x="${px}" y="0" width="${pw}" height="${BAR_H}" fill="${col}" fill-opacity=".6" stroke="${col}" stroke-width="1.5" rx="2"/>
+  ${pw>28?`
+  <text x="${cx}" y="${BAR_H/2-4}" text-anchor="middle" font-family="DM Mono,monospace" font-size="${fs}" fill="#e8eaf0" font-weight="500">${trunc(p.name,11)}</text>
+  <text x="${cx}" y="${BAR_H/2+9}" text-anchor="middle" font-family="DM Mono,monospace" font-size="${Math.max(6,fs-2)}" fill="#8a93a8">${p.len}мм</text>
+  `:''}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function buildColorMap(placed) {
+  const m={}; let ci=0;
+  for (const p of placed) if (!m[p.name]) m[p.name]=PART_COLORS[(ci++)%PART_COLORS.length];
+  return m;
+}
+function buildLegend(placed, nc) {
+  return [...new Set(placed.map(p=>p.name))].map(name=>{
+    const col=nc[name], cnt=placed.filter(p=>p.name===name).length;
+    return `<div class="legend-item"><div class="legend-dot" style="background:${col}88;border:1.5px solid ${col}"></div>${esc(name)} (${cnt} шт)</div>`;
+  }).join('');
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function trunc(s,n) { return s.length>n?s.slice(0,n)+'…':s; }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT — демо-данные
+// ═══════════════════════════════════════════════════════════════
+(function demo() {
+  addGroup();
+  const g1=groups[0];
+  g1.material={name:'Лист г/к 4мм Ст3сп',profileType:'SHEET',kgM2:31.4};
+  g1.matOverride={width:1500,height:6000,thick:4,price:85000};
+  g1.parts=[
+    {id:1,name:'Боковая стенка',w:400,h:800,qty:4},
+    {id:2,name:'Верхняя крышка',w:600,h:300,qty:2},
+    {id:3,name:'Перегородка',w:250,h:500,qty:6},
+    {id:4,name:'Косынка',w:150,h:150,qty:8},
+  ]; g1._partCounter=4;
+
+  addGroup();
+  const g2=groups[1];
+  g2.mode='linear';
+  g2.material={name:'Труба 50×50×4 Ст3',profileType:'RECTANGULAR_TUBE'};
+  g2.matOverride={length:6000,kgM:5.84,price:88000};
+  g2.parts=[
+    {id:1,name:'Стойка',len:2400,qty:4},
+    {id:2,name:'Перемычка',len:1800,qty:6},
+    {id:3,name:'Диагональ',len:900,qty:8},
+  ]; g2._partCounter=3;
+
+  addGroup();
+  const g3=groups[2];
+  g3.mode='linear';
+  g3.material={name:'Уголок 50×50×5 Ст3',profileType:'ANGLE'};
+  g3.matOverride={length:6000,kgM:3.77,price:86000};
+  g3.parts=[
+    {id:1,name:'Косынка угловая',len:400,qty:12},
+    {id:2,name:'Подкос',len:1200,qty:4},
+  ]; g3._partCounter=2;
+
+  renderGroups();
+})();
+</script>
+</body>
+</html>
