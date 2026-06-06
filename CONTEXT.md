@@ -58,7 +58,7 @@
 | AI Mail Intake | 🔲 Концепт | — | UI концепт готов, интеграция — нет |
 | Заказы в производстве | 🔲 Концепт | — | UI концепт готов |
 | Планировщик технолога | 🔲 Концепт | — | UI концепт готов |
-| DXF / Nesting | 🔲 Не начат | — | Phase 3 roadmap |
+| DXF / Nesting | 🔄 В работе | claude/material-type-classification-QTil4 | nesting.html готов, без БД |
 
 #### Известные проблемы
 - Frontend state сбрасывается после refresh — нужен persist storage
