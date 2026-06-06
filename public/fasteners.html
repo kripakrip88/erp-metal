@@ -323,6 +323,12 @@ async function loadMaterials() {
   try {
     var r = await ERP.authFetch('/api/materials?' + p);
     var data = await r.json();
+    if (!r.ok) {
+      console.error('API error', r.status, data);
+      ERP.toast('Ошибка API ' + r.status + ': ' + (data.error || JSON.stringify(data)), 'error');
+      return;
+    }
+    console.log('fasteners response:', data);
     currentItems = data.items || [];
     renderTable(currentItems);
     renderPagination(data);
